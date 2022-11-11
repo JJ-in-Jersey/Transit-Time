@@ -14,7 +14,6 @@ class JobManager:
     def __init__(self, q):
         remove(process_running_semaphore)
         print(f'+   job manager (Pool size = {cpu_count()})', flush=True)
-
         r = {}
         with Pool() as p:
             while True:

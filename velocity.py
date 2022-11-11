@@ -38,12 +38,6 @@ def velocity_page(driver, year, code, wait):
     dropdown.select_by_index(options.index(year))
 
 class VelocityJob():
-    __velocity_array = None
-    __point = None
-    __chart_year = None
-    __download_dir = None
-    __wdw = None
-    def array(self): return self.__velocity_array
 
     def get_driver(self):
         my_options = Options()
@@ -89,11 +83,10 @@ class VelocityJob():
         x = noaa_dataframe['time'].apply(lambda time: time_to_index(start, time)).to_numpy()
         y = noaa_dataframe['velocity'].to_numpy()
         cs = CubicSpline(x, y)
-        self.__point.velocity_array = self.__velocity_array = np.fromiter((cs(x) for x in v_range), dtype=np.half)
-        print(self.__point.name, self.__point.velocity_array)
+        self.__point.velocity_array = self.__array = np.fromiter((cs(x) for x in v_range), dtype=np.half)
         pd.DataFrame(self.__point.velocity_array).to_csv(Path(str(self.__download_dir.folder())+'/'+code+'_array.csv'))
 
-        return True if len(self.__velocity_array) else False
+        return True if len(self.__point.velocity_array) else False
 
     def execute_callback(self, result):
         boom = 'SUCCESSFUL' if result else 'FAILED'
@@ -103,3 +96,4 @@ class VelocityJob():
         self.__point = point
         self.__chart_year = chart_year
         self.__download_dir = download_dir
+        self.__array = None

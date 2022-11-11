@@ -8,26 +8,79 @@ from velocity import VelocityJob
 
 fw("ignore", message="The localize method is no longer necessary, as this time zone supports the fold attribute",)
 
+class RoutePoint:
+
+    def calculate_velocity(self):
+        project_globals.job_queue.put(VelocityJob(self, project_globals.chart_year, project_globals.download_dir))
+
+    def g_next(self): return self.__next
+    def s_next(self, pt=None): self.__next = pt if not self.__next and pt else self.__next  # can be set only once
+    def g_prev(self): return self.__prev
+    def s_prev(self, pt=None): self.__prev = pt if not self.__prev and pt else self.__prev  # can be set only once
+    def g_dtn(self): return self.__dist_to_next
+    def s_dtn(self, dist=0): self.__dist_to_next = dist if not self.__dist_to_next and dist else self.__dist_to_next  # can be set only once
+    def g_dtp(self): return self.__dist_to_prev
+    def s_dtp(self, dist=0): self.__dist_to_prev = dist if not self.__dist_to_prev and dist else self.__dist_to_prev  # can be set only once
+    def g_ttn(self): return self.__times_to_next
+    def s_ttn(self, array=None): self.__times_to_next = array if not self.__times_to_next and array else self.__times_to_next  # can be set only once
+    def g_ttp(self): return self.__times_to_prev
+    def s_ttp(self, array=0): self.__times_to_prev = array if not self.__times_to_prev and array else self.__times_to_prev  # can be set only once
+    def g_coords(self): return self.__coords
+    def g_name(self): return self.__name
+    def g_url(self): return self.__url
+    def g_velocity_array(self): return self.__velocity_array
+    def s_velocity_array(self, arr): self.__velocity_array = arr
+    next = property(fget=g_next, fset=s_next)
+    prev = property(fget=g_prev, fset=s_prev)
+    dist_to_next = property(fget=g_dtn, fset=s_dtn)
+    dist_to_prev = property(fget=g_dtp, fset=s_dtp)
+    times_to_next = property(fget=g_ttn, fset=s_ttn)
+    times_to_prev = property(fget=g_ttp, fset=s_ttp)
+    coords = property(fget=g_coords)
+    name = property(fget=g_name)
+    url = property(fget=g_url)
+    velocity_array = property(fget=g_velocity_array, fset=s_velocity_array)
+
+    def __init__(self, tag):
+        self.__next = None
+        self.__prev = None
+        self.__dist_to_next = 0
+        self.__dist_to_prev = 0
+        self.__times_to_next = None
+        self.__times_to_prev = None
+        self.__url = ''
+        self.__velocity_array = None
+        self.__name = tag.find('name').text
+        self.__coords = (round(float(tag.attrs['lat']), 4), round(float(tag.attrs['lon']), 4))
+        if tag.desc:
+            self.__url = tag.link.attrs['href']
+
 class GpxRoute:
 
-    __first = None
-    __last = None
-    __length = 0
-    __direction = None
+    directionLookup = {'SN': 'South to North', 'NS': 'North to South', 'EW': 'East to West', 'WE': 'West to East'}
 
-    __dictionary = {'SN': 'South to North', 'NS': 'North to South', 'EW': 'East to West', 'WE': 'West to East'}
+    def calculate_velocities(self):
+        pt = self.__first
+        while pt:
+            pt.calculate_velocity()
+            pt = pt.next
+        project_globals.job_queue.join()
 
-    def __gfirst(self): return self.__first
-    def __glast(self): return self.__last
-    def __glength(self): return self.__length
-    def __gdirection(self): return self.lookup(self.__direction)
-    first = property(fget=__gfirst, fset=None, fdel=None)
-    last = property(fget=__glast, fset=None, fdel=None)
-    length = property(fget=__glength, fset=None, fdel=None)
-    direction = property(fget=__gdirection, fset=None, fdel=None)
-    def lookup(self, key): return self.__dictionary[key]
+    def g_first(self): return self.__first
+    def g_last(self): return self.__last
+    def g_length(self): return self.__length
+    def g_direction(self): return GpxRoute.directionLookup[self.__direction]
+    first = property(fget=g_first)
+    last = property(fget=g_last)
+    length = property(fget=g_length)
+    direction = property(fget=g_direction)
 
     def __init__(self, filepath):
+        self.__first = None
+        self.__last = None
+        self.__length = 0
+        self.__direction = None
+
         with open(filepath, 'r') as f:
             gpxfile = f.read()
 
@@ -37,7 +90,6 @@ class GpxRoute:
         for p in tree.find_all('rtept'):
             raw_points.append(RoutePoint(p))
         route_points = tuple([rp for rp in raw_points if rp.url])  # tuple of current station waypoint objects
-        self.__dictionary.update({pt.name: pt for pt in route_points})  # add waypoints lookup by name
         self.__first = route_points[0]
         self.__last = route_points[-1]
 
@@ -72,48 +124,3 @@ class GpxRoute:
         elif (lat_sign > 0 > lon_sign and not lon_dist >= lat_dist) or (lat_sign < 0 and lon_sign < 0 and not lon_dist >= lat_dist): self.__direction = 'NS'
         elif (lat_sign < 0 < lon_sign and lon_dist >= lat_dist) or (lat_sign < 0 and lon_sign < 0 and lon_dist >= lat_dist): self.__direction = 'EW'
         elif (lat_sign > 0 and lon_sign > 0 and lon_dist >= lat_dist) or (lat_sign > 0 > lon_sign and lon_dist >= lat_dist): self.__direction = 'WE'
-
-class RoutePoint:
-
-    def __gnext(self): return self.__next
-    def __snext(self, pt=None): self.__next = pt if not self.__next and pt else self.__next  # can be set only once
-    def __gprev(self): return self.__prev
-    def __sprev(self, pt=None): self.__prev = pt if not self.__prev and pt else self.__prev  # can be set only once
-    def __gdtn(self): return self.__dist_to_next
-    def __sdtn(self, dist=0): self.__dist_to_next = dist if not self.__dist_to_next and dist else self.__dist_to_next  # can be set only once
-    def __gdtp(self): return self.__dist_to_prev
-    def __sdtp(self, dist=0): self.__dist_to_prev = dist if not self.__dist_to_prev and dist else self.__dist_to_prev  # can be set only once
-    def __gttn(self): return self.__times_to_next
-    def __sttn(self, array=None): self.__times_to_next = array if not self.__times_to_next and array else self.__times_to_next  # can be set only once
-    def __gttp(self): return self.__times_to_prev
-    def __sttp(self, array=0): self.__times_to_prev = array if not self.__times_to_prev and array else self.__times_to_prev  # can be set only once
-    def __gcoords(self): return self.__coords
-    def __gname(self): return self.__name
-    def __gurl(self): return self.__url
-    def __svelo(self, velo_arr): self.__velocity_array = velo_arr  # if not self.__velocity_array and len(velo_arr) else self.__velocity_array  # can be set only once
-    def __gvelo(self): return self.__velocity_array
-    next = property(fget=__gnext, fset=__snext, fdel=None)
-    prev = property(fget=__gprev, fset=__sprev, fdel=None)
-    dist_to_next = property(fget=__gdtn, fset=__sdtn, fdel=None)
-    dist_to_prev = property(fget=__gdtp, fset=__sdtp, fdel=None)
-    times_to_next = property(fget=__gttn, fset=__sttn, fdel=None)
-    times_to_prev = property(fget=__gttp, fset=__sttp, fdel=None)
-    coords = property(fget=__gcoords, fset=None, fdel=None)
-    name = property(fget=__gname, fset=None, fdel=None)
-    url = property(fget=__gurl, fset=None, fdel=None)
-    velocity_array = property(fget=__gvelo, fset=__svelo, fdel=None)
-
-    def __init__(self, tag):
-        self.__next = None
-        self.__prev = None
-        self.__dist_to_next = 0
-        self.__dist_to_prev = 0
-        self.__times_to_next = None
-        self.__times_to_prev = None
-        self.__url = ''
-        self.__velocity_array = None
-        self.__name = tag.find('name').text
-        self.__coords = (round(float(tag.attrs['lat']), 4), round(float(tag.attrs['lon']), 4))
-        if tag.desc:
-            self.__url = tag.link.attrs['href']
-            project_globals.job_queue.put(VelocityJob(self, project_globals.chart_year, project_globals.download_dir))

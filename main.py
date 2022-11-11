@@ -27,7 +27,7 @@ if __name__ == '__main__':
     # Calculate the distances between waypoints
     # Download noaa data and create velocity arrays for each waypoint
     route = GpxRoute(args['filepath'])
-    project_globals.job_queue.join()
+    route.calculate_velocities()
 
     print(f'Route length is {round(route.length,2)} nautical miles')
     print(f'Route direction is {route.direction}')
