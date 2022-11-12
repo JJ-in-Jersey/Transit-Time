@@ -19,12 +19,18 @@ job_queue = JoinableQueue()
 
 class DownloadDirectory:
 
+    def make_subfolder(self, name):
+        folderpath = Path(str(self.__folder) + '/' + name)
+        makedirs(folderpath, exist_ok=True)
+        return folderpath
+
     def set_project_name(self, name):
         if not self.__project_name:
             self.__project_name = name
             self.__folder = Path(environ['USERPROFILE']+'/Downloads/'+name+'/')
             shutil.rmtree(self.__folder, ignore_errors=True)
             makedirs(self.__folder, exist_ok=True)
+
     def project_name(self): return self.__project_name
     def folder(self): return self.__folder
     # project_name = property(fget=project_name, fset=set_project_name)

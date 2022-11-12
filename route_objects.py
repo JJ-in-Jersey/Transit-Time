@@ -28,8 +28,12 @@ class RoutePoint:
     def g_coords(self): return self.__coords
     def g_name(self): return self.__name
     def g_url(self): return self.__url
+    def g_code(self): return self.__code
     def g_velocity_array(self): return self.__velocity_array
-    def s_velocity_array(self, arr): self.__velocity_array = arr
+    def s_velocity_array(self, arr):
+        if self.prev: print(f'{self.prev.name}')
+        print(f'setting array')
+        self.__velocity_array = arr
     next = property(fget=g_next, fset=s_next)
     prev = property(fget=g_prev, fset=s_prev)
     dist_to_next = property(fget=g_dtn, fset=s_dtn)
@@ -39,6 +43,7 @@ class RoutePoint:
     coords = property(fget=g_coords)
     name = property(fget=g_name)
     url = property(fget=g_url)
+    code = property(fget=g_code)
     velocity_array = property(fget=g_velocity_array, fset=s_velocity_array)
 
     def __init__(self, tag):
@@ -49,11 +54,14 @@ class RoutePoint:
         self.__times_to_next = None
         self.__times_to_prev = None
         self.__url = ''
+        self.__code = ''
         self.__velocity_array = None
         self.__name = tag.find('name').text
         self.__coords = (round(float(tag.attrs['lat']), 4), round(float(tag.attrs['lon']), 4))
+
         if tag.desc:
             self.__url = tag.link.attrs['href']
+            self.__code = self.url.split('=')[1].split('_')[0]
 
 class GpxRoute:
 
