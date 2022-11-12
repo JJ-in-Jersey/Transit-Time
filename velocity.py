@@ -18,9 +18,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from project_globals import seconds, dash_to_zero, time_to_index, timestep
 
-environ['WDM_LOG'] = "false"
 logging.getLogger('WDM').setLevel(logging.NOTSET)
-wdw = None
 
 def newest_file(folder):
     types = ['*.txt', '*.csv']
@@ -54,12 +52,12 @@ class VelocityJob():
         newest_before = newest_after = newest_file(self.__download_dir)
         self.__wdw.until(ec.element_to_be_clickable((By.ID, 'generatePDF'))).click()
         while newest_before == newest_after:
-            sleep(1)
+            sleep(0.1)
             newest_after = newest_file(self.__download_dir)
         return newest_after
 
     def execute(self):
-        print(f'+     (pool) {self.__point.name} velocity calculation starting', flush=True)
+        print(f'+     (pool) {self.__point.code()} {self.__point.name()} velocity calculation starting', flush=True)
         start = self.__chart_year.first_day_minus_two()
         end = self.__chart_year.last_day_plus_three()
         year = self.__chart_year.year()
@@ -68,8 +66,8 @@ class VelocityJob():
 
         driver = self.get_driver()
         for y in range(year - 1, year + 2):  # + 2 because of range behavior
-            driver.get(self.__point.url)
-            velocity_page(driver, y, self.__point.code, self.__wdw)
+            driver.get(self.__point.url())
+            velocity_page(driver, y, self.__point.code(), self.__wdw)
             file = self.velocity_download()
             file_dataframe = pd.read_csv(file, header='infer', converters={' Speed (knots)': dash_to_zero}, parse_dates=['Date_Time (LST/LDT)'])
             noaa_dataframe = pd.concat([noaa_dataframe, file_dataframe])
@@ -78,21 +76,23 @@ class VelocityJob():
         noaa_dataframe.rename(columns={'Date_Time (LST/LDT)': 'time', ' Event': 'event', ' Speed (knots)': 'velocity'}, inplace=True)
         noaa_dataframe = noaa_dataframe[(start <= noaa_dataframe['time']) & (noaa_dataframe['time'] <= end)]
         noaa_dataframe = noaa_dataframe.reset_index(drop=True)
-        noaa_dataframe.to_csv(Path(str(self.__DD.folder())+'/'+self.__point.code+'_dataframe.csv'), index=False)
+        noaa_dataframe.to_csv(Path(str(self.__DD.folder())+'/'+self.__point.code()+'_dataframe.csv'), index=False)
         x = noaa_dataframe['time'].apply(lambda time: time_to_index(start, time)).to_numpy()
         y = noaa_dataframe['velocity'].to_numpy()
         cs = CubicSpline(x, y)
-        self.__point.velocity_array = np.fromiter((cs(x) for x in v_range), dtype=np.half)
-        pd.DataFrame(self.__point.velocity_array).to_csv(Path(str(self.__DD.folder())+'/'+self.__point.code+'_array.csv'))
-        return True if len(self.__point.velocity_array) else False
+        result = np.fromiter((cs(x) for x in v_range), dtype=np.half)
+        pd.DataFrame(result).to_csv(Path(str(self.__DD.folder())+'/'+self.__point.code()+'_array.csv'))
+        return result
 
     def execute_callback(self, result):
-        boom = 'SUCCESSFUL' if result else 'FAILED'
-        print(f'-     (pool) {self.__point.name} {len(self.__point.velocity_array)} calculation {boom}', flush=True)
+        boom = 'SUCCESSFUL' if len(result) else 'FAILED'
+        self.__point.set_velocity_array(result)
+        print(f'-     (pool) {self.__point.code()} calculation {boom}', flush=True)
 
     def __init__(self, point, chart_year, download_dir):
+        self.__wdw = None
         self.__point = point
         self.__chart_year = chart_year
-        self.__download_dir = download_dir.make_subfolder(self.__point.code)
+        self.__download_dir = download_dir.make_subfolder(self.__point.code())
         self.__DD = download_dir
 

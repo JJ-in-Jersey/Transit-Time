@@ -6,11 +6,10 @@ import multiprocess
 from route_objects import GpxRoute
 
 if __name__ == '__main__':
-    som = multiprocess.SharedObjectManager()
-    som.start(multiprocess.pm_init)
-    project_globals.shared_object_manager = som
-    project_globals.chart_year = som.CY()
-    project_globals.download_dir = som.DD()
+    project_globals.shared_object_manager = multiprocess.SharedObjectManager()
+    project_globals.shared_object_manager.start(multiprocess.pm_init)
+    project_globals.chart_year = project_globals.shared_object_manager.CY()
+    project_globals.download_dir = project_globals.shared_object_manager.DD()
     jm = multiprocess.WaitForProcess(target=multiprocess.JobManager, args=(project_globals.job_queue,))
     jm.start()
 
@@ -29,12 +28,12 @@ if __name__ == '__main__':
     route = GpxRoute(args['filepath'])
     route.calculate_velocities()
 
-    print(f'Route length is {round(route.length,2)} nautical miles')
-    print(f'Route direction is {route.direction}')
-    pt = route.first
+    print(f'Route length is {round(route.length(),2)} nautical miles')
+    print(f'Route direction is {route.direction()}')
+    pt = route.first()
     while pt:
-        print(pt.name, pt.velocity_array)
-        pt = pt.next
+        print(pt.name(), pt.__dict__)
+        pt = pt.next()
 
-    som.shutdown()
+    project_globals.shared_object_manager.shutdown()
     if jm.is_alive(): jm.terminate()

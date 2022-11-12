@@ -6,6 +6,7 @@ from multiprocessing import Pool, Process, cpu_count
 from multiprocessing.managers import BaseManager
 
 from project_globals import ChartYear, DownloadDirectory
+from route_objects import RoutePoint, GpxRoute
 
 process_running_semaphore = Path(environ['TEMP'] + '/process_running_semaphore.tmp')
 
@@ -23,7 +24,7 @@ class JobManager:
                 jobs = list(r.keys())
                 for job in jobs:
                     if r[job].ready():
-                        if r[job].get():
+                        if len(r[job].get()):
                             del r[job]
                             q.task_done()
                         else: r[job] = p.apply_async(job.execute())
@@ -39,4 +40,5 @@ class WaitForProcess(Process):
 class SharedObjectManager(BaseManager): pass
 SharedObjectManager.register('DD', DownloadDirectory)
 SharedObjectManager.register('CY', ChartYear)
+SharedObjectManager.register('RP', RoutePoint)
 def pm_init(): print(f'+   multiprocessing shared object manager', flush=True)

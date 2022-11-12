@@ -13,38 +13,24 @@ class RoutePoint:
     def calculate_velocity(self):
         project_globals.job_queue.put(VelocityJob(self, project_globals.chart_year, project_globals.download_dir))
 
-    def g_next(self): return self.__next
-    def s_next(self, pt=None): self.__next = pt if not self.__next and pt else self.__next  # can be set only once
-    def g_prev(self): return self.__prev
-    def s_prev(self, pt=None): self.__prev = pt if not self.__prev and pt else self.__prev  # can be set only once
-    def g_dtn(self): return self.__dist_to_next
-    def s_dtn(self, dist=0): self.__dist_to_next = dist if not self.__dist_to_next and dist else self.__dist_to_next  # can be set only once
-    def g_dtp(self): return self.__dist_to_prev
-    def s_dtp(self, dist=0): self.__dist_to_prev = dist if not self.__dist_to_prev and dist else self.__dist_to_prev  # can be set only once
-    def g_ttn(self): return self.__times_to_next
-    def s_ttn(self, array=None): self.__times_to_next = array if not self.__times_to_next and array else self.__times_to_next  # can be set only once
-    def g_ttp(self): return self.__times_to_prev
-    def s_ttp(self, array=0): self.__times_to_prev = array if not self.__times_to_prev and array else self.__times_to_prev  # can be set only once
-    def g_coords(self): return self.__coords
-    def g_name(self): return self.__name
-    def g_url(self): return self.__url
-    def g_code(self): return self.__code
-    def g_velocity_array(self): return self.__velocity_array
-    def s_velocity_array(self, arr):
-        if self.prev: print(f'{self.prev.name}')
-        print(f'setting array')
-        self.__velocity_array = arr
-    next = property(fget=g_next, fset=s_next)
-    prev = property(fget=g_prev, fset=s_prev)
-    dist_to_next = property(fget=g_dtn, fset=s_dtn)
-    dist_to_prev = property(fget=g_dtp, fset=s_dtp)
-    times_to_next = property(fget=g_ttn, fset=s_ttn)
-    times_to_prev = property(fget=g_ttp, fset=s_ttp)
-    coords = property(fget=g_coords)
-    name = property(fget=g_name)
-    url = property(fget=g_url)
-    code = property(fget=g_code)
-    velocity_array = property(fget=g_velocity_array, fset=s_velocity_array)
+    def next(self): return self.__next
+    def set_next(self, pt=None): self.__next = pt if not self.__next and pt else self.__next  # can be set only once
+    def prev(self): return self.__prev
+    def set_prev(self, pt=None): self.__prev = pt if not self.__prev and pt else self.__prev  # can be set only once
+    def dtn(self): return self.__dist_to_next
+    def set_dtn(self, dist=0): self.__dist_to_next = dist if not self.__dist_to_next and dist else self.__dist_to_next  # can be set only once
+    def dtp(self): return self.__dist_to_prev
+    def set_dtp(self, dist=0): self.__dist_to_prev = dist if not self.__dist_to_prev and dist else self.__dist_to_prev  # can be set only once
+    def ttn(self): return self.__times_to_next
+    def set_ttn(self, array=None): self.__times_to_next = array if not self.__times_to_next and array else self.__times_to_next  # can be set only once
+    def ttp(self): return self.__times_to_prev
+    def set_ttp(self, array=0): self.__times_to_prev = array if not self.__times_to_prev and array else self.__times_to_prev  # can be set only once
+    def coords(self): return self.__coords
+    def name(self): return self.__name
+    def url(self): return self.__url
+    def code(self): return self.__code
+    def velocity_array(self): return self.__velocity_array
+    def set_velocity_array(self, arr): self.__velocity_array = arr
 
     def __init__(self, tag):
         self.__next = None
@@ -61,7 +47,7 @@ class RoutePoint:
 
         if tag.desc:
             self.__url = tag.link.attrs['href']
-            self.__code = self.url.split('=')[1].split('_')[0]
+            self.__code = self.__url.split('=')[1].split('_')[0]
 
 class GpxRoute:
 
@@ -71,17 +57,13 @@ class GpxRoute:
         pt = self.__first
         while pt:
             pt.calculate_velocity()
-            pt = pt.next
+            pt = pt.next()
         project_globals.job_queue.join()
 
-    def g_first(self): return self.__first
-    def g_last(self): return self.__last
-    def g_length(self): return self.__length
-    def g_direction(self): return GpxRoute.directionLookup[self.__direction]
-    first = property(fget=g_first)
-    last = property(fget=g_last)
-    length = property(fget=g_length)
-    direction = property(fget=g_direction)
+    def first(self): return self.__first
+    def last(self): return self.__last
+    def length(self): return self.__length
+    def direction(self): return GpxRoute.directionLookup[self.__direction]
 
     def __init__(self, filepath):
         self.__first = None
@@ -97,37 +79,37 @@ class GpxRoute:
         # raw_points = tuple([RoutePoint(rp) for rp in tree.find_all('rtept')])  # tuple of all waypoint objects
         for p in tree.find_all('rtept'):
             raw_points.append(RoutePoint(p))
-        route_points = tuple([rp for rp in raw_points if rp.url])  # tuple of current station waypoint objects
+        route_points = tuple([rp for rp in raw_points if rp.url()])  # tuple of current station waypoint objects
         self.__first = route_points[0]
         self.__last = route_points[-1]
 
         # calculate distances
-        distances = [[bool(pt.url), hvs(pt.coords, raw_points[i+1].coords, unit=Unit.NAUTICAL_MILES)] for i, pt in enumerate(raw_points[:-1])]
-        current_node = None
-        for i, node in enumerate(distances):
-            if node[0]: current_node = node
-            else: current_node[1] += node[1]
-        station_distances = [node[1] for node in distances if node[0]]
+        distances = [[bool(pt.url()), hvs(pt.coords(), raw_points[i+1].coords(), unit=Unit.NAUTICAL_MILES)] for i, pt in enumerate(raw_points[:-1])]
+        current_edge = None
+        for i, edge in enumerate(distances):
+            if edge[0]: current_edge = edge
+            else: current_edge[1] += edge[1]
+        station_distances = [edge[1] for edge in distances if edge[0]]
 
         # update prev/next links to current station waypoints to create linked list
-        for i, pt in enumerate(route_points[:-1]): pt.next = route_points[i+1]
+        for i, pt in enumerate(route_points[:-1]): pt.set_next(route_points[i+1])
         reverse = route_points[::-1]
-        for i, pt in enumerate(reverse[:-1]): pt.prev = reverse[i+1]
+        for i, pt in enumerate(reverse[:-1]): pt.set_prev(reverse[i+1])
 
         # add distances to prev and next to waypoint
-        for i, pt in enumerate(route_points[:-1]): pt.dist_to_next = station_distances[i]
+        for i, pt in enumerate(route_points[:-1]): pt.set_dtn(station_distances[i])
         pt = self.__last
-        while pt.prev:
-            pt.dist_to_prev = pt.prev.dist_to_next
-            pt = pt.prev
+        while pt.prev():
+            pt.set_dtp(pt.prev().dtn())
+            pt = pt.prev()
 
         # calculate route length and direction
         for d in station_distances: self.__length += d
-        corner = (self.__last.coords[0], self.__first.coords[1])
-        lat_sign = sign(self.__last.coords[1]-self.__first.coords[1])
-        lon_sign = sign(self.__last.coords[0]-self.__first.coords[0])
-        lat_dist = hvs(corner, self.__first.coords, unit=Unit.NAUTICAL_MILES)
-        lon_dist = hvs(self.__last.coords, corner, unit=Unit.NAUTICAL_MILES)
+        corner = (self.__last.coords()[0], self.__first.coords()[1])
+        lat_sign = sign(self.__last.coords()[1]-self.__first.coords()[1])
+        lon_sign = sign(self.__last.coords()[0]-self.__first.coords()[0])
+        lat_dist = hvs(corner, self.__first.coords(), unit=Unit.NAUTICAL_MILES)
+        lon_dist = hvs(self.__last.coords(), corner, unit=Unit.NAUTICAL_MILES)
         if (lat_sign > 0 and lon_sign > 0 and not lon_dist >= lat_dist) or (lat_sign < 0 < lon_sign and not lon_dist >= lat_dist): self.__direction = 'SN'
         elif (lat_sign > 0 > lon_sign and not lon_dist >= lat_dist) or (lat_sign < 0 and lon_sign < 0 and not lon_dist >= lat_dist): self.__direction = 'NS'
         elif (lat_sign < 0 < lon_sign and lon_dist >= lat_dist) or (lat_sign < 0 and lon_sign < 0 and lon_dist >= lat_dist): self.__direction = 'EW'
