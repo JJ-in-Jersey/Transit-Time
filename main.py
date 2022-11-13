@@ -27,12 +27,8 @@ if __name__ == '__main__':
     # Download noaa data and create velocity arrays for each waypoint
     route = GpxRoute(args['filepath'])
 
-    print(f'Route length is {round(route.length(),2)} nautical miles')
+    print(f'Route length is {round(route.length(),3)} nautical miles')
     print(f'Route direction is {route.direction()}')
-    pt = route.first()
-    while pt:
-        print(pt.name(), pt.__dict__)
-        pt = pt.next()
 
     project_globals.shared_object_manager.shutdown()
-    if jm.is_alive(): jm.terminate()
+    # if jm.is_alive(): jm.terminate()

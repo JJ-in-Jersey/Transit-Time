@@ -30,10 +30,7 @@ class Node:
         self.__gpxtag = gpxtag
         self.__name = gpxtag.find('name').text
         self.__coords = (round(float(gpxtag.attrs['lat']), 4), round(float(gpxtag.attrs['lon']), 4))
-        self.__next_edge = None
-        self.__prev_edge = None
-        self.__next_node = None
-        self.__prev_node = None
+        self.__next_edge = self.__prev_edge = self.__next_node = self.__prev_node = None
 
 class RouteNode(Node):
 
@@ -54,17 +51,13 @@ class RouteNode(Node):
         super().__init__(gpxtag)
         self.__url = gpxtag.link.attrs['href']
         self.__code = self.__url.split('=')[1].split('_')[0]
-        self.__next_route_edge = None
-        self.__prev_route_edge = None
-        self.__next_route_node = None
-        self.__prev_route_node = None
+        self.__next_route_edge = self.__prev_route_edge = self.__next_route_node = self.__prev_route_node = None
 
 class Edge:
 
     def start(self): return self.__start
     def end(self): return self.__end
     def length(self): return self.__length
-
     def calc_length(self, start, end): return hvs(start.coords(), end.coords(), unit=Unit.NAUTICAL_MILES)
 
     def __init__(self, start, end):
@@ -75,10 +68,10 @@ class Edge:
         end.prev_edge(self)
         start.next_node(end)
         end.prev_node(start)
-        print(f'Edge length {self.length()}')
 
 class RouteEdge:
 
+    def length(self): return self.__length
     def calc_length(self, start, end):
         edges = []
         node = start
@@ -86,9 +79,6 @@ class RouteEdge:
             edges.append(node.next_edge().length())
             node = node.next_node()
         return sum(edges)
-        #return sum([edge.length() for edge in edges])
-
-    def length(self): return self.__length
 
     def __init__(self, start, end):
         self.__start = start
@@ -99,8 +89,6 @@ class RouteEdge:
         start.next_route_node(end)
         end.prev_route_node(start)
 
-        print(f'RouteEdge length {self.length()}')
-
 class GpxRoute:
 
     directionLookup = {'SN': 'South to North', 'NS': 'North to South', 'EW': 'East to West', 'WE': 'West to East'}
@@ -108,28 +96,25 @@ class GpxRoute:
     def nodes(self): return self.__nodes
     def route_nodes(self): return self.__route_nodes
     def length(self): return self.__length
-    def direction(self): return GpxRoute.directionLookup[self._direction]
+    def direction(self): return GpxRoute.directionLookup[self.__direction]
 
     def __init__(self, filepath):
-        self.__nodes = None
-        self.__route_nodes = None
+        self.__nodes = self.__route_nodes = self.__edges = self.__route_edges = self.__direction = None
         self.__length = 0
-        self.__direction = None
 
         with open(filepath, 'r') as f:
             gpxfile = f.read()
-
         tree = Soup(gpxfile, 'xml')
 
         # create graph nodes
         self.__nodes = [RouteNode(point) if point.desc else Node(point) for point in tree.find_all('rtept')]
         self.__route_nodes = [node for node in self.__nodes if isinstance(node, RouteNode)]
-        # create graph edges  - references go into nodes
+        # create graph edges - instantiating edges updates next and prev references nodes
         for i, node in enumerate(self.__nodes[:-1]): Edge(node, self.__nodes[i+1])
         for i, node in enumerate(self.__route_nodes[:-1]): RouteEdge(node, self.__route_nodes[i+1])
-
+        self.__edges = [node.next_edge() for node in self.__nodes[:-1]]
+        self.__route_edges = [node.next_route_edge() for node in self.__route_nodes[:-1]]
         self.__length = sum([node.next_edge().length() for node in self.__nodes[:-1]])
-        length = sum([node.next_route_edge().length() for node in self.__route_nodes[:-1]])
 
         # calculate direction
         corner = (self.__nodes[-1].coords()[0], self.__nodes[0].coords()[1])
