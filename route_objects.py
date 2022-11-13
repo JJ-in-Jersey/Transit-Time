@@ -8,48 +8,147 @@ from velocity import VelocityJob
 
 fw("ignore", message="The localize method is no longer necessary, as this time zone supports the fold attribute",)
 
-class RoutePoint:
+class Edge:
 
-    def calculate_velocity(self):
-        project_globals.job_queue.put(VelocityJob(self, project_globals.chart_year, project_globals.download_dir))
+    def start(self): return self.__start
+    def end(self): return self.__end
+    def length(self): return self.__length
 
-    def next(self): return self.__next
-    def set_next(self, pt=None): self.__next = pt if not self.__next and pt else self.__next  # can be set only once
-    def prev(self): return self.__prev
-    def set_prev(self, pt=None): self.__prev = pt if not self.__prev and pt else self.__prev  # can be set only once
-    def dtn(self): return self.__dist_to_next
-    def set_dtn(self, dist=0): self.__dist_to_next = dist if not self.__dist_to_next and dist else self.__dist_to_next  # can be set only once
-    def dtp(self): return self.__dist_to_prev
-    def set_dtp(self, dist=0): self.__dist_to_prev = dist if not self.__dist_to_prev and dist else self.__dist_to_prev  # can be set only once
-    def ttn(self): return self.__times_to_next
-    def set_ttn(self, array=None): self.__times_to_next = array if not self.__times_to_next and array else self.__times_to_next  # can be set only once
-    def ttp(self): return self.__times_to_prev
-    def set_ttp(self, array=0): self.__times_to_prev = array if not self.__times_to_prev and array else self.__times_to_prev  # can be set only once
+    def calc_length(self, start, end): return hvs(start.coords(), end.coords(), unit=Unit.NAUTICAL_MILES)
+
+    def __init__(self, start, end):
+        self.__start = start
+        self.__end = end
+        self.__length = self.calc_length(start, end)
+        start.next_edge(self)
+        end.prev_edge(self)
+        start.next_node(end)
+        end.prev_node(start)
+
+class RouteEdge(Edge):
+
+    def calc_length(self):
+        edges = []
+        node = self.start()
+        while node.next_node() != self.end():
+            edges.append(node.next_edge())
+            node = node.next_node()
+        return sum([edge().length() for edge in self.__edges])
+
+    def __init__(self, start, end):
+        super().__init__(start, end)
+
+class Node:
+
+    def next_edge(self, edge=None):
+        self.__next_edge = edge if edge and not self.__next_edge else self.__next_edge  # can be set only once
+        return self.__next_edge
+    def prev_edge(self, edge=None):
+        self.__prev_edge = edge if edge and not self.__prev_edge else self.__prev_edge  # can be set only once
+        return self.__prev_edge
+    def next_node(self, point=None):
+        self.__next_node = point if point and not self.__next_node else self.__next_node  # can be set only once
+        return self.__next_node
+    def prev_node(self, point=None):
+        self.__prev_node = point if point and not self.__prev_node else self.__prev_node  # can be set only once
+        return self.__prev_node
     def coords(self): return self.__coords
     def name(self): return self.__name
-    def url(self): return self.__url
-    def code(self): return self.__code
-    def velocity_array(self): return self.__velocity_array
-    def set_velocity_array(self, arr): self.__velocity_array = arr
 
-    def __init__(self, tag):
-        self.__next = None
-        self.__prev = None
-        self.__dist_to_next = 0
-        self.__dist_to_prev = 0
-        self.__times_to_next = None
-        self.__times_to_prev = None
-        self.__url = ''
-        self.__code = ''
-        self.__velocity_array = None
-        self.__name = tag.find('name').text
-        self.__coords = (round(float(tag.attrs['lat']), 4), round(float(tag.attrs['lon']), 4))
+    def __init__(self, gpxtag):
+        self.__gpxtag = gpxtag
+        self.__name = gpxtag.find('name').text
+        self.__coords = (round(float(gpxtag.attrs['lat']), 4), round(float(gpxtag.attrs['lon']), 4))
+        self.__next_edge = None
+        self.__prev_edge = None
+        self.__next_node = None
+        self.__prev_node = None
 
-        if tag.desc:
-            self.__url = tag.link.attrs['href']
-            self.__code = self.__url.split('=')[1].split('_')[0]
+class RouteNode(Node):
+
+    def next_route_edge(self, edge=None):
+        self.__next_route_edge = edge if edge and not self.__next_route_edge else self.__next_route_edge  # can be set only once
+        return self.__next_route_edge
+    def prev_route_edge(self, edge=None):
+        self.__prev_route_edge = edge if edge and not self.__prev_route_edge else self.__prev_route_edge  # can be set only once
+        return self.__prev_route_edge
+    def next_route_node(self, point=None):
+        self.__next_route_node = point if point and not self.__next_route_node else self.__next_route_node  # can be set only once
+        return self.__next_route_node
+    def prev_route_node(self, point=None):
+        self.__prev_route_node = point if point and not self.__prev_route_node else self.__prev_route_node  # can be set only once
+        return self.__prev_route_node
+
+    def __init__(self, gpxtag):
+        super().__init__(gpxtag)
+        self.__url = gpxtag.link.attrs['href']
+        self.__code = self.__url.split('=')[1].split('_')[0]
+        self.__next_route_edge = None
+        self.__prev_route_edge = None
+        self.__next_route_node = None
+        self.__prev_route_node = None
 
 class GpxRoute:
+
+    directionLookup = {'SN': 'South to North', 'NS': 'North to South', 'EW': 'East to West', 'WE': 'West to East'}
+
+    def first(self): return self.__first
+    def last(self): return self.__last
+    def length(self): return self.__length
+    def direction(self): return GpxRoute.directionLookup[self.__direction]
+
+    def __init__(self, filepath):
+        self.__first = None
+        self.__last = None
+        self.__length = 0
+        self.__direction = None
+
+        with open(filepath, 'r') as f:
+            gpxfile = f.read()
+
+        tree = Soup(gpxfile, 'xml')
+        nodes = [RouteNode(point) if point.desc else Node(point) for point in tree.find_all('rtept')]
+        self.__first = nodes[0]
+        self.__last = nodes[-1]
+
+        for i, node in enumerate(nodes[:-1]): Edge(node, nodes[i+1])
+
+        edge = self.first().next_edge()
+        while edge:
+            print(edge.start().name(), '*', edge.end().name())
+            edge = edge.end().next_edge()
+
+        junk = []
+        for n in nodes[:-1]:
+            print(n.next_edge().length())
+
+
+        self.__length = sum([node.next_edge().length() for node in nodes[:-1]])
+
+        print(self.length())
+
+
+        route_nodes = [RouteNode(point) for point in tree.find_all('rtept') if point.desc]
+        for n in nodes: print(n.desc)
+        for i, node in enumerate(route_nodes[:-1]):
+            print(type(node), type(route_nodes[i+1]))
+            RouteEdge(node, nodes[i+1])
+
+        length = sum([node.next_edge().length() for node in route_nodes[:-1]])
+
+
+        # calculate direction
+        corner = (self.__last.coords()[0], self.__first.coords()[1])
+        lat_sign = sign(self.__last.coords()[1]-self.__first.coords()[1])
+        lon_sign = sign(self.__last.coords()[0]-self.__first.coords()[0])
+        lat_dist = hvs(corner, self.__first.coords(), unit=Unit.NAUTICAL_MILES)
+        lon_dist = hvs(self.__last.coords(), corner, unit=Unit.NAUTICAL_MILES)
+        if (lat_sign > 0 and lon_sign > 0 and not lon_dist >= lat_dist) or (lat_sign < 0 < lon_sign and not lon_dist >= lat_dist): self.__direction = 'SN'
+        elif (lat_sign > 0 > lon_sign and not lon_dist >= lat_dist) or (lat_sign < 0 and lon_sign < 0 and not lon_dist >= lat_dist): self.__direction = 'NS'
+        elif (lat_sign < 0 < lon_sign and lon_dist >= lat_dist) or (lat_sign < 0 and lon_sign < 0 and lon_dist >= lat_dist): self.__direction = 'EW'
+        elif (lat_sign > 0 and lon_sign > 0 and lon_dist >= lat_dist) or (lat_sign > 0 > lon_sign and lon_dist >= lat_dist): self.__direction = 'WE'
+
+class Route:
 
     directionLookup = {'SN': 'South to North', 'NS': 'North to South', 'EW': 'East to West', 'WE': 'West to East'}
 
@@ -75,16 +174,15 @@ class GpxRoute:
             gpxfile = f.read()
 
         tree = Soup(gpxfile, 'xml')
-        raw_points =[]
-        # raw_points = tuple([RoutePoint(rp) for rp in tree.find_all('rtept')])  # tuple of all waypoint objects
-        for p in tree.find_all('rtept'):
-            raw_points.append(RoutePoint(p))
-        route_points = tuple([rp for rp in raw_points if rp.url()])  # tuple of current station waypoint objects
-        self.__first = route_points[0]
-        self.__last = route_points[-1]
+        all_nodes =[]
+        # all_nodes = tuple([RoutePoint(rp) for rp in tree.find_all('rtept')])  # tuple of all waypoint objects
+        for p in tree.find_all('rtept'): all_nodes.append(RouteNode(p))
+        all_edges = [RouteEdge(node, node.next()) for node in all_nodes[:-1]]
+        route_nodes = tuple([rp for rp in all_nodes if rp.url()])  # tuple of current station waypoint objects
+        self.__first = route_nodes[0]
+        self.__last = route_nodes[-1]
 
         # calculate distances
-        distances = [[bool(pt.url()), hvs(pt.coords(), raw_points[i+1].coords(), unit=Unit.NAUTICAL_MILES)] for i, pt in enumerate(raw_points[:-1])]
         current_edge = None
         for i, edge in enumerate(distances):
             if edge[0]: current_edge = edge
@@ -92,15 +190,15 @@ class GpxRoute:
         station_distances = [edge[1] for edge in distances if edge[0]]
 
         # update prev/next links to current station waypoints to create linked list
-        for i, pt in enumerate(route_points[:-1]): pt.set_next(route_points[i+1])
-        reverse = route_points[::-1]
-        for i, pt in enumerate(reverse[:-1]): pt.set_prev(reverse[i+1])
+        for i, pt in enumerate(route_nodes[:-1]): pt.next(route_nodes[i+1])
+        reverse = route_nodes[::-1]
+        for i, pt in enumerate(reverse[:-1]): pt.prev(reverse[i+1])
 
         # add distances to prev and next to waypoint
-        for i, pt in enumerate(route_points[:-1]): pt.set_dtn(station_distances[i])
+        for i, pt in enumerate(route_nodes[:-1]): pt.dist_to_next(station_distances[i])
         pt = self.__last
         while pt.prev():
-            pt.set_dtp(pt.prev().dtn())
+            pt.dist_to_prev(pt.prev().dist_to_next())
             pt = pt.prev()
 
         # calculate route length and direction

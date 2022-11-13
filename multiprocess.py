@@ -6,8 +6,6 @@ from multiprocessing import Pool, Process, cpu_count
 from multiprocessing.managers import BaseManager
 
 from project_globals import ChartYear, DownloadDirectory
-from route_objects import RoutePoint, GpxRoute
-
 process_running_semaphore = Path(environ['TEMP'] + '/process_running_semaphore.tmp')
 
 class JobManager:
@@ -40,5 +38,4 @@ class WaitForProcess(Process):
 class SharedObjectManager(BaseManager): pass
 SharedObjectManager.register('DD', DownloadDirectory)
 SharedObjectManager.register('CY', ChartYear)
-SharedObjectManager.register('RP', RoutePoint)
 def pm_init(): print(f'+   multiprocessing shared object manager', flush=True)
