@@ -8,35 +8,6 @@ from velocity import VelocityJob
 
 fw("ignore", message="The localize method is no longer necessary, as this time zone supports the fold attribute",)
 
-class Edge:
-
-    def start(self): return self.__start
-    def end(self): return self.__end
-    def length(self): return self.__length
-
-    def calc_length(self, start, end): return hvs(start.coords(), end.coords(), unit=Unit.NAUTICAL_MILES)
-
-    def __init__(self, start, end):
-        self.__start = start
-        self.__end = end
-        self.__length = self.calc_length(start, end)
-        start.next_edge(self)
-        end.prev_edge(self)
-        start.next_node(end)
-        end.prev_node(start)
-
-class RouteEdge(Edge):
-
-    def calc_length(self):
-        edges = []
-        node = self.start()
-        while node.next_node() != self.end():
-            edges.append(node.next_edge())
-            node = node.next_node()
-        return sum([edge().length() for edge in self.__edges])
-
-    def __init__(self, start, end):
-        super().__init__(start, end)
 
 class Node:
 
@@ -88,18 +59,60 @@ class RouteNode(Node):
         self.__next_route_node = None
         self.__prev_route_node = None
 
+class Edge:
+
+    def start(self): return self.__start
+    def end(self): return self.__end
+    def length(self): return self.__length
+
+    def calc_length(self, start, end): return hvs(start.coords(), end.coords(), unit=Unit.NAUTICAL_MILES)
+
+    def __init__(self, start, end):
+        self.__start = start
+        self.__end = end
+        self.__length = self.calc_length(start, end)
+        start.next_edge(self)
+        end.prev_edge(self)
+        start.next_node(end)
+        end.prev_node(start)
+        print(f'Edge length {self.length()}')
+
+class RouteEdge:
+
+    def calc_length(self, start, end):
+        edges = []
+        node = start
+        while node != end:
+            edges.append(node.next_edge().length())
+            node = node.next_node()
+        return sum(edges)
+        #return sum([edge.length() for edge in edges])
+
+    def length(self): return self.__length
+
+    def __init__(self, start, end):
+        self.__start = start
+        self.__end = end
+        self.__length = self.calc_length(start, end)
+        start.next_route_edge(self)
+        end.prev_route_edge(self)
+        start.next_route_node(end)
+        end.prev_route_node(start)
+
+        print(f'RouteEdge length {self.length()}')
+
 class GpxRoute:
 
     directionLookup = {'SN': 'South to North', 'NS': 'North to South', 'EW': 'East to West', 'WE': 'West to East'}
 
-    def first(self): return self.__first
-    def last(self): return self.__last
+    def nodes(self): return self.__nodes
+    def route_nodes(self): return self.__route_nodes
     def length(self): return self.__length
-    def direction(self): return GpxRoute.directionLookup[self.__direction]
+    def direction(self): return GpxRoute.directionLookup[self._direction]
 
     def __init__(self, filepath):
-        self.__first = None
-        self.__last = None
+        self.__nodes = None
+        self.__route_nodes = None
         self.__length = 0
         self.__direction = None
 
@@ -107,42 +120,23 @@ class GpxRoute:
             gpxfile = f.read()
 
         tree = Soup(gpxfile, 'xml')
-        nodes = [RouteNode(point) if point.desc else Node(point) for point in tree.find_all('rtept')]
-        self.__first = nodes[0]
-        self.__last = nodes[-1]
 
-        for i, node in enumerate(nodes[:-1]): Edge(node, nodes[i+1])
+        # create graph nodes
+        self.__nodes = [RouteNode(point) if point.desc else Node(point) for point in tree.find_all('rtept')]
+        self.__route_nodes = [node for node in self.__nodes if isinstance(node, RouteNode)]
+        # create graph edges  - references go into nodes
+        for i, node in enumerate(self.__nodes[:-1]): Edge(node, self.__nodes[i+1])
+        for i, node in enumerate(self.__route_nodes[:-1]): RouteEdge(node, self.__route_nodes[i+1])
 
-        edge = self.first().next_edge()
-        while edge:
-            print(edge.start().name(), '*', edge.end().name())
-            edge = edge.end().next_edge()
-
-        junk = []
-        for n in nodes[:-1]:
-            print(n.next_edge().length())
-
-
-        self.__length = sum([node.next_edge().length() for node in nodes[:-1]])
-
-        print(self.length())
-
-
-        route_nodes = [RouteNode(point) for point in tree.find_all('rtept') if point.desc]
-        for n in nodes: print(n.desc)
-        for i, node in enumerate(route_nodes[:-1]):
-            print(type(node), type(route_nodes[i+1]))
-            RouteEdge(node, nodes[i+1])
-
-        length = sum([node.next_edge().length() for node in route_nodes[:-1]])
-
+        self.__length = sum([node.next_edge().length() for node in self.__nodes[:-1]])
+        length = sum([node.next_route_edge().length() for node in self.__route_nodes[:-1]])
 
         # calculate direction
-        corner = (self.__last.coords()[0], self.__first.coords()[1])
-        lat_sign = sign(self.__last.coords()[1]-self.__first.coords()[1])
-        lon_sign = sign(self.__last.coords()[0]-self.__first.coords()[0])
-        lat_dist = hvs(corner, self.__first.coords(), unit=Unit.NAUTICAL_MILES)
-        lon_dist = hvs(self.__last.coords(), corner, unit=Unit.NAUTICAL_MILES)
+        corner = (self.__nodes[-1].coords()[0], self.__nodes[0].coords()[1])
+        lat_sign = sign(self.__nodes[-1].coords()[1]-self.__nodes[0].coords()[1])
+        lon_sign = sign(self.__nodes[-1].coords()[0]-self.__nodes[0].coords()[0])
+        lat_dist = hvs(corner, self.__nodes[0].coords(), unit=Unit.NAUTICAL_MILES)
+        lon_dist = hvs(self.__nodes[-1].coords(), corner, unit=Unit.NAUTICAL_MILES)
         if (lat_sign > 0 and lon_sign > 0 and not lon_dist >= lat_dist) or (lat_sign < 0 < lon_sign and not lon_dist >= lat_dist): self.__direction = 'SN'
         elif (lat_sign > 0 > lon_sign and not lon_dist >= lat_dist) or (lat_sign < 0 and lon_sign < 0 and not lon_dist >= lat_dist): self.__direction = 'NS'
         elif (lat_sign < 0 < lon_sign and lon_dist >= lat_dist) or (lat_sign < 0 and lon_sign < 0 and lon_dist >= lat_dist): self.__direction = 'EW'
