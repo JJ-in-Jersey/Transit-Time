@@ -12,11 +12,12 @@ def sign(value): return value/abs(value)
 def seconds(start, end): return int((end-start).total_seconds())
 def time_to_index(start, time): return seconds(start, time)
 def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
+pool_notice = '(Pool)'
 chart_year = None
 download_dir = None
 shared_object_manager = None
 job_queue = JoinableQueue()
-
+object_lookup = {}
 class DownloadDirectory:
 
     def make_subfolder(self, name):

@@ -5,6 +5,7 @@ from pathlib import Path
 from multiprocessing import Pool, Process, cpu_count
 from multiprocessing.managers import BaseManager
 
+import project_globals
 from project_globals import ChartYear, DownloadDirectory
 process_running_semaphore = Path(environ['TEMP'] + '/process_running_semaphore.tmp')
 
@@ -13,19 +14,22 @@ class JobManager:
     def __init__(self, q):
         remove(process_running_semaphore)
         print(f'+   job manager (Pool size = {cpu_count()})', flush=True)
-        r = {}
+        results = {}
         with Pool() as p:
             while True:
                 while not q.empty():
                     job = q.get()
-                    r[job] = p.apply_async(job.execute, callback=job.execute_callback)
-                jobs = list(r.keys())
+                    results[job] = p.apply_async(job.execute(project_globals.pool_notice), callback=job.execute_callback)
+                jobs = list(results.keys())
                 for job in jobs:
-                    if r[job].ready():
-                        if len(r[job].get()):
-                            del r[job]
+                    if job.ready():
+                        if job.successful():
+                            print('job ready')
+                            #result = results[job].get()
+                            print(type(results[job]))
+                            del results[job]
                             q.task_done()
-                        else: r[job] = p.apply_async(job.execute())
+                        else: results[job] = p.apply_async(job.execute(project_globals.pool_notice), callback=job.execute_callback)
                 sleep(0.1)
 
 class WaitForProcess(Process):

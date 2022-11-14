@@ -11,8 +11,8 @@ if __name__ == '__main__':
     project_globals.shared_object_manager.start(multiprocess.pm_init)
     project_globals.chart_year = project_globals.shared_object_manager.CY()
     project_globals.download_dir = project_globals.shared_object_manager.DD()
-    #jm = multiprocess.WaitForProcess(target=multiprocess.JobManager, args=(project_globals.job_queue,))
-    #jm.start()
+    jm = multiprocess.WaitForProcess(target=multiprocess.JobManager, args=(project_globals.job_queue,))
+    jm.start()
 
     ap = argParser()
     ap.add_argument('project_name', type=str, help='name of transit window project')
@@ -23,18 +23,27 @@ if __name__ == '__main__':
     project_globals.download_dir.set_project_name(args['project_name'])
     project_globals.chart_year.set_year(args['year'])
 
-    # Build route and linked list of waypoint objects
-    # Calculate the distances between waypoints
-    # Download noaa data and create velocity arrays for each waypoint
+    # Build route and linked list of waypoint nodes
     route = GpxRoute(args['filepath'])
-    for n in route.route_nodes():
-        vj = n.velocity_job()
-        #project_globals.job_queue.put(vj)
-        vj.execute_callback(vj.execute())
-        print(n.name(), len(n.velocity_array()))
+    # Download noaa data and create velocity arrays for each waypoint (node)
+    node = route.first_route_node()
+    vj = VelocityJob(node, project_globals.chart_year, project_globals.download_dir)
+    project_globals.job_queue.put(vj)
+    #project_globals.job_queue.put((route.route_nodes()[0], vj))
+    #result = vj.execute()
+    #print(result)
 
-    print(f'Route length is {round(route.length(),3)} nautical miles')
-    print(f'Route direction is {route.direction()}')
+    #for n in route.route_nodes():
+        #n.velocity_job().execute_callback(n.velocity_job().execute())
+        #project_globals.job_queue.put(n.velocity_job())
+    project_globals.job_queue.join()
+
+    #
+    # for n in route.route_nodes():
+    #     print(n.name(), len(n.velocity_array()))
+    #
+    # print(f'Route length is {round(route.length(),3)} nautical miles')
+    # print(f'Route direction is {route.direction()}')
 
     project_globals.shared_object_manager.shutdown()
-    #if jm.is_alive(): jm.terminate()
+    if jm.is_alive(): jm.terminate()
