@@ -28,7 +28,7 @@ if __name__ == '__main__':
     # Download noaa data and create velocity arrays for each waypoint
     route = GpxRoute(args['filepath'])
     for n in route.route_nodes():
-        vj = VelocityJob(n, project_globals.chart_year, project_globals.download_dir)
+        vj = n.velocity_job()
         #project_globals.job_queue.put(vj)
         vj.execute_callback(vj.execute())
         print(n.name(), len(n.velocity_array()))

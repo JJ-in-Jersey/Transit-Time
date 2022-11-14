@@ -50,6 +50,7 @@ class RouteNode(Node):
         return self.__prev_route_node
     def url(self): return self.__url
     def code(self): return self.__code
+    def velocity_job(self): return self.__velocity_job
     def velocity_array(self, array=None):
         self.__velo_array = array if isinstance(array, numpy.ndarray) and not self.__velo_array else self.__velo_array  # can be set only once
         return self.__velo_array
@@ -59,6 +60,7 @@ class RouteNode(Node):
         self.__url = gpxtag.link.attrs['href']
         self.__code = self.__url.split('=')[1].split('_')[0]
         self.__next_route_edge = self.__prev_route_edge = self.__next_route_node = self.__prev_route_node = self.__velo_array = None
+        self.__velocity_job = VelocityJob(self, project_globals.chart_year, project_globals.download_dir)
 
 class Edge:
 
