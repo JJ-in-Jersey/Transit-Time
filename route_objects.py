@@ -1,8 +1,10 @@
 from warnings import filterwarnings as fw
 from bs4 import BeautifulSoup as Soup
 from haversine import haversine as hvs, Unit
-from project_globals import sign
 import project_globals
+import numpy
+
+from project_globals import sign
 
 from velocity import VelocityJob
 
@@ -40,18 +42,23 @@ class RouteNode(Node):
     def prev_route_edge(self, edge=None):
         self.__prev_route_edge = edge if edge and not self.__prev_route_edge else self.__prev_route_edge  # can be set only once
         return self.__prev_route_edge
-    def next_route_node(self, point=None):
-        self.__next_route_node = point if point and not self.__next_route_node else self.__next_route_node  # can be set only once
+    def next_route_node(self, node=None):
+        self.__next_route_node = node if node and not self.__next_route_node else self.__next_route_node  # can be set only once
         return self.__next_route_node
-    def prev_route_node(self, point=None):
-        self.__prev_route_node = point if point and not self.__prev_route_node else self.__prev_route_node  # can be set only once
+    def prev_route_node(self, node=None):
+        self.__prev_route_node = node if node and not self.__prev_route_node else self.__prev_route_node  # can be set only once
         return self.__prev_route_node
+    def url(self): return self.__url
+    def code(self): return self.__code
+    def velocity_array(self, array=None):
+        self.__velo_array = array if isinstance(array, numpy.ndarray) and not self.__velo_array else self.__velo_array  # can be set only once
+        return self.__velo_array
 
     def __init__(self, gpxtag):
         super().__init__(gpxtag)
         self.__url = gpxtag.link.attrs['href']
         self.__code = self.__url.split('=')[1].split('_')[0]
-        self.__next_route_edge = self.__prev_route_edge = self.__next_route_node = self.__prev_route_node = None
+        self.__next_route_edge = self.__prev_route_edge = self.__next_route_node = self.__prev_route_node = self.__velo_array = None
 
 class Edge:
 
@@ -72,7 +79,8 @@ class Edge:
 class RouteEdge:
 
     def length(self): return self.__length
-    def calc_length(self, start, end):
+    @staticmethod
+    def calc_length(start, end):
         edges = []
         node = start
         while node != end:
