@@ -1,5 +1,6 @@
 from argparse import ArgumentParser as argParser
 from pathlib import Path
+from multiprocessing import Manager
 
 import project_globals
 import multiprocess
@@ -7,12 +8,15 @@ from route_objects import GpxRoute
 from velocity import VelocityJob
 
 if __name__ == '__main__':
-    project_globals.shared_object_manager = multiprocess.SharedObjectManager()
-    project_globals.shared_object_manager.start(multiprocess.pm_init)
-    project_globals.chart_year = project_globals.shared_object_manager.CY()
-    project_globals.download_dir = project_globals.shared_object_manager.DD()
-    jm = multiprocess.WaitForProcess(target=multiprocess.JobManager, args=(project_globals.job_queue,))
-    jm.start()
+
+    multiprocess.mgr = Manager()
+    multiprocess.obj_lookup = multiprocess.mgr.dict()
+    print(type(multiprocess.obj_lookup))
+    multiprocess.som.start(multiprocess.pm_init)
+    multiprocess.object_lookup = multiprocess.mgr.dict()
+    multiprocess.chart_yr = multiprocess.som.CY()
+    multiprocess.d_dir = multiprocess.som.DD()
+    multiprocess.jm.start()
 
     ap = argParser()
     ap.add_argument('project_name', type=str, help='name of transit window project')
@@ -20,16 +24,16 @@ if __name__ == '__main__':
     ap.add_argument('year', type=int, help='calendar year for analysis')
     args = vars(ap.parse_args())
 
-    project_globals.download_dir.set_project_name(args['project_name'])
-    project_globals.chart_year.set_year(args['year'])
+    multiprocess.d_dir.set_project_name(args['project_name'])
+    multiprocess.chart_yr.set_year(args['year'])
 
     # Build route and linked list of waypoint nodes
     route = GpxRoute(args['filepath'])
     # Download noaa data and create velocity arrays for each waypoint (node)
     node = route.first_route_node()
-    vj = VelocityJob(node, project_globals.chart_year, project_globals.download_dir, project_globals.pool_notice)
-    project_globals.job_queue.put(vj)
-    project_globals.job_queue.join()
+    vj = VelocityJob(node, multiprocess.chart_yr, multiprocess.d_dir, multiprocess.pool_notice)
+    multiprocess.job_queue.put(vj)
+    multiprocess.job_queue.join()
     #result = vj.execute()
     #print(result)
 
@@ -44,5 +48,5 @@ if __name__ == '__main__':
     # print(f'Route length is {round(route.length(),3)} nautical miles')
     # print(f'Route direction is {route.direction()}')
 
-    project_globals.shared_object_manager.shutdown()
-    if jm.is_alive(): jm.terminate()
+    multiprocess.som.shutdown()
+    if multiprocess.jm.is_alive(): multiprocess.jm.terminate()

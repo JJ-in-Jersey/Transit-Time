@@ -1,7 +1,7 @@
 from warnings import filterwarnings as fw
 from bs4 import BeautifulSoup as Soup
 from haversine import haversine as hvs, Unit
-import project_globals
+import multiprocess
 import numpy
 
 from project_globals import sign
@@ -12,8 +12,7 @@ fw("ignore", message="The localize method is no longer necessary, as this time z
 
 class RegisteredObject:
     def __init__(self):
-        project_globals.object_lookup[id(self)] = self
-        print(type(self), id(self))
+        multiprocess.obj_lookup[id(self)] = self
 
 class Node(RegisteredObject):
 

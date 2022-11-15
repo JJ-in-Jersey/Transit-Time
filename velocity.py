@@ -16,7 +16,7 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
-import project_globals
+import multiprocess
 from project_globals import seconds, dash_to_zero, time_to_index, timestep
 
 logging.getLogger('WDM').setLevel(logging.NOTSET)
@@ -87,10 +87,10 @@ class VelocityJob:
 
     def execute_callback(self, result):
         print(f'-     {self.__intro} {self.__code} calculation {"SUCCESSFUL" if isinstance(result, np.ndarray) else "FAILED"}', flush=True)
-        print(self.__node_id, project_globals.object_lookup[self.__node_id])
+        print(self.node_id(),type(multiprocess.obj_lookup))
     def error_callback(self,result):
         print(f'!     {self.__intro} {self.__code} process has raised an error:  {result}', flush=True)
-    def input_id(self): return self.__node_id
+    def node_id(self): return self.__node_id
 
     def __init__(self, route_node, chart_year, download_dir, intro=None):
         self.__wdw = self.__driver = None
