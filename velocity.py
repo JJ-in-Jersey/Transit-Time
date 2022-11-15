@@ -37,74 +37,6 @@ def get_chrome_driver(download_dir):
     driver.minimize_window()
     return driver
 
-class VelocityJobTest:
-
-    def __velocity_download(self):
-        newest_before = newest_after = newest_file(self.__download_dir)
-        self.__wdw.until(ec.element_to_be_clickable((By.ID, 'generatePDF'))).click()
-        while newest_before == newest_after:
-            sleep(0.1)
-            newest_after = newest_file(self.__download_dir)
-        return newest_after
-
-    def __velocity_page(self, year):
-        code_string = 'Annual?id=' +  self.__route_node.code()  # select annual predictions
-        self.__wdw.until(ec.element_to_be_clickable((By.CSS_SELECTOR, "a[href*='" + code_string + "']"))).click()
-        Select(self.__driver.find_element(By.ID, 'fmt')).select_by_index(3)  # select format
-        Select(self.__driver.find_element(By.ID, 'timeunits')).select_by_index(1)  # select 24 hour time
-        dropdown = Select(self.__driver.find_element(By.ID, 'year'))  # set year
-        options = [int(o.text) for o in dropdown.options]
-        dropdown.select_by_index(options.index(year))
-
-    def execute(self, intro=''):
-        print(f'+     {intro} {self.__code} {self.__name} velocity calculation starting', flush=True)
-        # start = self.__chart_year.first_day_minus_two()
-        # end = self.__chart_year.last_day_plus_three()
-        # year = self.__chart_year.year()
-        # v_range = range(0, seconds(start, end), timestep)
-        # noaa_dataframe = pd.DataFrame()
-        #
-        # self.__driver = get_chrome_driver(self.__download_dir)
-        # for y in range(year - 1, year + 2):  # + 2 because of range behavior
-        #     self.__driver.get(self.__url())
-        #     self.__wdw = WebDriverWait(self.__driver, 1000)
-        #     self.__velocity_page(y)
-        #     file = self.__velocity_download()
-        #     file_dataframe = pd.read_csv(file, header='infer', converters={' Speed (knots)': dash_to_zero}, parse_dates=['Date_Time (LST/LDT)'])
-        #     noaa_dataframe = pd.concat([noaa_dataframe, file_dataframe])
-        # self.__driver.quit()
-        #
-        # noaa_dataframe.rename(columns={'Date_Time (LST/LDT)': 'time', ' Event': 'event', ' Speed (knots)': 'velocity'}, inplace=True)
-        # noaa_dataframe = noaa_dataframe[(start <= noaa_dataframe['time']) & (noaa_dataframe['time'] <= end)]
-        # noaa_dataframe = noaa_dataframe.reset_index(drop=True)
-        # noaa_dataframe.to_csv(Path(str(self.__DD.folder())+'/'+self.__code()+'_dataframe.csv'), index=False)
-        # x = noaa_dataframe['time'].apply(lambda time: time_to_index(start, time)).to_numpy()
-        # y = noaa_dataframe['velocity'].to_numpy()
-        # cs = CubicSpline(x, y)
-        # result = np.fromiter((cs(x) for x in v_range), dtype=np.half)
-        # pd.DataFrame(result).to_csv(Path(str(self.__DD.folder())+'/'+self.__code()+'_array.csv'))
-        # return result
-        return 1000
-
-    def execute_callback(self, result):
-        # boom = 'FAILED'
-        # if isinstance(result, np.ndarray):
-        #     boom = 'SUCCESSFUL'
-        #     self.__route_node.velocity_array(result)
-        # print(f'-     (pool) {self.__route_node.code()} calculation {boom}', flush=True)
-        print(f'result = {result}')
-
-
-    def __init__(self, route_node, chart_year, download_dir):
-        self.__name = route_node.name()
-        self.__code = route_node.code()
-        self.__url = route_node.url()
-        self.__chart_year = chart_year
-        self.__download_dir = download_dir.make_subfolder(route_node.code())
-        # self.__DD = download_dir
-        # self.__wdw = self.__driver = None
-
-
 class VelocityJob:
 
     def __velocity_download(self):
@@ -149,23 +81,26 @@ class VelocityJob:
         x = noaa_dataframe['time'].apply(lambda time: time_to_index(start, time)).to_numpy()
         y = noaa_dataframe['velocity'].to_numpy()
         cs = CubicSpline(x, y)
-        result = np.fromiter((cs(x) for x in v_range), dtype=np.half)
-        pd.DataFrame(result).to_csv(Path(str(self.__DD.folder())+'/'+self.__code+'_array.csv'))
+        result = np.fromiter([cs(x) for x in v_range], dtype=np.half)
+        pd.DataFrame(result).to_csv(Path(str(self.__DD.folder())+'/'+self.__code+'_array.csv'), header=False)
         return result
 
     def execute_callback(self, result):
-        print(f'-     {project_globals.pool_notice} {self.__code} calculation {"SUCCESSFUL" if isinstance(result, np.ndarray) else "FAILED"}', flush=True)
-
+        print(f'-     {self.__intro} {self.__code} calculation {"SUCCESSFUL" if isinstance(result, np.ndarray) else "FAILED"}', flush=True)
+        print(self.__node_id, project_globals.object_lookup[self.__node_id])
+    def error_callback(self,result):
+        print(f'!     {self.__intro} {self.__code} process has raised an error:  {result}', flush=True)
     def input_id(self): return self.__node_id
 
-    def __init__(self, route_node, chart_year, download_dir):
+    def __init__(self, route_node, chart_year, download_dir, intro=None):
         self.__wdw = self.__driver = None
+        self.__velocity_array = None
         self.__name = route_node.name()
         self.__code = route_node.code()
         self.__url = route_node.url()
         self.__node_id = id(route_node)
-        # self.__result = route_node.velocity_array
         self.__chart_year = chart_year
         self.__download_dir = download_dir.make_subfolder(route_node.code())
         self.__DD = download_dir
+        self.__intro = intro
 

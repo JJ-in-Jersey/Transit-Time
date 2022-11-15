@@ -19,17 +19,14 @@ class JobManager:
             while True:
                 while not q.empty():
                     job = q.get()
-                    results[job] = p.apply_async(job.execute(project_globals.pool_notice), callback=job.execute_callback)
+                    results[job] = p.apply_async(job.execute, callback=job.execute_callback, error_callback=job.error_callback)
                 jobs = list(results.keys())
                 for job in jobs:
-                    if job.ready():
-                        if job.successful():
-                            print('job ready')
-                            #result = results[job].get()
-                            print(type(results[job]))
-                            del results[job]
-                            q.task_done()
-                        else: results[job] = p.apply_async(job.execute(project_globals.pool_notice), callback=job.execute_callback)
+                    if results[job].ready():
+                        print('Yahoo')
+                        del results[job]
+                        q.task_done()
+                    #else: results[job] = p.apply_async(job.execute(project_globals.pool_notice), callback=job.execute_callback)
                 sleep(0.1)
 
 class WaitForProcess(Process):

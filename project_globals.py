@@ -80,10 +80,3 @@ class ChartYear:
         self.__last_day_plus_two = None
         self.__last_day_plus_three = None
 
-class RouteEdgeNodeException(Exception):
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return 'Nodes of a RouteEdge must be RouteNodes'
-

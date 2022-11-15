@@ -27,16 +27,15 @@ if __name__ == '__main__':
     route = GpxRoute(args['filepath'])
     # Download noaa data and create velocity arrays for each waypoint (node)
     node = route.first_route_node()
-    vj = VelocityJob(node, project_globals.chart_year, project_globals.download_dir)
+    vj = VelocityJob(node, project_globals.chart_year, project_globals.download_dir, project_globals.pool_notice)
     project_globals.job_queue.put(vj)
-    #project_globals.job_queue.put((route.route_nodes()[0], vj))
+    project_globals.job_queue.join()
     #result = vj.execute()
     #print(result)
 
     #for n in route.route_nodes():
         #n.velocity_job().execute_callback(n.velocity_job().execute())
         #project_globals.job_queue.put(n.velocity_job())
-    project_globals.job_queue.join()
 
     #
     # for n in route.route_nodes():

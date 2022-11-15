@@ -13,6 +13,7 @@ fw("ignore", message="The localize method is no longer necessary, as this time z
 class RegisteredObject:
     def __init__(self):
         project_globals.object_lookup[id(self)] = self
+        print(type(self), id(self))
 
 class Node(RegisteredObject):
 
@@ -32,6 +33,7 @@ class Node(RegisteredObject):
     def name(self): return self.__name
 
     def __init__(self, gpxtag):
+        super().__init__()
         self.__gpxtag = gpxtag
         self.__name = gpxtag.find('name').text
         self.__coords = (round(float(gpxtag.attrs['lat']), 4), round(float(gpxtag.attrs['lon']), 4))
@@ -71,6 +73,7 @@ class Edge(RegisteredObject):
     def calc_length(self, start, end): return hvs(start.coords(), end.coords(), unit=Unit.NAUTICAL_MILES)
 
     def __init__(self, start, end):
+        super().__init__()
         self.__start = start
         self.__end = end
         self.__length = self.calc_length(start, end)
@@ -92,6 +95,7 @@ class RouteEdge(RegisteredObject):
         return sum(edges)
 
     def __init__(self, start, end):
+        super().__init__()
         self.__start = start
         self.__end = end
         self.__length = self.calc_length(start, end)
@@ -99,6 +103,7 @@ class RouteEdge(RegisteredObject):
         end.prev_route_edge(self)
         start.next_route_node(end)
         end.prev_route_node(start)
+
 
 class GpxRoute(RegisteredObject):
 
@@ -114,6 +119,7 @@ class GpxRoute(RegisteredObject):
     def direction(self): return GpxRoute.directionLookup[self.__direction]
 
     def __init__(self, filepath):
+        super().__init__()
         self.__nodes = self.__route_nodes = self.__edges = self.__route_edges = None
         self.__first_node = self.__last_node = self.__first_route_node = self.__last_route_node = None
         self.__first_edge = self.__last_edge = self.__first_route_edge = self.__last_route_edge = None
