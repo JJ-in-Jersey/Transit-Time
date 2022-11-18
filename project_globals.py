@@ -4,8 +4,8 @@ import shutil
 import dateparser as dp
 from datetime import timedelta as td
 from warnings import filterwarnings as fw
-fw("ignore", message="The localize method is no longer necessary, as this time zone supports the fold attribute",)
 
+fw("ignore", message="The localize method is no longer necessary, as this time zone supports the fold attribute",)
 timestep = 60
 def sign(value): return value/abs(value)
 def seconds(start, end): return int((end-start).total_seconds())

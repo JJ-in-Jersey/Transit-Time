@@ -1,20 +1,13 @@
 from warnings import filterwarnings as fw
 from bs4 import BeautifulSoup as Soup
 from haversine import haversine as hvs, Unit
-import multiprocess
 import numpy
 
 from project_globals import sign
-
-from velocity import VelocityJob
-
+import multiprocess as mp
 fw("ignore", message="The localize method is no longer necessary, as this time zone supports the fold attribute",)
 
-class RegisteredObject:
-    def __init__(self):
-        multiprocess.obj_lookup[id(self)] = self
-
-class Node(RegisteredObject):
+class Node:
 
     def next_edge(self, edge=None):
         self.__next_edge = edge if edge and not self.__next_edge else self.__next_edge  # can be set only once
@@ -32,7 +25,6 @@ class Node(RegisteredObject):
     def name(self): return self.__name
 
     def __init__(self, gpxtag):
-        super().__init__()
         self.__gpxtag = gpxtag
         self.__name = gpxtag.find('name').text
         self.__coords = (round(float(gpxtag.attrs['lat']), 4), round(float(gpxtag.attrs['lon']), 4))
@@ -55,7 +47,9 @@ class RouteNode(Node):
     def url(self): return self.__url
     def code(self): return self.__code
     def velocity_array(self, array=None):
-        self.__velo_array = array if isinstance(array, numpy.ndarray) and not self.__velo_array else self.__velo_array  # can be set only once
+        if isinstance(array, numpy.ndarray) and not self.__velo_array:
+            self.__velo_array = array
+            print(f'{self.code()} velocity array assignment successful')
         return self.__velo_array
 
     def __init__(self, gpxtag):
@@ -64,12 +58,13 @@ class RouteNode(Node):
         self.__code = self.__url.split('=')[1].split('_')[0]
         self.__next_route_edge = self.__prev_route_edge = self.__next_route_node = self.__prev_route_node = self.__velo_array = None
 
-class Edge(RegisteredObject):
+class Edge:
 
     def start(self): return self.__start
     def end(self): return self.__end
     def length(self): return self.__length
-    def calc_length(self, start, end): return hvs(start.coords(), end.coords(), unit=Unit.NAUTICAL_MILES)
+    @staticmethod
+    def calc_length(start, end): return hvs(start.coords(), end.coords(), unit=Unit.NAUTICAL_MILES)
 
     def __init__(self, start, end):
         super().__init__()
@@ -81,7 +76,7 @@ class Edge(RegisteredObject):
         start.next_node(end)
         end.prev_node(start)
 
-class RouteEdge(RegisteredObject):
+class RouteEdge:
 
     def length(self): return self.__length
     @staticmethod
@@ -103,8 +98,7 @@ class RouteEdge(RegisteredObject):
         start.next_route_node(end)
         end.prev_route_node(start)
 
-
-class GpxRoute(RegisteredObject):
+class GpxRoute:
 
     directionLookup = {'SN': 'South to North', 'NS': 'North to South', 'EW': 'East to West', 'WE': 'West to East'}
 
@@ -146,6 +140,8 @@ class GpxRoute(RegisteredObject):
         self.__first_route_edge = self.__route_edges[0]
         self.__last_route_edge = self.__route_edges[-1]
         self.__length = sum([node.next_edge().length() for node in self.__nodes[:-1]])
+        #for n in self.route_nodes(): lookup[id(n)] = n
+        #for e in self.__route_edges: lookup[id(e)] = e
 
         # calculate direction
         corner = (self.__nodes[-1].coords()[0], self.__nodes[0].coords()[1])

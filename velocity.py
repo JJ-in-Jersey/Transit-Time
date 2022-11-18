@@ -16,7 +16,6 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
-import multiprocess
 from project_globals import seconds, dash_to_zero, time_to_index, timestep
 
 logging.getLogger('WDM').setLevel(logging.NOTSET)
@@ -39,6 +38,8 @@ def get_chrome_driver(download_dir):
 
 class VelocityJob:
 
+    calc_type = 'velocity'
+
     def __velocity_download(self):
         newest_before = newest_after = newest_file(self.__download_dir)
         self.__wdw.until(ec.element_to_be_clickable((By.ID, 'generatePDF'))).click()
@@ -56,8 +57,8 @@ class VelocityJob:
         options = [int(o.text) for o in dropdown.options]
         dropdown.select_by_index(options.index(year))
 
-    def execute(self, intro=''):
-        print(f'+     {intro} {self.__code} {self.__name} velocity calculation starting', flush=True)
+    def execute(self):
+        print(f'+     {self.__intro} {self.__code} {self.__name} velocity calculation starting', flush=True)
         start = self.__chart_year.first_day_minus_two()
         end = self.__chart_year.last_day_plus_three()
         year = self.__chart_year.year()
@@ -83,22 +84,19 @@ class VelocityJob:
         cs = CubicSpline(x, y)
         result = np.fromiter([cs(x) for x in v_range], dtype=np.half)
         pd.DataFrame(result).to_csv(Path(str(self.__DD.folder())+'/'+self.__code+'_array.csv'), header=False)
-        return result
+        return (self.__id, result)
 
     def execute_callback(self, result):
-        print(f'-     {self.__intro} {self.__code} calculation {"SUCCESSFUL" if isinstance(result, np.ndarray) else "FAILED"}', flush=True)
-        print(self.node_id(),type(multiprocess.obj_lookup))
+        print(f'-     {self.__intro} {self.__code} calculation {"SUCCESSFUL" if isinstance(result[1], np.ndarray) else "FAILED"}', flush=True)
     def error_callback(self,result):
         print(f'!     {self.__intro} {self.__code} process has raised an error:  {result}', flush=True)
-    def node_id(self): return self.__node_id
 
-    def __init__(self, route_node, chart_year, download_dir, intro=None):
+    def __init__(self, route_node, chart_year, download_dir, intro=''):
         self.__wdw = self.__driver = None
-        self.__velocity_array = None
         self.__name = route_node.name()
         self.__code = route_node.code()
         self.__url = route_node.url()
-        self.__node_id = id(route_node)
+        self.__id = id(route_node)
         self.__chart_year = chart_year
         self.__download_dir = download_dir.make_subfolder(route_node.code())
         self.__DD = download_dir
