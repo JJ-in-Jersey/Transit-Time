@@ -34,7 +34,6 @@ class JobManager:
                         lookup[result[0]] = result[1]
                         del results[job]
                         q.task_done()
-                    #else: results[job] = p.apply_async(job.execute(project_globals.pool_notice), callback=job.execute_callback)
                 sleep(0.1)
 
 class WaitForProcess(Process):

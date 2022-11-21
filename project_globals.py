@@ -1,5 +1,6 @@
 from pathlib import Path
 from os import environ, makedirs
+from os.path import exists
 import shutil
 import dateparser as dp
 from datetime import timedelta as td
@@ -7,6 +8,7 @@ from warnings import filterwarnings as fw
 
 fw("ignore", message="The localize method is no longer necessary, as this time zone supports the fold attribute",)
 timestep = 60
+boat_speeds = range(3, 9, 2)
 def sign(value): return value/abs(value)
 def seconds(start, end): return int((end-start).total_seconds())
 def time_to_index(start, time): return seconds(start, time)
@@ -14,32 +16,29 @@ def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 
 class DownloadDirectory:
 
-    def make_subfolder(self, name):
-        folderpath = Path(str(self.__folder) + '/' + name)
-        makedirs(folderpath, exist_ok=True)
+    def node_folder(self, name):
+        folderpath = Path(str(self.__project_folder) + '/' + name + '/')
+        if not exists(folderpath): makedirs(folderpath, exist_ok=True)
         return folderpath
 
-    def set_project_name(self, name):
-        if not self.__project_name:
-            self.__project_name = name
-            self.__folder = Path(environ['USERPROFILE']+'/Downloads/'+name+'/')
-            shutil.rmtree(self.__folder, ignore_errors=True)
-            makedirs(self.__folder, exist_ok=True)
-
-    def project_name(self): return self.__project_name
-    def folder(self): return self.__folder
-    # project_name = property(fget=project_name, fset=set_project_name)
-    # folder = property(fget=folder, fset=None)
+    def project_folder(self, args=None):
+        if args:
+            self.__project_folder = Path(environ['USERPROFILE']+'/Downloads/'+args['project_name']+'/')
+            if args['delete_data']:
+                shutil.rmtree(self.__project_folder, ignore_errors=True)
+                makedirs(self.__project_folder, exist_ok=True)
+                return self.__project_folder
+        else:
+            return self.__project_folder
 
     def __init__(self):
-        self.__project_name = ''
-        self.__folder = ''
+        self.__project_folder = ''
 
 class ChartYear:
 
-    def set_year(self, year):
+    def set_year(self, args):
         if not self.__year:
-            self.__year = year
+            self.__year = args['year']
             self.__first_day = dp.parse('1/1/' + str(self.__year))
             self.__last_day = dp.parse('12/31/' + str(self.__year))
             self.__first_day_minus_two = self.__first_day - td(days=2)

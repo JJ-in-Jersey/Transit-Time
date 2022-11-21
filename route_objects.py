@@ -49,7 +49,7 @@ class RouteNode(Node):
     def velocity_array(self, array=None):
         if isinstance(array, numpy.ndarray) and not self.__velo_array:
             self.__velo_array = array
-            print(f'{self.code()} velocity array assignment successful')
+            print(f'{self.code()} velocity assignment successful')
         return self.__velo_array
 
     def __init__(self, gpxtag):
@@ -63,6 +63,7 @@ class Edge:
     def start(self): return self.__start
     def end(self): return self.__end
     def length(self): return self.__length
+
     @staticmethod
     def calc_length(start, end): return hvs(start.coords(), end.coords(), unit=Unit.NAUTICAL_MILES)
 
@@ -79,6 +80,9 @@ class Edge:
 class RouteEdge:
 
     def length(self): return self.__length
+    def start(self): return self.__start
+    def end(self): return self.__end
+
     @staticmethod
     def calc_length(start, end):
         edges = []
@@ -110,6 +114,9 @@ class GpxRoute:
     def last_route_node(self): return self.__last_route_node
     def length(self): return self.__length
     def direction(self): return GpxRoute.directionLookup[self.__direction]
+    def edges(self): return self.__edges
+    def route_edges(self): return self.__route_edges
+
 
     def __init__(self, filepath):
         super().__init__()
