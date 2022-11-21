@@ -59,8 +59,9 @@ class VelocityJob:
 
     def execute(self):
         if exists(self.__output_file):
-            print(f'+     {self.__intro} {self.__code} {self.__name} using data file')
-            return tuple([self.__id, np.fromfile(self.__output_file, dtype=np.half)])
+            print(f'+     {self.__intro} {self.__code} {self.__name} reading data file')
+            #return tuple([self.__id, np.genfromtxt(self.__output_file, dtype=np.half)])
+            return tuple([self.__id, np.loadtxt(self.__output_file)])
         else:
             print(f'+     {self.__intro} {self.__code} {self.__name} velocity calculation starting', flush=True)
             start = self.__year.first_day_minus_two()
@@ -82,16 +83,16 @@ class VelocityJob:
             noaa_dataframe.rename(columns={'Date_Time (LST/LDT)': 'time', ' Event': 'event', ' Speed (knots)': 'velocity'}, inplace=True)
             noaa_dataframe = noaa_dataframe[(start <= noaa_dataframe['time']) & (noaa_dataframe['time'] <= end)]
             noaa_dataframe = noaa_dataframe.reset_index(drop=True)
-            noaa_dataframe.to_csv(Path(str(self.__p_dir.folder())+'/'+self.__code+'_dataframe.csv'), index=False)
+            noaa_dataframe.to_csv(Path(str(self.__p_dir)+'/'+self.__code+'_dataframe.csv'), index=False)
             x = noaa_dataframe['time'].apply(lambda time: time_to_index(start, time)).to_numpy()
             y = noaa_dataframe['velocity'].to_numpy()
             cs = CubicSpline(x, y)
             result = np.fromiter([cs(x) for x in v_range], dtype=np.half)
-            pd.DataFrame(result).to_csv(self.__output_file, header=False)
+            result.tofile(self.__output_file, sep=',')
             return tuple([self.__id, result])
 
     def execute_callback(self, result):
-        print(f'-     {self.__intro} {self.__code} calculation {"SUCCESSFUL" if isinstance(result[1], np.ndarray) else "FAILED"}', flush=True)
+        print(f'-     {self.__intro} {self.__code} {"SUCCESSFUL" if isinstance(result[1], np.ndarray) else "FAILED"}', flush=True)
     def error_callback(self, result):
         print(f'!     {self.__intro} {self.__code} process has raised an error: {result}', flush=True)
 

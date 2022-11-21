@@ -1,8 +1,24 @@
+import pandas as pd
 from project_globals import boat_speeds, timestep
 
 ts_hours = timestep/3600  # 3600 seconds per hour
 
 def distance(water_vf, water_vi, boat_speed, elapsed_time): return ((water_vf+water_vi)/2+boat_speed)*elapsed_time
+
+class ElapsedTimeJob:
+
+    def __init__(self, edge):
+        self.__velo_arr_start = edge.start().velocity_array()
+        self.__velo_arr_end = edge.end().velocity_array()
+        print(len(self.__velo_arr_start), len(self.__velo_arr_end))
+        self.__df_forward = pd.DataFrame()
+        self.__df_forward['vi'] = edge.start().velocity_array()
+        self.__df_forward['vf'] = edge.end().velocity_array()
+
+        self.__df_forward['dist'] = distance(self.__df_forward['vf'], self.__df_forward['vi'], 3, ts_hours )
+
+        print(self.__df_forward)
+
 
 # def elapsedTime(index, viList, vfList, timeInHours, speed, distanceToTraverse):
 #     distanceTraveled, timeElapsed, delta, priorDelta = 0.0, 0.0, 0.0, 0.0

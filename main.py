@@ -2,12 +2,10 @@ from argparse import ArgumentParser as argParser
 from pathlib import Path
 from multiprocessing import Manager
 
-import numpy as np
-
 import multiprocess as mp
 from route_objects import GpxRoute
 from velocity import VelocityJob
-#from elapsed_time import elapsed_time
+from elapsed_time import ElapsedTimeJob
 
 if __name__ == '__main__':
 
@@ -37,9 +35,7 @@ if __name__ == '__main__':
     mp.job_queue.join()
     for rn in route.route_nodes(): rn.velocity_array(mp.result_lookup[id(rn)])
 
-    # For each edge, calculate time to travel the length for each time in the velocity array of the start node
-    for eg in route.route_edges():
-        elapsed_time(eg)
+    ElapsedTimeJob(route.route_edges()[0])
 
 
 
