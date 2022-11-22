@@ -66,7 +66,6 @@ class VelocityJob:
             start = self.__chart_yr.first_day_minus_two()
             end = self.__chart_yr.last_day_plus_three()
             year = self.__chart_yr.year()
-            v_range = range(0, seconds(start, end), timestep)
             noaa_dataframe = pd.DataFrame()
 
             self.__driver = get_chrome_driver(self.__n_dir)
@@ -82,11 +81,11 @@ class VelocityJob:
             noaa_dataframe.rename(columns={'Date_Time (LST/LDT)': 'time', ' Event': 'event', ' Speed (knots)': 'velocity'}, inplace=True)
             noaa_dataframe = noaa_dataframe[(start <= noaa_dataframe['time']) & (noaa_dataframe['time'] <= end)]
             noaa_dataframe = noaa_dataframe.reset_index(drop=True)
+            noaa_dataframe['seconds'] = noaa_dataframe['time'].apply(lambda time: time_to_index(start, time)).to_numpy()  # time_to_index returns seconds from start
             noaa_dataframe.to_csv(Path(str(self.__p_dir)+'/'+self.__code+'_dataframe.csv'), index=False)
-            x = noaa_dataframe['time'].apply(lambda time: time_to_index(start, time)).to_numpy()
-            y = noaa_dataframe['velocity'].to_numpy()
-            cs = CubicSpline(x, y)
-            result = np.fromiter([cs(x) for x in v_range], dtype=np.half)
+            cs = CubicSpline(noaa_dataframe['seconds'].to_numpy(), noaa_dataframe['velocity'].to_numpy())  # (time, velocity) v = cs(t)
+            v_range = range(0, seconds(start, end), timestep)  # calculcate velocity at each timestep (in seconds) from start
+            result = np.fromiter([cs(t) for t in v_range], dtype=np.half)  # array of velocities at each timestep
             np.save(self.__output_file,result)
             return tuple([self.__id, result])
 

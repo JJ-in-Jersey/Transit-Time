@@ -2,8 +2,6 @@ import numpy as np
 import pandas as pd
 from project_globals import boat_speeds, timestep, seconds, index_to_time
 
-ts_hours = timestep/3600  # 3600 seconds per hour
-
 def distance(water_vf, water_vi, boat_speed, time): return ((water_vf+water_vi)/2+boat_speed)*time
 def elapsed_time(starting_index, distances, length):
     index = starting_index
@@ -21,7 +19,7 @@ class ElapsedTimeJob:
         self.__df_forward = pd.DataFrame()
         self.__df_forward['vi'] = edge.start().velocity_array()[:-1]
         self.__df_forward['vf'] = edge.end().velocity_array()[1:]
-        self.__df_forward['dist'] = distance(self.__df_forward['vf'], self.__df_forward['vi'], 3, ts_hours )
+        self.__df_forward['dist'] = distance(self.__df_forward['vf'], self.__df_forward['vi'], 3, timestep/3600)  # timestep/3600 because velocities are per hour, not second
 
         start = chart_yr.first_day_minus_two()
         end = chart_yr.last_day()
