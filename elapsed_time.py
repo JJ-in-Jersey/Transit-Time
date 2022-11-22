@@ -10,7 +10,7 @@ def elapsed_time(starting_index, distances, length):
         total += distances[index]
         count += 1
         index += 1
-    return count
+    return int(count*timestep)  # count is the number of timesteps to get to next waypoint, returning total time in seconds
 
 
 class ElapsedTimeJob:
@@ -19,15 +19,16 @@ class ElapsedTimeJob:
         self.__df_forward = pd.DataFrame()
         self.__df_forward['vi'] = edge.start().velocity_array()[:-1]
         self.__df_forward['vf'] = edge.end().velocity_array()[1:]
+        # for each velocity point, calculate the distance traveled
         self.__df_forward['dist'] = distance(self.__df_forward['vf'], self.__df_forward['vi'], 3, timestep/3600)  # timestep/3600 because velocities are per hour, not second
 
         start = chart_yr.first_day_minus_two()
         end = chart_yr.last_day()
-        e_range = range(0, int(seconds(start, end)/timestep), 1)
-        result = np.fromiter([elapsed_time(i, self.__df_forward['dist'].to_numpy(), edge.length()) for i in e_range], dtype=int)
+        e_range = range(0, int(seconds(start, end)/timestep))  # NUMBER of timesteps to last day, 0,1,2,3, not times or seconds
+        elapsed_times = np.fromiter([elapsed_time(i, self.__df_forward['dist'].to_numpy(), edge.length()) for i in e_range], dtype=int)
 
         for i in e_range:
-            print(index_to_time(start, i), result[i])
+            print(index_to_time(start, i), elapsed_times[i])
 
         print(self.__df_forward)
 
