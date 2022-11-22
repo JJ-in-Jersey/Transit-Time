@@ -49,7 +49,6 @@ class RouteNode(Node):
     def velocity_array(self, array=None):
         if isinstance(array, numpy.ndarray) and not self.__velo_array:
             self.__velo_array = array
-            print(f'{self.code()} velocity assignment successful')
         return self.__velo_array
 
     def __init__(self, gpxtag):

@@ -60,18 +60,17 @@ class VelocityJob:
     def execute(self):
         if exists(self.__output_file):
             print(f'+     {self.__intro} {self.__code} {self.__name} reading data file')
-            #return tuple([self.__id, np.genfromtxt(self.__output_file, dtype=np.half)])
-            return tuple([self.__id, np.loadtxt(self.__output_file)])
+            return tuple([self.__id, np.load(self.__output_file)])
         else:
             print(f'+     {self.__intro} {self.__code} {self.__name} velocity calculation starting', flush=True)
-            start = self.__year.first_day_minus_two()
-            end = self.__year.last_day_plus_three()
-            year = self.__year.year()
+            start = self.__chart_yr.first_day_minus_two()
+            end = self.__chart_yr.last_day_plus_three()
+            year = self.__chart_yr.year()
             v_range = range(0, seconds(start, end), timestep)
             noaa_dataframe = pd.DataFrame()
 
             self.__driver = get_chrome_driver(self.__n_dir)
-            for y in range(year - 1, year + 2):  # + 2 because of range behavior
+            for y in range(year - 1, year + 2):  # + 2 because of range behavior2
                 self.__driver.get(self.__url)
                 self.__wdw = WebDriverWait(self.__driver, 1000)
                 self.__velocity_page(y)
@@ -88,7 +87,7 @@ class VelocityJob:
             y = noaa_dataframe['velocity'].to_numpy()
             cs = CubicSpline(x, y)
             result = np.fromiter([cs(x) for x in v_range], dtype=np.half)
-            result.tofile(self.__output_file, sep=',')
+            np.save(self.__output_file,result)
             return tuple([self.__id, result])
 
     def execute_callback(self, result):
@@ -96,9 +95,9 @@ class VelocityJob:
     def error_callback(self, result):
         print(f'!     {self.__intro} {self.__code} process has raised an error: {result}', flush=True)
 
-    def __init__(self, route_node, chart_year, d_dir, intro=''):
+    def __init__(self, route_node, chart_yr, d_dir, intro=''):
         self.__wdw = self.__driver = None
-        self.__year = chart_year
+        self.__chart_yr = chart_yr
         self.__intro = intro
         self.__name = route_node.name()
         self.__code = route_node.code()
@@ -106,4 +105,4 @@ class VelocityJob:
         self.__id = id(route_node)
         self.__n_dir = d_dir.node_folder(route_node.code())
         self.__p_dir = d_dir.project_folder()
-        self.__output_file = Path(str(d_dir.project_folder())+'/'+self.__code+'_array.csv')
+        self.__output_file = Path(str(d_dir.project_folder())+'/'+self.__code+'_array.npy')

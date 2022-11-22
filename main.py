@@ -35,7 +35,7 @@ if __name__ == '__main__':
     mp.job_queue.join()
     for rn in route.route_nodes(): rn.velocity_array(mp.result_lookup[id(rn)])
 
-    ElapsedTimeJob(route.route_edges()[0])
+    ElapsedTimeJob(route.route_edges()[0],mp.chart_yr)
 
 
 

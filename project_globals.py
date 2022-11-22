@@ -12,6 +12,7 @@ boat_speeds = range(3, 9, 2)
 def sign(value): return value/abs(value)
 def seconds(start, end): return int((end-start).total_seconds())
 def time_to_index(start, time): return seconds(start, time)
+def index_to_time(start, index): return start + td(seconds=index)
 def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 
 class DownloadDirectory:

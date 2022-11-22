@@ -1,21 +1,35 @@
+import numpy as np
 import pandas as pd
-from project_globals import boat_speeds, timestep
+from project_globals import boat_speeds, timestep, seconds, index_to_time
 
 ts_hours = timestep/3600  # 3600 seconds per hour
 
-def distance(water_vf, water_vi, boat_speed, elapsed_time): return ((water_vf+water_vi)/2+boat_speed)*elapsed_time
+def distance(water_vf, water_vi, boat_speed, time): return ((water_vf+water_vi)/2+boat_speed)*time
+def elapsed_time(starting_index, distances, length):
+    index = starting_index
+    count = total = 0
+    while total < length:
+        total += distances[index]
+        count += 1
+        index += 1
+    return count
+
 
 class ElapsedTimeJob:
 
-    def __init__(self, edge):
-        self.__velo_arr_start = edge.start().velocity_array()
-        self.__velo_arr_end = edge.end().velocity_array()
-        print(len(self.__velo_arr_start), len(self.__velo_arr_end))
+    def __init__(self, edge, chart_yr):
         self.__df_forward = pd.DataFrame()
-        self.__df_forward['vi'] = edge.start().velocity_array()
-        self.__df_forward['vf'] = edge.end().velocity_array()
-
+        self.__df_forward['vi'] = edge.start().velocity_array()[:-1]
+        self.__df_forward['vf'] = edge.end().velocity_array()[1:]
         self.__df_forward['dist'] = distance(self.__df_forward['vf'], self.__df_forward['vi'], 3, ts_hours )
+
+        start = chart_yr.first_day_minus_two()
+        end = chart_yr.last_day()
+        e_range = range(0, int(seconds(start, end)/timestep), 1)
+        result = np.fromiter([elapsed_time(i, self.__df_forward['dist'].to_numpy(), edge.length()) for i in e_range], dtype=int)
+
+        for i in e_range:
+            print(index_to_time(start, i), result[i])
 
         print(self.__df_forward)
 
