@@ -8,7 +8,7 @@ from warnings import filterwarnings as fw
 
 fw("ignore", message="The localize method is no longer necessary, as this time zone supports the fold attribute",)
 timestep = 60
-boat_speeds = range(3, 9, 2)
+boat_speeds = range(3, 10, 2)
 def sign(value): return value/abs(value)
 def seconds(start, end): return int((end-start).total_seconds())
 def time_to_index(start, time): return seconds(start, time)
@@ -47,6 +47,7 @@ class ChartYear:
             self.__last_day_plus_one = self.__last_day + td(days=1)
             self.__last_day_plus_two = self.__last_day + td(days=2)
             self.__last_day_plus_three = self.__last_day + td(days=3)
+            self.__calc_start = self.__first_day_minus_one
     def year(self): return self.__year
     def first_day(self): return self.__first_day
     def first_day_minus_one(self): return self.__first_day_minus_one
@@ -55,6 +56,7 @@ class ChartYear:
     def last_day_plus_one(self): return self.__last_day_plus_one
     def last_day_plus_two(self): return self.__last_day_plus_two
     def last_day_plus_three(self): return self.__last_day_plus_three
+    def calc_start(self): return self.__calc_start
     # year = property(fset=set_year, fget=year)
     # first_day = property(fget=first_day)
     # first_day_minus_one = property(fget=first_day_minus_one)
@@ -73,3 +75,4 @@ class ChartYear:
         self.__last_day_plus_one = None
         self.__last_day_plus_two = None
         self.__last_day_plus_three = None
+        self.__calc_start = None

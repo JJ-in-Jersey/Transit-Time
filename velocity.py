@@ -63,7 +63,7 @@ class VelocityJob:
             return tuple([self.__id, np.load(self.__output_file)])
         else:
             print(f'+     {self.__intro} {self.__code} {self.__name} velocity calculation starting', flush=True)
-            start = self.__chart_yr.first_day_minus_two()
+            start = self.__chart_yr.calc_start()
             end = self.__chart_yr.last_day_plus_three()
             year = self.__chart_yr.year()
             noaa_dataframe = pd.DataFrame()
