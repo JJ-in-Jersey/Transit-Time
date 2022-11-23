@@ -4,7 +4,6 @@ from haversine import haversine as hvs, Unit
 import numpy
 
 from project_globals import sign
-import multiprocess as mp
 fw("ignore", message="The localize method is no longer necessary, as this time zone supports the fold attribute",)
 
 class Node:
@@ -116,7 +115,6 @@ class GpxRoute:
     def edges(self): return self.__edges
     def route_edges(self): return self.__route_edges
 
-
     def __init__(self, filepath):
         super().__init__()
         self.__nodes = self.__route_nodes = self.__edges = self.__route_edges = None
@@ -146,8 +144,6 @@ class GpxRoute:
         self.__first_route_edge = self.__route_edges[0]
         self.__last_route_edge = self.__route_edges[-1]
         self.__length = sum([node.next_edge().length() for node in self.__nodes[:-1]])
-        #for n in self.route_nodes(): lookup[id(n)] = n
-        #for e in self.__route_edges: lookup[id(e)] = e
 
         # calculate direction
         corner = (self.__nodes[-1].coords()[0], self.__nodes[0].coords()[1])
@@ -159,4 +155,3 @@ class GpxRoute:
         elif (lat_sign > 0 > lon_sign and not lon_dist >= lat_dist) or (lat_sign < 0 and lon_sign < 0 and not lon_dist >= lat_dist): self.__direction = 'NS'
         elif (lat_sign < 0 < lon_sign and lon_dist >= lat_dist) or (lat_sign < 0 and lon_sign < 0 and lon_dist >= lat_dist): self.__direction = 'EW'
         elif (lat_sign > 0 and lon_sign > 0 and lon_dist >= lat_dist) or (lat_sign > 0 > lon_sign and lon_dist >= lat_dist): self.__direction = 'WE'
-

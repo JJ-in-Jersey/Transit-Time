@@ -86,7 +86,7 @@ class VelocityJob:
             cs = CubicSpline(noaa_dataframe['seconds'].to_numpy(), noaa_dataframe['velocity'].to_numpy())  # (time, velocity) v = cs(t)
             v_range = range(0, seconds(start, end), timestep)  # calculcate velocity at each timestep (in seconds) from start
             result = np.fromiter([cs(t) for t in v_range], dtype=np.half)  # array of velocities at each timestep
-            np.save(self.__output_file,result)
+            np.save(self.__output_file, result)
             return tuple([self.__id, result])
 
     def execute_callback(self, result):
