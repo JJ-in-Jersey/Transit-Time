@@ -1,4 +1,6 @@
 from warnings import filterwarnings as fw
+
+import pandas as pd
 from bs4 import BeautifulSoup as Soup
 from haversine import haversine as hvs, Unit
 import numpy
@@ -61,6 +63,10 @@ class Edge:
     def start(self): return self.__start
     def end(self): return self.__end
     def length(self): return self.__length
+    def name(self, name=None):
+        if isinstance(name, str) and not self.__name:
+            self.__name = name
+        return self.__name
 
     @staticmethod
     def calc_length(start, end): return hvs(start.coords(), end.coords(), unit=Unit.NAUTICAL_MILES)
@@ -70,6 +76,7 @@ class Edge:
         self.__start = start
         self.__end = end
         self.__length = self.calc_length(start, end)
+        self.__name = None
         start.next_edge(self)
         end.prev_edge(self)
         start.next_node(end)
@@ -80,6 +87,11 @@ class RouteEdge:
     def length(self): return self.__length
     def start(self): return self.__start
     def end(self): return self.__end
+    def name(self): return self.__name
+    def elapsed_time_dataframe(self, df=None):
+        if isinstance(df, pd.DataFrame) and not self.__et_dataframe:
+            self.__et_dataframe = df
+        return self.__et_dataframe
 
     @staticmethod
     def calc_length(start, end):
@@ -92,9 +104,11 @@ class RouteEdge:
 
     def __init__(self, start, end):
         super().__init__()
+        self.__et_dataframe = None
         self.__start = start
         self.__end = end
         self.__length = self.calc_length(start, end)
+        self.__name = start.code()+'-'+end.code()
         start.next_route_edge(self)
         end.prev_route_edge(self)
         start.next_route_node(end)
@@ -123,26 +137,18 @@ class GpxRoute:
         self.__direction = None
         self.__length = 0
 
-        with open(filepath, 'r') as f:
-            gpxfile = f.read()
+        with open(filepath, 'r') as f: gpxfile = f.read()
         tree = Soup(gpxfile, 'xml')
 
         # create graph nodes
         self.__nodes = [RouteNode(point) if point.desc else Node(point) for point in tree.find_all('rtept')]
         self.__route_nodes = [node for node in self.__nodes if isinstance(node, RouteNode)]
-        self.__first_node = self.__nodes[0]
-        self.__last_node = self.__nodes[-1]
-        self.__first_route_node = self.__route_nodes[0]
-        self.__last_route_node = self.__route_nodes[-1]
+
         # create graph edges - instantiating edges updates next and prev references nodes
         for i, node in enumerate(self.__nodes[:-1]): Edge(node, self.__nodes[i+1])
         for i, node in enumerate(self.__route_nodes[:-1]): RouteEdge(node, self.__route_nodes[i+1])
         self.__edges = [node.next_edge() for node in self.__nodes[:-1]]
         self.__route_edges = [node.next_route_edge() for node in self.__route_nodes[:-1]]
-        self.__first_edge = self.__edges[0]
-        self.__last_edge = self.__edges[-1]
-        self.__first_route_edge = self.__route_edges[0]
-        self.__last_route_edge = self.__route_edges[-1]
         self.__length = sum([node.next_edge().length() for node in self.__nodes[:-1]])
 
         # calculate direction

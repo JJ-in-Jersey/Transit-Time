@@ -31,14 +31,16 @@ if __name__ == '__main__':
     route = GpxRoute(args['filepath'])
 
     # Download noaa data and create velocity arrays for each waypoint (node)
+    print(f'\nCalculating velocities')
     for rn in route.route_nodes(): mp.job_queue.put(VelocityJob(rn, mp.chart_yr, mp.d_dir, mp.pool_notice))
     mp.job_queue.join()
     for rn in route.route_nodes(): rn.velocity_array(mp.result_lookup[id(rn)])
 
-    ej = ElapsedTimeJob(route.route_edges()[0], mp.chart_yr, mp.d_dir, mp.pool_notice)
-    ej.execute()
-
-
+    print(f'\nCalculating elapsed times')
+    for re in route.route_edges():
+        mp.job_queue.put(ElapsedTimeJob(re, mp.chart_yr, mp.d_dir, mp.pool_notice))
+    mp.job_queue.join()
+    for re in route.route_edges(): re.elapsed_time_dataframe(mp.result_lookup[id(re)])
 
     mp.som.shutdown()
     if jm.is_alive(): jm.terminate()
