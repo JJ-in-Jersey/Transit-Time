@@ -21,7 +21,6 @@ class ElapsedTimeJob:
 
     def __init__(self, edge, chart_yr, d_dir, intro=''):
         self.__chart_yr = chart_yr
-        self.__p_dir = d_dir.project_folder()
         self.__intro = intro
         self.__id = id(edge)
         self.__length = edge.length()
@@ -30,7 +29,7 @@ class ElapsedTimeJob:
         self.__end_array = edge.end().velocity_array()
         self.__calc_start = chart_yr.calc_start()
         self.__calc_end = int(seconds(chart_yr.calc_start(), chart_yr.last_day_plus_one())/timestep)
-        self.__output_file = Path(str(d_dir.project_folder())+'/'+str(self.__edge_name)+'.csv')
+        self.__output_file = Path(str(d_dir.elapsed_time_folder())+'/'+str(self.__edge_name)+'.csv')
 
     def execute(self):
         if exists(self.__output_file):
@@ -44,13 +43,15 @@ class ElapsedTimeJob:
                 et_df = pd.DataFrame()
                 et_df['dist'] = distance(self.__end_array[1:], self.__start_array[:-1], s, timestep / 3600)  # timestep/3600 because velocities are per hour
                 elapsed_times_df[col_name] = np.fromiter([elapsed_time(i, et_df['dist'].to_numpy(), self.__length) for i in range(0, self.__calc_end)], dtype=int)
+                del et_df
             for s in boat_speeds:
                 col_name = self.__edge_name+' '+str(-1*s)
                 et_df = pd.DataFrame()
                 et_df['dist'] = distance(self.__start_array[1:], self.__end_array[:-1], -1*s, timestep / 3600)
                 elapsed_times_df[col_name] = np.fromiter([elapsed_time(i, et_df['dist'].to_numpy(), -1*self.__length) for i in range(0, self.__calc_end)], dtype=int)
-                elapsed_times_df.to_csv(self.__output_file, index=False)
-                return tuple([self.__id, elapsed_times_df])
+                del et_df
+        elapsed_times_df.to_csv(self.__output_file, index=False)
+        return tuple([self.__id, elapsed_times_df])
 
     def execute_callback(self, result):
         print(f'-     {self.__intro} {self.__edge_name} {"SUCCESSFUL" if isinstance(result[1], pd.DataFrame) else "FAILED"}', flush=True)

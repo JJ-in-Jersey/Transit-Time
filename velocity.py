@@ -38,8 +38,6 @@ def get_chrome_driver(download_dir):
 
 class VelocityJob:
 
-    calc_type = 'velocity'
-
     def __velocity_download(self):
         newest_before = newest_after = newest_file(self.__n_dir)
         self.__wdw.until(ec.element_to_be_clickable((By.ID, 'generatePDF'))).click()
@@ -82,7 +80,7 @@ class VelocityJob:
             noaa_dataframe = noaa_dataframe[(start <= noaa_dataframe['time']) & (noaa_dataframe['time'] <= end)]
             noaa_dataframe = noaa_dataframe.reset_index(drop=True)
             noaa_dataframe['seconds'] = noaa_dataframe['time'].apply(lambda time: time_to_index(start, time)).to_numpy()  # time_to_index returns seconds from start
-            noaa_dataframe.to_csv(Path(str(self.__p_dir)+'/'+self.__code+'_dataframe.csv'), index=False)
+            noaa_dataframe.to_csv(Path(str(self.__v_dir)+'/'+self.__code+'_dataframe.csv'), index=False)
             cs = CubicSpline(noaa_dataframe['seconds'].to_numpy(), noaa_dataframe['velocity'].to_numpy())  # (time, velocity) v = cs(t)
             v_range = range(0, seconds(start, end), timestep)  # calculcate velocity at each timestep (in seconds) from start
             result = np.fromiter([cs(t) for t in v_range], dtype=np.half)  # array of velocities at each timestep
@@ -103,5 +101,5 @@ class VelocityJob:
         self.__url = route_node.url()
         self.__id = id(route_node)
         self.__n_dir = d_dir.node_folder(route_node.code())
-        self.__p_dir = d_dir.project_folder()
-        self.__output_file = Path(str(d_dir.project_folder())+'/'+self.__code+'_array.npy')
+        self.__v_dir = d_dir.velocity_folder()
+        self.__output_file = Path(str(d_dir.velocity_folder())+'/'+self.__code+'_array.npy')

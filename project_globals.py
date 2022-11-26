@@ -18,10 +18,21 @@ def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 class DownloadDirectory:
 
     def node_folder(self, name):
-        folderpath = Path(str(self.__project_folder) + '/' + name + '/')
-        if not exists(folderpath): makedirs(folderpath, exist_ok=True)
-        return folderpath
-
+        node_path = Path(str(self.velocity_folder()) +'/' + name + '/')
+        makedirs(node_path, exist_ok=True)
+        return node_path
+    def velocity_folder(self):
+        v_path = Path(str(self.__project_folder) + '/Velocity/')
+        makedirs(v_path, exist_ok=True)
+        return v_path
+    def elapsed_time_folder(self):
+        et_path = Path(str(self.__project_folder) + '/Elapsed Time/')
+        makedirs(et_path, exist_ok=True)
+        return et_path
+    def transit_time_folder(self):
+        tt_path = Path(str(self.__project_folder) + '/Transit Time/')
+        makedirs(tt_path, exist_ok=True)
+        return tt_path
     def project_folder(self, args=None):
         if args:
             self.__project_folder = Path(environ['USERPROFILE']+'/Downloads/'+args['project_name']+'/')
