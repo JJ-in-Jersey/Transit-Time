@@ -61,8 +61,6 @@ class VelocityJob:
             return tuple([self.__id, np.load(self.__output_file)])
         else:
             print(f'+     {self.__intro} {self.__code} {self.__name} velocity calculation starting', flush=True)
-            start = self.__chart_yr.calc_start()
-            end = self.__chart_yr.last_day_plus_three()
             year = self.__chart_yr.year()
             noaa_dataframe = pd.DataFrame()
 
@@ -77,18 +75,19 @@ class VelocityJob:
             self.__driver.quit()
 
             noaa_dataframe.rename(columns={'Date_Time (LST/LDT)': 'time', ' Event': 'event', ' Speed (knots)': 'velocity'}, inplace=True)
-            noaa_dataframe = noaa_dataframe[(start <= noaa_dataframe['time']) & (noaa_dataframe['time'] <= end)]
+            noaa_dataframe = noaa_dataframe[(self.__start <= noaa_dataframe['time']) & (noaa_dataframe['time'] <= self.__end)]
             noaa_dataframe = noaa_dataframe.reset_index(drop=True)
-            noaa_dataframe['seconds'] = noaa_dataframe['time'].apply(lambda time: time_to_index(start, time)).to_numpy()  # time_to_index returns seconds from start
+            noaa_dataframe['seconds'] = noaa_dataframe['time'].apply(lambda time: time_to_index(self.__start, time)).to_numpy()  # time_to_index returns seconds from start
             noaa_dataframe.to_csv(Path(str(self.__v_dir)+'/'+self.__code+'_dataframe.csv'), index=False)
             cs = CubicSpline(noaa_dataframe['seconds'].to_numpy(), noaa_dataframe['velocity'].to_numpy())  # (time, velocity) v = cs(t)
-            v_range = range(0, seconds(start, end), timestep)  # calculcate velocity at each timestep (in seconds) from start
+            #  number of rows in v_range is the number of timesteps from start to end
+            v_range = range(0, self.__seconds, timestep)
             result = np.fromiter([cs(t) for t in v_range], dtype=np.half)  # array of velocities at each timestep
             np.save(self.__output_file, result)
             return tuple([self.__id, result])
 
     def execute_callback(self, result):
-        print(f'-     {self.__intro} {self.__code} {"SUCCESSFUL" if isinstance(result[1], np.ndarray) else "FAILED"}', flush=True)
+        print(f'-     {self.__intro} {self.__code} {"SUCCESSFUL" if isinstance(result[1], np.ndarray) and len(result[1]) == self.__expected_length else "FAILED"} {len(result[1])}', flush=True)
     def error_callback(self, result):
         print(f'!     {self.__intro} {self.__code} process has raised an error: {result}', flush=True)
 
@@ -103,3 +102,7 @@ class VelocityJob:
         self.__n_dir = d_dir.node_folder(route_node.code())
         self.__v_dir = d_dir.velocity_folder()
         self.__output_file = Path(str(d_dir.velocity_folder())+'/'+self.__code+'_array.npy')
+        self.__start = chart_yr.first_day_minus_one()
+        self.__end = chart_yr.last_day_plus_three()
+        self.__seconds = seconds(self.__start, self.__end)
+        self.__expected_length = int(self.__seconds / timestep)

@@ -120,20 +120,13 @@ class GpxRoute:
 
     def nodes(self): return self.__nodes
     def route_nodes(self): return self.__route_nodes
-    def first_node(self): return self.__first_node
-    def last_node(self): return self.__last_node
-    def first_route_node(self): return self.__first_route_node
-    def last_route_node(self): return self.__last_route_node
+    def route_edges(self): return self.__route_edges
+    def edges(self): return self.__edges
     def length(self): return self.__length
     def direction(self): return GpxRoute.directionLookup[self.__direction]
-    def edges(self): return self.__edges
-    def route_edges(self): return self.__route_edges
 
     def __init__(self, filepath):
-        super().__init__()
         self.__nodes = self.__route_nodes = self.__edges = self.__route_edges = None
-        self.__first_node = self.__last_node = self.__first_route_node = self.__last_route_node = None
-        self.__first_edge = self.__last_edge = self.__first_route_edge = self.__last_route_edge = None
         self.__direction = None
         self.__length = 0
 
