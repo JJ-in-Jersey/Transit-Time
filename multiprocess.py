@@ -39,6 +39,7 @@ class JobManager:
 class WaitForProcess(Process):
     def start(self, **kwargs):
         open(process_running_semaphore, 'w').close()
+        # noinspection PyArgumentList
         super().start(**kwargs)
         while exists(process_running_semaphore):
             sleep(0.1)
