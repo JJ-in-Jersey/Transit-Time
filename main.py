@@ -6,6 +6,7 @@ import multiprocess as mp
 from route_objects import GpxRoute
 from velocity import VelocityJob
 from elapsed_time import ElapsedTimeJob
+from project_globals import timestep
 
 if __name__ == '__main__':
 
@@ -29,6 +30,8 @@ if __name__ == '__main__':
 
     # Assemble route and route objects
     route = GpxRoute(args['filepath'])
+    print(f'Number of nodes: {len(route.route_nodes())}')
+    print(f'Timestep: {timestep}')
 
     # Download noaa data and create velocity arrays for each waypoint (node)
     print(f'\nCalculating velocities')
