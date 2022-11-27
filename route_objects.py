@@ -4,8 +4,12 @@ import pandas as pd
 from bs4 import BeautifulSoup as Soup
 from haversine import haversine as hvs, Unit
 import numpy
+from pathlib import Path
+from os.path import exists
 
-from project_globals import sign
+from project_globals import sign, boat_speeds
+import multiprocess as mp
+
 fw("ignore", message="The localize method is no longer necessary, as this time zone supports the fold attribute",)
 
 class Node:
@@ -120,14 +124,17 @@ class GpxRoute:
 
     def nodes(self): return self.__nodes
     def route_nodes(self): return self.__route_nodes
-    def route_edges(self): return self.__route_edges
     def edges(self): return self.__edges
+    def route_edges(self): return self.__route_edges
     def length(self): return self.__length
     def direction(self): return GpxRoute.directionLookup[self.__direction]
+    def elapsed_time_speed_dataframe(self, speed): return self.__elapsed_times_by_speed[str(speed)]
 
     def __init__(self, filepath):
         self.__nodes = self.__route_nodes = self.__edges = self.__route_edges = None
         self.__direction = None
+        self.__elapsed_times_by_speed = {}
+        for s in boat_speeds: self.__elapsed_times_by_speed[str(s)] = None
         self.__length = 0
 
         with open(filepath, 'r') as f: gpxfile = f.read()
@@ -154,3 +161,19 @@ class GpxRoute:
         elif (lat_sign > 0 > lon_sign and not lon_dist >= lat_dist) or (lat_sign < 0 and lon_sign < 0 and not lon_dist >= lat_dist): self.__direction = 'NS'
         elif (lat_sign < 0 < lon_sign and lon_dist >= lat_dist) or (lat_sign < 0 and lon_sign < 0 and lon_dist >= lat_dist): self.__direction = 'EW'
         elif (lat_sign > 0 and lon_sign > 0 and lon_dist >= lat_dist) or (lat_sign > 0 > lon_sign and lon_dist >= lat_dist): self.__direction = 'WE'
+
+    def elapsed_times_by_speed(self):
+        for s in boat_speeds:
+            outputfile = Path(str(mp.d_dir.elapsed_time_folder()) + '/ET_' + str(s) + '_dataframe.csv')
+            if exists(outputfile):
+                print(f'Reading data file {outputfile}')
+                self.__elapsed_times_by_speed[str(s)] = pd.read_csv(outputfile, header='infer')
+            else:
+                print(f'Processing {outputfile}')
+                speed_df = pd.DataFrame()
+                for re in self.route_edges():
+                    col_name = re.name() + ' ' + str(s)
+                    speed_df[col_name] = re.elapsed_time_dataframe()[col_name]
+                speed_df.to_csv(outputfile, index=False)
+                # noinspection PyTypeChecker
+                self.__elapsed_times_by_speed[str(s)] = speed_df

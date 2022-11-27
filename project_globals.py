@@ -1,13 +1,12 @@
 from pathlib import Path
 from os import environ, makedirs
-from os.path import exists
 import shutil
 import dateparser as dp
 from datetime import timedelta as td
 from warnings import filterwarnings as fw
 
 fw("ignore", message="The localize method is no longer necessary, as this time zone supports the fold attribute",)
-timestep = 180
+timestep = 15
 boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]
 def sign(value): return value/abs(value)
 def seconds(start, end): return int((end-start).total_seconds())
@@ -18,7 +17,7 @@ def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 class DownloadDirectory:
 
     def node_folder(self, name):
-        node_path = Path(str(self.velocity_folder()) +'/' + name + '/')
+        node_path = Path(str(self.velocity_folder()) + '/' + name + '/')
         makedirs(node_path, exist_ok=True)
         return node_path
     def velocity_folder(self):

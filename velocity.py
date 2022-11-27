@@ -58,6 +58,7 @@ class VelocityJob:
     def execute(self):
         if exists(self.__output_file):
             print(f'+     {self.__intro} {self.__code} {self.__name} reading data file')
+            # noinspection PyTypeChecker
             return tuple([self.__id, np.load(self.__output_file)])
         else:
             print(f'+     {self.__intro} {self.__code} {self.__name} velocity calculation starting', flush=True)
@@ -83,6 +84,7 @@ class VelocityJob:
             #  number of rows in v_range is the number of timesteps from start to end
             v_range = range(0, self.__seconds, timestep)
             result = np.fromiter([cs(t) for t in v_range], dtype=np.half)  # array of velocities at each timestep
+            # noinspection PyTypeChecker
             np.save(self.__output_file, result)
             return tuple([self.__id, result])
 

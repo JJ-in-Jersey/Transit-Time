@@ -1,15 +1,11 @@
 from argparse import ArgumentParser as argParser
 from pathlib import Path
-from os.path import exists
 from multiprocessing import Manager
-import pandas as pd
 
 import multiprocess as mp
 from route_objects import GpxRoute
 from velocity import VelocityJob
 from elapsed_time import ElapsedTimeJob
-
-from project_globals import seconds, timestep, boat_speeds
 
 if __name__ == '__main__':
 
@@ -31,8 +27,6 @@ if __name__ == '__main__':
     mp.d_dir.project_folder(args)
     mp.chart_yr.set_year(args)
 
-    print(f'E first_day_minus_one to last_day_plus_two # of steps: {int(seconds(mp.chart_yr.first_day_minus_one(), mp.chart_yr.last_day_plus_two())/timestep)}')
-
     # Assemble route and route objects
     route = GpxRoute(args['filepath'])
 
@@ -49,18 +43,8 @@ if __name__ == '__main__':
     for re in route.route_edges(): re.elapsed_time_dataframe(mp.result_lookup[id(re)])
 
     # Aggregate the elapsed time information by speed rather than edge
-    print(f'\nAggregating elapsed times by speed')
-    for s in boat_speeds:
-        outputfile = Path(str(mp.d_dir.elapsed_time_folder()) + '/' + str(s) + '_dataframe.csv')
-        if exists(outputfile):
-            print(f'+     Reading data file {outputfile}')
-            pd.read_csv(outputfile, header='infer')
-        else:
-            speed_df = pd.DataFrame()
-            for re in route.route_edges():
-                col_name = re.name() + ' ' + str(s)
-                speed_df[col_name] = re.elapsed_time_dataframe()[col_name]
-            speed_df.to_csv(Path(str(mp.d_dir.elapsed_time_folder()) + '/' + str(s) + '_dataframe.csv'), index=False)
+    print(f'\nAssigning elapsed times by speed')
+    route.elapsed_times_by_speed()
 
     mp.som.shutdown()
     if jm.is_alive(): jm.terminate()

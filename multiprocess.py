@@ -47,4 +47,3 @@ class SharedObjectManager(BaseManager): pass
 SharedObjectManager.register('DD', DownloadDirectory)
 SharedObjectManager.register('CY', ChartYear)
 som = SharedObjectManager()
-
