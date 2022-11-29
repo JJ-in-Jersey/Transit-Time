@@ -15,7 +15,7 @@ def elapsed_time(starting_index, distances, length):
         count += 1
         index += 1
         not_there_yet = True if length > 0 and total < length or length < 0 and total > length else False
-    return count  # count = number of timesteps
+    return count  # count = number of time steps
 
 class ElapsedTimeJob:
 
@@ -47,7 +47,8 @@ class ElapsedTimeJob:
                 col_name = self.__edge_name+' '+str(s)
                 et_df = pd.DataFrame()
                 et_df['dist'] = distance(ea[1:], sa[:-1], s, ts_in_hr) if s > 0 else distance(sa[1:], ea[:-1], s, ts_in_hr)
-                elapsed_times_df[col_name] = np.fromiter([elapsed_time(i, et_df['dist'].to_numpy(), sign(s)*self.__length) for i in range(0, self.__no_timesteps)], dtype=int)
+                dist = et_df['dist'].to_numpy()
+                elapsed_times_df[col_name] = np.fromiter([elapsed_time(i, dist, sign(s)*self.__length) for i in range(0, self.__no_timesteps)], dtype=int)
         elapsed_times_df.to_csv(self.__output_file, index=False)
         return tuple([self.__id, elapsed_times_df])
 
