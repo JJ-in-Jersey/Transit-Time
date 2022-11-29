@@ -3,23 +3,23 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from project_globals import boat_speeds
+from project_globals import seconds, timestep
 
 class TransitTimeJob:
 
-    def __init__(self, route, d_dir, intro=''):
-        self.__edges = route.route_edges()
+    def __init__(self, route, speed, d_dir, chart_yr, intro=''):
+        self.__speed = speed
         self.__id = id(route)
         self.__intro = intro
-        self.__elapsed_times_by_speed = None
-        self.__output_file = Path(str(d_dir.transit_time_folder())+'/TT_'+self.__speed+'_array.npy')
-        for s in boat_speeds:
-            speed_df = pd.DataFrame()
-            for e in self.__edges:
-                col_name = e.name() + ' ' + str(s)
-                speed_df[col_name] = e.elapsed_time_dataframe()[col_name]
-            # noinspection PyTypeChecker
-            self.__elapsed_times_by_speed[str(s)] = speed_df
+        self.__output_file = Path(str(d_dir.transit_time_folder())+'/TT_'+str(self.__speed)+'_array.npy')
+        self.__start = chart_yr.first_day_minus_one()
+        self.__end = chart_yr.last_day_plus_one()
+        self.__seconds = seconds(self.__start, self.__end)
+        self.__no_timesteps = int(self.__seconds / timestep)
+        self.__speed_df = pd.DataFrame()
+        for re in route.route_edges():
+            col_name = re.name() + ' ' + str(self.__speed)
+            self.__speed_df[col_name] = re.elapsed_time_dataframe()[col_name]
 
     def execute(self):
         if exists(self.__output_file):
@@ -28,29 +28,23 @@ class TransitTimeJob:
             return tuple([self.__id, np.load(self.__output_file)])
         else:
             print(f'+     {self.__intro} Transit time ({self.__speed}) calculation starting', flush=True)
-            for s in boat_speeds:
-                speed_df = pd.DataFrame()
-                for re in self.__edges:
-                    col_name = re.name() + ' ' + str(s)
-                    speed_df[col_name] = re.elapsed_time_dataframe()[col_name]
-                speed_df.to_csv(outputfile, index=False)
-                # noinspection PyTypeChecker
-                self.__elapsed_times_by_speed[str(s)] = speed_df
+            transit_time_df = pd.DataFrame()
+            # noinspection PyTypeChecker
+            result = np.fromiter([total_transit_time(row, self.__speed_df) for row in range(0, self.__no_timesteps)], dtype=int)
+            # noinspection PyTypeChecker
+            np.save(self.__output_file, result)
+            return tuple([self.__id, result])
 
-    def execute_callback(self):
-        pass
-    def error_callback(self):
-        pass
+    def execute_callback(self, result):
+        print(f'-     {self.__intro} {self.__speed} {"SUCCESSFUL" if isinstance(result[1], np.ndarray) else "FAILED"} {self.__no_timesteps}', flush=True)
+    def error_callback(self, result):
+        print(f'!     {self.__intro} {self.__speed} process has raised an error: {result}', flush=True)
 
-# def ttSum(row, columns, timeStepInMinutes, inputDF):
-#     tt = 0
-#     rowIncrement = 0
-#     for col in columns:
-#         val = inputDF.loc[row + rowIncrement, col]
-#         rowIncrement += int(inputDF.loc[row + rowIncrement, col]/timeStepInMinutes)
-#         if val < 0:
-#             print('transit time: negative elapsed time value')
-#         else:
-#             tt += val
-#     return tt
-#
+def total_transit_time(init_row, d_frame):
+    row = init_row
+    tt = 0
+    for col in d_frame.columns:
+        val = d_frame.loc[row, col]
+        tt += val
+        row += val
+    return tt

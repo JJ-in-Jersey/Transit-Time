@@ -6,7 +6,8 @@ import multiprocess as mp
 from route_objects import GpxRoute
 from velocity import VelocityJob
 from elapsed_time import ElapsedTimeJob
-from project_globals import timestep
+from transit_time import TransitTimeJob
+from project_globals import timestep, boat_speeds
 
 if __name__ == '__main__':
 
@@ -45,9 +46,15 @@ if __name__ == '__main__':
     mp.job_queue.join()
     for re in route.route_edges(): re.elapsed_time_dataframe(mp.result_lookup[id(re)])
 
-    # Aggregate the elapsed time information by speed rather than edge
-    print(f'\nAssigning elapsed times by speed')
-    route.elapsed_times_by_speed()
+    # calculate the number of timesteps from first node to last node
+    print(f'\nCalculating transit times')
+    for speed in boat_speeds:
+        mp.job_queue.put(TransitTimeJob(route, speed, mp.d_dir, mp.chart_yr, mp.pool_notice))
+    mp.job_queue.join()
+
+    # # Aggregate the elapsed time information by speed rather than edge
+    # print(f'\nAssigning elapsed times by speed')
+    # route.elapsed_times_by_speed()
 
     mp.som.shutdown()
     if jm.is_alive(): jm.terminate()
