@@ -9,7 +9,6 @@ class TransitTimeJob:
 
     def __init__(self, route, speed, d_dir, chart_yr, intro=''):
         self.__speed = speed
-        self.__id = id(route)
         self.__intro = intro
         self.__output_file = Path(str(d_dir.transit_time_folder())+'/TT_'+str(self.__speed)+'_array.npy')
         self.__start = chart_yr.first_day_minus_one()
@@ -25,7 +24,7 @@ class TransitTimeJob:
         if exists(self.__output_file):
             print(f'+     {self.__intro} Transit time ({self.__speed}) reading data file', flush=True)
             # noinspection PyTypeChecker
-            return tuple([self.__id, np.load(self.__output_file)])
+            return tuple([self.__speed, np.load(self.__output_file)])
         else:
             print(f'+     {self.__intro} Transit time ({self.__speed}) calculation starting', flush=True)
             transit_time_df = pd.DataFrame()
@@ -33,7 +32,7 @@ class TransitTimeJob:
             result = np.fromiter([total_transit_time(row, self.__speed_df) for row in range(0, self.__no_timesteps)], dtype=int)
             # noinspection PyTypeChecker
             np.save(self.__output_file, result)
-            return tuple([self.__id, result])
+            return tuple([self.__speed, result])
 
     def execute_callback(self, result):
         print(f'-     {self.__intro} {self.__speed} {"SUCCESSFUL" if isinstance(result[1], np.ndarray) else "FAILED"} {self.__no_timesteps}', flush=True)

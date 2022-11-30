@@ -125,16 +125,16 @@ class GpxRoute:
     def route_edges(self): return self.__route_edges
     def length(self): return self.__length
     def direction(self): return GpxRoute.directionLookup[self.__direction]
-    def transit_time_array(self, name, array=None):
-        if name not in self.__transit_time_array and array:
-            self.__transit_time_array[name] = array
+    def transit_time_lookup(self, key, array=None):
+        if key not in self.__transit_time_dict and array is not None:
+            self.__transit_time_dict[key] = array
         else:
-            return self.__transit_time_array[name]
+            return self.__transit_time_dict[key]
 
     def __init__(self, filepath):
         self.__nodes = self.__route_nodes = self.__edges = self.__route_edges = None
         self.__direction = None
-        self.__transit_time_array = {}
+        self.__transit_time_dict = {}
         self.__length = 0
 
         with open(filepath, 'r') as f: gpxfile = f.read()
