@@ -57,7 +57,7 @@ class VelocityJob:
 
     def execute(self):
         if exists(self.__output_file):
-            print(f'+     {self.__intro} {self.__code} {self.__name} reading data file')
+            print(f'+     {self.__intro} {self.__code} {self.__name} reading data file', flush=True)
             # noinspection PyTypeChecker
             return tuple([self.__id, np.load(self.__output_file)])
         else:

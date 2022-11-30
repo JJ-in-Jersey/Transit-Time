@@ -56,8 +56,7 @@ if __name__ == '__main__':
 
     temp = pd.DataFrame()
     for speed in boat_speeds: temp[speed] = route.transit_time_lookup(speed)
-    print(temp)
-    temp.to_csv(Path(str(mp.d_dir.project_folder())+'/tt.csv'))
+    temp.to_csv(Path(str(mp.d_dir.transit_time_folder())+'/transit_times.csv'))
 
     # # Aggregate the elapsed time information by speed rather than edge
     # print(f'\nAssigning elapsed times by speed')

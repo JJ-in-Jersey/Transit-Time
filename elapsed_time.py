@@ -35,7 +35,7 @@ class ElapsedTimeJob:
 
     def execute(self):
         if exists(self.__output_file):
-            print(f'+     {self.__intro} {self.__edge_name} reading data file')
+            print(f'+     {self.__intro} {self.__edge_name} reading data file', flush=True)
             return tuple([self.__id, pd.read_csv(self.__output_file, header='infer')])
         else:
             print(f'+     {self.__intro} {self.__edge_name} elapsed time calculation starting', flush=True)
