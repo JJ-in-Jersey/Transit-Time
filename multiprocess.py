@@ -5,7 +5,7 @@ from pathlib import Path
 from multiprocessing import Pool, Process, cpu_count, JoinableQueue
 from multiprocessing.managers import BaseManager
 
-from project_globals import ChartYear, DownloadDirectory
+from project_globals import ChartYear, Environment
 process_running_semaphore = Path(environ['TEMP'] + '/process_running_semaphore.tmp')
 
 def pm_init(): print(f'+   multiprocessing shared object manager', flush=True)
@@ -13,7 +13,7 @@ pool_notice = '(Pool)'
 job_queue = JoinableQueue()
 result_lookup = None
 chart_yr = None
-d_dir = None
+environs = None
 jm = None
 
 class JobManager:
@@ -45,6 +45,6 @@ class WaitForProcess(Process):
             sleep(0.1)
 
 class SharedObjectManager(BaseManager): pass
-SharedObjectManager.register('DD', DownloadDirectory)
+SharedObjectManager.register('ENV', Environment)
 SharedObjectManager.register('CY', ChartYear)
 som = SharedObjectManager()

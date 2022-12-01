@@ -19,7 +19,7 @@ def elapsed_time(starting_index, distances, length):
 
 class ElapsedTimeJob:
 
-    def __init__(self, edge, chart_yr, d_dir, intro=''):
+    def __init__(self, edge, chart_yr, environ, intro=''):
         self.__chart_yr = chart_yr
         self.__intro = intro
         self.__id = id(edge)
@@ -27,7 +27,7 @@ class ElapsedTimeJob:
         self.__edge_name = edge.name()
         self.__start_array = edge.start().velocity_array()
         self.__end_array = edge.end().velocity_array()
-        self.__output_file = Path(str(d_dir.elapsed_time_folder())+'/'+str(self.__edge_name)+'.csv')
+        self.__output_file = Path(str(environ.elapsed_time_folder())+'/'+str(self.__edge_name)+'.csv')
         self.__start = chart_yr.first_day_minus_one()
         self.__end = chart_yr.last_day_plus_two()
         self.__seconds = seconds(self.__start, self.__end)

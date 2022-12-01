@@ -2,15 +2,17 @@ from os.path import exists
 from pathlib import Path
 import numpy as np
 import pandas as pd
+from scipy.signal import savgol_filter
 
 from project_globals import seconds, timestep
 
 class TransitTimeJob:
 
-    def __init__(self, route, speed, d_dir, chart_yr, intro=''):
+    def __init__(self, route, speed, environ, chart_yr, intro=''):
         self.__speed = speed
         self.__intro = intro
-        self.__output_file = Path(str(d_dir.transit_time_folder())+'/TT_'+str(self.__speed)+'_array.npy')
+        self.__output_file = Path(str(environ.transit_time_folder())+'/TT_'+str(self.__speed)+'_array.npy')
+        self.__temp = Path(str(environ.project_folder())+'/temp_'+str(speed)+'.csv')
         self.__start = chart_yr.first_day_minus_one()
         self.__end = chart_yr.last_day_plus_one()
         self.__seconds = seconds(self.__start, self.__end)
@@ -30,6 +32,15 @@ class TransitTimeJob:
             transit_time_df = pd.DataFrame()
             # noinspection PyTypeChecker
             result = np.fromiter([total_transit_time(row, self.__speed_df) for row in range(0, self.__no_timesteps)], dtype=int)
+            # noinspection PyTypeChecker
+            temp = pd.DataFrame()
+            temp['value'] = result
+            #temp['grad01'] = np.gradient(result)
+            temp['savgol55'] = savgol_filter(result, 50, 5)
+            temp['savgol505'] = savgol_filter(result, 500, 5)
+            temp['sgsg505'] = savgol_filter(savgol_filter(result, 500, 5), 50, 5)
+            temp['savgol1005'] = savgol_filter(result, 1000, 5)
+            temp.to_csv(self.__temp)
             # noinspection PyTypeChecker
             np.save(self.__output_file, result)
             return tuple([self.__speed, result])

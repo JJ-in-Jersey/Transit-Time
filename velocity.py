@@ -10,10 +10,10 @@ import numpy as np
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 from project_globals import seconds, dash_to_zero, time_to_index, timestep
@@ -26,13 +26,17 @@ def newest_file(folder):
     for t in types: files.extend(glob(join(folder, t)))
     return max(files, key=getctime) if len(files) else None
 
-def get_chrome_driver(download_dir):
+def get_chrome_driver(user_profile, download_dir):
     my_options = Options()
     environ['WDM_LOG'] = "false"
     my_options.add_argument('disable-notifications')
     my_options.add_experimental_option('excludeSwitches', ['enable-logging'])
     my_options.add_experimental_option("prefs", {'download.default_directory': str(download_dir)})
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=my_options)
+    if 'bronfelj' in user_profile:
+        work_path = Path(user_profile + '/.wdm/drivers/chromedriver/win32/107.0.5304.62/chromedriver.exe')
+        driver = webdriver.Chrome(executable_path=work_path, options=my_options)
+    else:
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=my_options)
     driver.minimize_window()
     return driver
 
@@ -65,7 +69,7 @@ class VelocityJob:
             year = self.__chart_yr.year()
             noaa_dataframe = pd.DataFrame()
 
-            self.__driver = get_chrome_driver(self.__n_dir)
+            self.__driver = get_chrome_driver(self.__user_profile, self.__n_dir)
             for y in range(year - 1, year + 2):  # + 2 because of range behavior2
                 self.__driver.get(self.__url)
                 self.__wdw = WebDriverWait(self.__driver, 1000)
@@ -93,7 +97,7 @@ class VelocityJob:
     def error_callback(self, result):
         print(f'!     {self.__intro} {self.__code} process has raised an error: {result}', flush=True)
 
-    def __init__(self, route_node, chart_yr, d_dir, intro=''):
+    def __init__(self, route_node, chart_yr, env, intro=''):
         self.__wdw = self.__driver = None
         self.__chart_yr = chart_yr
         self.__intro = intro
@@ -101,9 +105,10 @@ class VelocityJob:
         self.__code = route_node.code()
         self.__url = route_node.url()
         self.__id = id(route_node)
-        self.__n_dir = d_dir.node_folder(route_node.code())
-        self.__v_dir = d_dir.velocity_folder()
-        self.__output_file = Path(str(d_dir.velocity_folder())+'/'+self.__code+'_array.npy')
+        self.__n_dir = env.node_folder(route_node.code())
+        self.__v_dir = env.velocity_folder()
+        self.__user_profile = env.user_profile()
+        self.__output_file = Path(str(env.velocity_folder())+'/'+self.__code+'_array.npy')
         self.__start = chart_yr.first_day_minus_one()
         self.__end = chart_yr.last_day_plus_three()
         self.__seconds = seconds(self.__start, self.__end)

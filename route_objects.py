@@ -164,7 +164,7 @@ class GpxRoute:
 
     # def elapsed_times_by_speed(self):
     #     for s in boat_speeds:
-    #         outputfile = Path(str(mp.d_dir.elapsed_time_folder()) + '/ET_' + str(s) + '_dataframe.csv')
+    #         outputfile = Path(str(mp.environ.elapsed_time_folder()) + '/ET_' + str(s) + '_dataframe.csv')
     #         if exists(outputfile):
     #             print(f'Reading data file {outputfile}')
     #             self.__elapsed_times_by_speed[str(s)] = pd.read_csv(outputfile, header='infer')

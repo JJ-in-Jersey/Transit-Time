@@ -6,7 +6,7 @@ from datetime import timedelta as td
 from warnings import filterwarnings as fw
 
 fw("ignore", message="The localize method is no longer necessary, as this time zone supports the fold attribute",)
-timestep = 180
+timestep = 60
 boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]
 def sign(value): return value/abs(value)
 def seconds(start, end): return int((end-start).total_seconds())
@@ -14,7 +14,7 @@ def time_to_index(start, time): return seconds(start, time)
 def index_to_time(start, index): return start + td(seconds=index)
 def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 
-class DownloadDirectory:
+class Environment:
 
     def node_folder(self, name):
         node_path = Path(str(self.velocity_folder()) + '/' + name + '/')
@@ -32,9 +32,10 @@ class DownloadDirectory:
         tt_path = Path(str(self.__project_folder) + '/Transit Time/')
         makedirs(tt_path, exist_ok=True)
         return tt_path
+    def user_profile(self): return self.__user_profile
     def project_folder(self, args=None):
         if args:
-            self.__project_folder = Path(environ['USERPROFILE']+'/Downloads/'+args['project_name']+'/')
+            self.__project_folder = Path(self.__user_profile + '/Downloads/' + args['project_name']+'/')
             if args['delete_data']:
                 shutil.rmtree(self.__project_folder, ignore_errors=True)
                 makedirs(self.__project_folder, exist_ok=True)
@@ -42,8 +43,10 @@ class DownloadDirectory:
         else:
             return self.__project_folder
 
+
     def __init__(self):
         self.__project_folder = ''
+        self.__user_profile = environ['USERPROFILE']
 
 class ChartYear:
 
