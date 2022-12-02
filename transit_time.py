@@ -35,10 +35,12 @@ class TransitTimeJob:
             # noinspection PyTypeChecker
             temp = pd.DataFrame()
             temp['value'] = result
-            #temp['grad01'] = np.gradient(result)
-            temp['savgol51'] = savgol_filter(result, 50, 1)
-            temp['savgol101'] = savgol_filter(result, 100, 1)
-            temp['savgo250'] = savgol_filter(result, 250, 1)
+            temp['savgol100'] = savgol_filter(result, 100, 1)
+            temp['savgo200'] = savgol_filter(result, 200, 1)
+            temp['savgo300'] = savgol_filter(result, 300, 1)
+            temp['grad100'] = np.gradient(savgol_filter(result, 100, 1))
+            temp['grad200'] = np.gradient(savgol_filter(result, 200, 1))
+            temp['grad300'] = np.gradient(savgol_filter(result, 300, 1))
             temp.to_csv(self.__temp)
             # noinspection PyTypeChecker
             np.save(self.__output_file, result)
