@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.signal import savgol_filter
 
-from project_globals import seconds, timestep
+from project_globals import seconds, timestep, minima_threshold
 
 class TransitTimeJob:
 
@@ -48,7 +48,7 @@ def total_transit_time(init_row, d_frame):
     return tt
 
 def minima_table(transit_time_array):
-    minima_threshold = 0.125
+    threshold = minima_threshold
     savgol = savgol_filter(transit_time_array, 100, 1)
     tt_median = np.median(savgol)
     tt_df = pd.DataFrame()
@@ -56,27 +56,23 @@ def minima_table(transit_time_array):
     tt_df['Savitzky-Golay'] = (savgol)
     tt_df['gradient'] = np.gradient(savgol)
     tt_df['gradient'] = tt_df['gradient'].abs()
-    tt_df['zero_ish'] = tt_df['gradient'].apply(lambda x: True if x < minima_threshold else False)
+    tt_df['zero_ish'] = tt_df['gradient'].apply(lambda x: True if x < threshold else False)
     tt_df['minima'] = False
-    tt_df.to_csv('C:\\users\\bronfelj\\downloads\\ER\\'+str(tt_median)+'.csv')
 
     # convert clumps into single best estimate of minima
     clump = []
-    minima_clumps = []
+    minima = []
     zero_ish = tt_df['zero_ish'].to_numpy()
-    print(len(zero_ish), len(savgol))
-
     for index, tt in enumerate(savgol):
         if zero_ish[index] and tt > tt_median:
-            print(f'index: {index} clump len: {len(clump)}')
             if len(clump):
-                print(np.median(clump))
-                minima_clumps.append(np.median(clump))
+                minima.append(int(np.median(clump)))
                 clump = []
         elif zero_ish[index] and tt < tt_median:
             clump.append(index)
-    for index in [np.median(c) for c in minima_clumps]:
-        tt_df.loc[index,'minima'] = True
+
+    for val in minima:
+        tt_df.loc[val,'minima'] = True
     return tt_df.drop(columns=['gradient', 'zero_ish'])
 
 

@@ -54,10 +54,6 @@ if __name__ == '__main__':
     mp.job_queue.join()
     for speed in boat_speeds: route.transit_time_lookup(speed, mp.result_lookup[speed])
 
-    temp = pd.DataFrame()
-    for speed in boat_speeds: temp[speed] = route.transit_time_lookup(speed)
-    temp.to_csv(Path(str(mp.environs.transit_time_folder())+'/transit_times.csv'))
-
     # # Aggregate the elapsed time information by speed rather than edge
     # print(f'\nAssigning elapsed times by speed')
     # route.elapsed_times_by_speed()

@@ -22,7 +22,7 @@ class JobManager:
         remove(process_running_semaphore)
         print(f'+   job manager (Pool size = {cpu_count()})', flush=True)
         results = {}
-        with Pool(1) as p:
+        with Pool() as p:
             while True:
                 while not q.empty():
                     job = q.get()
