@@ -50,9 +50,12 @@ if __name__ == '__main__':
 
     # calculate the number of timesteps from first node to last node
     print(f'\nCalculating transit times')
-    for speed in boat_speeds: mp.job_queue.put(TransitTimeJob(route, speed, mp.environs, mp.chart_yr, mp.pool_notice))
-    mp.job_queue.join()
-    for speed in boat_speeds: route.transit_time_lookup(speed, mp.result_lookup[speed])
+    #for speed in boat_speeds: mp.job_queue.put(TransitTimeJob(route, speed, mp.environs, mp.chart_yr, mp.pool_notice))
+    #mp.job_queue.put(TransitTimeJob(route, -3, mp.environs, mp.chart_yr, mp.pool_notice))
+    #mp.job_queue.join()
+    #for speed in boat_speeds: route.transit_time_lookup(speed, mp.result_lookup[speed])
+    tj = TransitTimeJob(route, -3, mp.environs, mp.chart_yr, mp.pool_notice)
+    tj.execute()
 
     # # Aggregate the elapsed time information by speed rather than edge
     # print(f'\nAssigning elapsed times by speed')
