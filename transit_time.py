@@ -58,7 +58,7 @@ def minima_table(transit_time_array):
     tt_df['Savitzky-Golay'] = savgol_filter(transit_time_array, 100, 1)
     tt_df['sg-midline'] = savgol_filter(transit_time_array, 50000, 1)
     tt_df['gradient'] = np.gradient(tt_df['Savitzky-Golay'].to_numpy(), edge_order=2)
-    tt_df['sign_of_gradient'] = tt_df['gradient'].apply(lambda x: copysign(500,x))
+    tt_df['sign_of_gradient'] = tt_df['gradient'].apply(lambda x: copysign(500, x))
     tt_df['zero_ish'] = tt_df['gradient'].abs().apply(lambda x: True if x < threshold else False)
 
     # convert clumps into single best estimate of minima
