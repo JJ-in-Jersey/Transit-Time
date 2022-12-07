@@ -55,32 +55,26 @@ def minima_table(transit_time_array):
     threshold = minima_threshold
     tt_df = pd.DataFrame()
     tt_df['tt'] = transit_time_array
-    tt_df['Savitzky-Golay'] = savgol_filter(transit_time_array, 5000, 1)
-    tt_df['sg2'] = savgol_filter(tt_df['Savitzky-Golay'], 5000, 1)
-    tt_df['sg3'] = savgol_filter(tt_df['sg2'], 5000, 1)
-    tt_df['sg4']= savgol_filter(tt_df['sg3'], 5000, 1)
-    tt_df['sg5'] = savgol_filter(tt_df['sg4'], 5000, 1)
-
+    tt_df['Savitzky-Golay'] = savgol_filter(transit_time_array, 500, 1)
     tt_df['sg-midline'] = savgol_filter(transit_time_array, 50000, 1)
-    tt_df['gradient'] = np.gradient(tt_df['sg5'].to_numpy(), edge_order=2)
-    tt_df['sign_of_gradient'] = tt_df['gradient'].apply(lambda x: copysign(500, x))
-    tt_df['zero_ish'] = tt_df['gradient'].abs().apply(lambda x: True if x < threshold else False)
+    tt_df['gradient'] = np.gradient(tt_df['Savitzky-Golay'].to_numpy(), edge_order=2)
+    tt_df['zero_ish'] = tt_df['gradient'].abs().apply(lambda x: 500 if x < threshold else -500)
 
     # convert clumps into single best estimate of minima
-    clump = []
-    minima = []
-    savgol = tt_df['Savitzky-Golay'].to_numpy()
-    zero_ish = tt_df['zero_ish'].to_numpy()
-    midline = tt_df['sg-midline'].to_numpy()
-
-    print(len(savgol), len(zero_ish), len(midline))
-    for index, sg in enumerate(savgol):
-        if zero_ish[index] and sg > midline[index] and len(clump) > 0:
-            minima.append(int(np.median(clump)))
-            clump = []
-        elif zero_ish[index] and sg < midline[index]: clump.append(index)
-
-    for val in minima: tt_df.loc[val, 'minima'] = True
+    # clump = []
+    # minima = []
+    # savgol = tt_df['Savitzky-Golay'].to_numpy()
+    # zero_ish = tt_df['zero_ish'].to_numpy()
+    # midline = tt_df['sg-midline'].to_numpy()
+    #
+    # print(len(savgol), len(zero_ish), len(midline))
+    # for index, sg in enumerate(savgol):
+    #     if zero_ish[index] and sg > midline[index] and len(clump) > 0:
+    #         minima.append(int(np.median(clump)))
+    #         clump = []
+    #     elif zero_ish[index] and sg < midline[index]: clump.append(index)
+    #
+    # for val in minima: tt_df.loc[val, 'minima'] = True
     # tt_df.to_csv(Path(str('c:\\users\\jason\\downloads\\East River\\tt_df.csv')))
     # return tt_df.drop(columns=['gradient', 'zero_ish'])
     return tt_df
