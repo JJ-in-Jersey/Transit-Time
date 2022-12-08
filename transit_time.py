@@ -3,7 +3,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy.signal import savgol_filter
-from math import copysign
 
 from project_globals import seconds, timestep, minima_threshold
 
@@ -36,9 +35,7 @@ class TransitTimeJob:
             return tuple([self.__speed, tt_minima_df])
 
     def execute_callback(self, result):
-        print(
-            f'-     {self.__intro} {self.__speed} {"SUCCESSFUL" if isinstance(result[1], pd.DataFrame) else "FAILED"} {self.__no_timesteps}',
-            flush=True)
+        print(f'-     {self.__intro} {self.__speed} {"SUCCESSFUL" if isinstance(result[1], pd.DataFrame) else "FAILED"} {self.__no_timesteps}', flush=True)
     def error_callback(self, result):
         print(f'!     {self.__intro} {self.__speed} process has raised an error: {result}', flush=True)
 
@@ -46,7 +43,7 @@ def total_transit_time(init_row, d_frame):
     row = init_row
     tt = 0
     for col in d_frame.columns:
-        val = d_frame.loc[row, col]
+        val = d_frame.at[row, col]
         tt += val
         row += val
     return tt
@@ -58,23 +55,23 @@ def minima_table(transit_time_array):
     tt_df['Savitzky-Golay'] = savgol_filter(transit_time_array, 500, 1)
     tt_df['sg-midline'] = savgol_filter(transit_time_array, 50000, 1)
     tt_df['gradient'] = np.gradient(tt_df['Savitzky-Golay'].to_numpy(), edge_order=2)
-    tt_df['zero_ish'] = tt_df['gradient'].abs().apply(lambda x: 500 if x < threshold else -500)
+    tt_df['zero_ish'] = tt_df['gradient'].abs().apply(lambda x: True if x < threshold else None)
+    tt_df['z2'] = np.less(tt_df['Savitzky-Golay'], tt_df['sg-midline'])
 
-    # convert clumps into single best estimate of minima
-    # clump = []
-    # minima = []
-    # savgol = tt_df['Savitzky-Golay'].to_numpy()
-    # zero_ish = tt_df['zero_ish'].to_numpy()
-    # midline = tt_df['sg-midline'].to_numpy()
-    #
-    # print(len(savgol), len(zero_ish), len(midline))
-    # for index, sg in enumerate(savgol):
-    #     if zero_ish[index] and sg > midline[index] and len(clump) > 0:
-    #         minima.append(int(np.median(clump)))
-    #         clump = []
-    #     elif zero_ish[index] and sg < midline[index]: clump.append(index)
-    #
-    # for val in minima: tt_df.loc[val, 'minima'] = True
+    # convert clumps into single estimate of minima
+    clump = []
+    minima = []
+    savgol = tt_df['Savitzky-Golay'].to_numpy()
+    zero_ish = tt_df['zero_ish'].to_numpy()
+    midline = tt_df['sg-midline'].to_numpy()
+
+    for index, sg in enumerate(savgol):
+        if zero_ish[index] and sg > midline[index] and len(clump) > 0:
+            minima.append(int(np.median(clump)))
+            clump = []
+        elif zero_ish[index] and sg < midline[index]: clump.append(index)
+
+    for val in minima: tt_df.at[val, 'minima'] = True
     # tt_df.to_csv(Path(str('c:\\users\\jason\\downloads\\East River\\tt_df.csv')))
     # return tt_df.drop(columns=['gradient', 'zero_ish'])
     return tt_df
