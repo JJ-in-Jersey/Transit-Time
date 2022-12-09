@@ -58,4 +58,6 @@ def minima_table(transit_time_array):
     gradient_change = np.where(gradient < 0, -0.5, 0.5)  # -0.5's and 0.5's
     tt_df['gradient_change'] = pd.Series(gradient_change).diff().abs()  # 1's and 0's
     tt_df['min'] = tt_df.apply(lambda row: row.gradient_change if row.Savitzky_Golay < row.midline else 0, axis=1)
+    tt_df['start'] = tt_df.apply(lambda row: row.gradient_change if row.Savitzky_Golay < row.midline else 0, axis=1)
+    tt_df['end'] = tt_df.apply(lambda row: row.gradient_change if row.Savitzky_Golay < row.midline else 0, axis=1)
     return tt_df
