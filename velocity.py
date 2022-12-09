@@ -29,6 +29,7 @@ def newest_file(folder):
 def get_chrome_driver(user_profile, download_dir):
     my_options = Options()
     environ['WDM_LOG'] = "false"
+    environ['WDM_LOG_LEVEL'] = '0'
     my_options.add_argument('disable-notifications')
     my_options.add_experimental_option('excludeSwitches', ['enable-logging'])
     my_options.add_experimental_option("prefs", {'download.default_directory': str(download_dir)})

@@ -45,7 +45,6 @@ class Environment:
         else:
             return self.__project_folder
 
-
     def __init__(self):
         self.__project_folder = ''
         self.__user_profile = environ['USERPROFILE']
