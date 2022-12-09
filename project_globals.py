@@ -8,7 +8,6 @@ from warnings import filterwarnings as fw
 fw("ignore", message="The localize method is no longer necessary, as this time zone supports the fold attribute",)
 
 timestep = 15
-minima_threshold = 0.01
 boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]
 def sign(value): return value/abs(value)
 def seconds(start, end): return int((end-start).total_seconds())
