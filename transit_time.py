@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.signal import savgol_filter
 
-from project_globals import seconds, timestep
+from project_globals import seconds, timestep, window_size
 
 class TransitTimeMinimaJob:
 
@@ -49,36 +49,27 @@ def total_transit_time(init_row, d_frame):
         row += val
     return tt
 
+def median_index(index_array, tt_series):
+    segment = tt_series[index_array[0]: index_array[-1]]
+    indices_of_minima = segment[segment == segment.min()].index
+    # noinspection PyTypeChecker
+    return round(np.median(indices_of_minima),0)
+
 def minima_table(transit_time_array):
     tt_df = pd.DataFrame()
     tt_df['tt'] = transit_time_array
-    #tt_df['Savitzky_Golay'] = savgol_filter(transit_time_array, 100, 1)
     tt_df['midline'] = savgol_filter(transit_time_array, 50000, 1)
     tt_df['min_segments'] = tt_df.apply(lambda row: True if row.tt < row.midline else False, axis=1)
-    # gradient = np.gradient(tt_df['Savitzky_Golay'].to_numpy(), edge_order=2)
-    # gradient_change = np.where(gradient < 0, -0.5, 0.5)  # -0.5's and 0.5's
-    # tt_df['gradient_change'] = pd.Series(gradient_change).diff().abs()  # 1's and 0's
-    # tt_df['min'] = tt_df.apply(lambda row: row.gradient_change if row.Savitzky_Golay < row.midline else 0, axis=1)
-    # tt_df['start'] = tt_df.apply(lambda row: row.gradient_change if row.Savitzky_Golay < row.midline else 0, axis=1)
-    # tt_df['end'] = tt_df.apply(lambda row: row.gradient_change if row.Savitzky_Golay < row.midline else 0, axis=1)
 
     clump = []
-    minima = []
-    tt = tt_df['tt']
-    ml = tt_df['min_segments']
-
-    for index, val in enumerate(ml):
-        if val:
+    mlv = tt_df['min_segments'].to_numpy()
+    for index, val in enumerate(mlv):
+        if val: 
             clump.append(index)
-        elif len(clump) > 0:
-            seriesClump = tt[clump[0]: clump[-1]]
-            print('out')
-            indices = seriesClump[seriesClump == seriesClump.min()].index
-            minima.append(np.median(indices))
+        elif len(clump) > 1:
+            ind = median_index(clump,tt_df['tt'])
+            tt_df.at[ind, 'minima'] = tt_df.at[ind,'tt']
+            tt_df.at[ind, 'start_end_offset'] = tt_df.at[ind,'tt'] + window_size*60/timestep
             clump = []
-
-    tt_df['minima'] = 0
-    for i in minima:
-        tt_df.at[i,'minima'] = 1
 
     return tt_df

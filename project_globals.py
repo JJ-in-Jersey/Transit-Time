@@ -1,5 +1,5 @@
 from pathlib import Path
-from os import environ, makedirs
+from os import environ, makedirs, umask
 import shutil
 import dateparser as dp
 from datetime import timedelta as td
@@ -49,6 +49,7 @@ class Environment:
     def __init__(self):
         self.__project_folder = ''
         self.__user_profile = environ['USERPROFILE']
+        umask(0)
 
 class ChartYear:
 
