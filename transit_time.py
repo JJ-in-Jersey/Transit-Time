@@ -52,12 +52,33 @@ def total_transit_time(init_row, d_frame):
 def minima_table(transit_time_array):
     tt_df = pd.DataFrame()
     tt_df['tt'] = transit_time_array
-    tt_df['Savitzky_Golay'] = savgol_filter(transit_time_array, 500, 1)
+    #tt_df['Savitzky_Golay'] = savgol_filter(transit_time_array, 100, 1)
     tt_df['midline'] = savgol_filter(transit_time_array, 50000, 1)
-    gradient = np.gradient(tt_df['Savitzky_Golay'].to_numpy(), edge_order=2)
-    gradient_change = np.where(gradient < 0, -0.5, 0.5)  # -0.5's and 0.5's
-    tt_df['gradient_change'] = pd.Series(gradient_change).diff().abs()  # 1's and 0's
-    tt_df['min'] = tt_df.apply(lambda row: row.gradient_change if row.Savitzky_Golay < row.midline else 0, axis=1)
-    tt_df['start'] = tt_df.apply(lambda row: row.gradient_change if row.Savitzky_Golay < row.midline else 0, axis=1)
-    tt_df['end'] = tt_df.apply(lambda row: row.gradient_change if row.Savitzky_Golay < row.midline else 0, axis=1)
+    tt_df['min_segments'] = tt_df.apply(lambda row: True if row.tt < row.midline else False, axis=1)
+    # gradient = np.gradient(tt_df['Savitzky_Golay'].to_numpy(), edge_order=2)
+    # gradient_change = np.where(gradient < 0, -0.5, 0.5)  # -0.5's and 0.5's
+    # tt_df['gradient_change'] = pd.Series(gradient_change).diff().abs()  # 1's and 0's
+    # tt_df['min'] = tt_df.apply(lambda row: row.gradient_change if row.Savitzky_Golay < row.midline else 0, axis=1)
+    # tt_df['start'] = tt_df.apply(lambda row: row.gradient_change if row.Savitzky_Golay < row.midline else 0, axis=1)
+    # tt_df['end'] = tt_df.apply(lambda row: row.gradient_change if row.Savitzky_Golay < row.midline else 0, axis=1)
+
+    clump = []
+    minima = []
+    tt = tt_df['tt']
+    ml = tt_df['min_segments']
+
+    for index, val in enumerate(ml):
+        if val:
+            clump.append(index)
+        elif len(clump) > 0:
+            seriesClump = tt[clump[0]: clump[-1]]
+            print('out')
+            indices = seriesClump[seriesClump == seriesClump.min()].index
+            minima.append(np.median(indices))
+            clump = []
+
+    tt_df['minima'] = 0
+    for i in minima:
+        tt_df.at[i,'minima'] = 1
+
     return tt_df
