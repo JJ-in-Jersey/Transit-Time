@@ -48,16 +48,14 @@ def total_transit_time(init_row, d_frame):
         tt += val
         row += val
     return tt
-
 def median_index(index_array, tt_series):
     segment = tt_series[index_array[0]: index_array[-1]]
     indices_of_minima = segment[segment == segment.min()].index
     # noinspection PyTypeChecker
     return round(np.median(indices_of_minima),0)
-
 def minima_table(transit_time_array):
     tt_df = pd.DataFrame()
-    tt_df['minima'] = 0
+    #tt_df['minima'] = 0
     tt_df['tt'] = transit_time_array
     tt_df['midline'] = savgol_filter(transit_time_array, 50000, 1)
     tt_df['min_segments'] = tt_df.apply(lambda row: True if row.tt < row.midline else False, axis=1)
@@ -70,8 +68,5 @@ def minima_table(transit_time_array):
         elif len(clump) > 1:
             tt_df.at[median_index(clump,tt_df['tt']), 'minima'] = 1
             clump = []
-
-    # tt_df['start'] = tt_df.apply(lambda row: row.gradient_change if row.Savitzky_Golay < row.midline else 0, axis=1)
-    # tt_df['end'] = tt_df.apply(lambda row: row.gradient_change if row.Savitzky_Golay < row.midline else 0, axis=1)
 
     return tt_df
