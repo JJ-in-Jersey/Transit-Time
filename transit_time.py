@@ -67,9 +67,18 @@ def minima_table(transit_time_array):
         if val: 
             clump.append(index)
         elif len(clump) > 1:
-            ind = median_index(clump,tt_df['tt'])
-            tt_df.at[ind, 'minima'] = tt_df.at[ind,'tt']
-            tt_df.at[ind, 'start_end_offset'] = tt_df.at[ind,'tt'] + window_size*60/timestep
+            segment = tt_df['tt'][clump[0]: clump[-1]]
+            indices_of_minima = segment[segment == segment.min()].index
+            # noinspection PyTypeChecker
+            minimum_index =  round(np.median(indices_of_minima), 0)
+            minimum_tt = tt_df.at[minimum_index,'tt']
+            window_offset = minimum_tt + window_size*60/timestep
+            start_segment = segment[0:minimum_index]
+            end_segment = segment[minimum_index:-1]
+            start_segment = start_segment[start_segment<window_offset]
+            end_segment = end_segment[end_segment>window_offset]
+            tt_df.at[minimum_index, 'minima'] = tt_df.at[minimum_index,'tt']
+            tt_df.at[minimum_index, 'start_end_offset'] = tt_df.at[minimum_index,'tt'] + window_size*60/timestep
             clump = []
 
     return tt_df
