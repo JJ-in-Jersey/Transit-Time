@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
     # Assemble route and route objects
     route = GpxRoute(args['filepath'])
-    print(f'Number of nodes: {len(route.route_nodes())}')
+    print(f'Number of waypoints: {len(route.route_nodes())}')
     print(f'Timestep: {timestep}')
 
     # Download noaa data and create velocity arrays for each waypoint (node)
