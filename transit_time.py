@@ -71,18 +71,18 @@ def minima_table(transit_time_array):
     for index, val in enumerate(mlv):
         if val: 
             clump.append(index)
-        elif len(clump) > 1:
+        elif len(clump) > 1:  # ignore edge conditions where len of clump is 1
             segment = tt_df['tt'][clump[0]: clump[-1]]
-            indices_of_minima = segment[segment == segment.min()].index
+            indices = segment[segment == segment.min()].index
             # noinspection PyTypeChecker
-            minimum_index = round(np.median(indices_of_minima), 0)
+            minimum_index = round(np.median(indices), 0)
             if minimum_index != clump[0] and minimum_index != clump[-1]:
                 start_segment = segment.loc[segment.index[0]:minimum_index]
                 end_segment = segment.loc[minimum_index:segment.index[-1]]
                 minimum_tt = tt_df.at[minimum_index, 'tt']
-                window_offset = minimum_tt + window_size*60/timestep
-                start_segment = start_segment[start_segment <= window_offset]
-                end_segment = end_segment[end_segment >= window_offset]
+                offset = minimum_tt + window_size*60/timestep
+                start_segment = start_segment[start_segment <= offset]
+                end_segment = end_segment[end_segment >= offset]
                 tt_df.at[minimum_index, 'start'] = start_segment.index[0]
                 tt_df.at[minimum_index, 'minima'] = minimum_index
                 tt_df.at[minimum_index, 'end'] = end_segment.index[0]
