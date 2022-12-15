@@ -6,6 +6,7 @@ from os.path import exists
 from project_globals import boat_speeds, timestep, seconds, sign
 
 def distance(water_vf, water_vi, boat_speed, time): return ((water_vf+water_vi)/2+boat_speed)*time
+
 def elapsed_time(starting_index, distances, length):
     index = starting_index
     count = total = 0

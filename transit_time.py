@@ -3,9 +3,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy.signal import savgol_filter
+from datetime import timedelta as td
 from warnings import filterwarnings as fw
 
-from project_globals import seconds, timestep, window_size
+from project_globals import seconds, timestep, window_size, index_to_time, nearest_minutes, travel_window
 
 fw("ignore", message="FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.",)
 
@@ -33,7 +34,7 @@ class TransitTimeMinimaJob:
         else:
             print(f'+     {self.__intro} Transit time ({self.__speed}) transit time (1st day - 1, last day + 1)', flush=True)
             transit_times = np.fromiter([total_transit_time(row, self.__speed_df) for row in range(0, self.__no_timesteps)], dtype=int)
-            tt_minima_df = minima_table(transit_times)
+            tt_minima_df = minima_table(self.__start, transit_times)
             tt_minima_df.to_csv(self.__debug_file)
             tt_minima_df.drop(columns=['tt', 'midline', 'min_segments', 'plot'], inplace=True)
             tt_minima_df.dropna(inplace=True)
@@ -60,7 +61,7 @@ def median_index(index_array, tt_series):
     # noinspection PyTypeChecker
     return round(np.median(indices_of_minima), 0)
 
-def minima_table(transit_time_array):
+def minima_table(start, transit_time_array):
     tt_df = pd.DataFrame()
     tt_df['tt'] = transit_time_array
     tt_df['midline'] = savgol_filter(transit_time_array, 50000, 1)
@@ -69,13 +70,15 @@ def minima_table(transit_time_array):
     clump = []
     mlv = tt_df['min_segments'].to_numpy()
     for index, val in enumerate(mlv):
-        if val: 
+        if val:
             clump.append(index)
         elif len(clump) > 1:  # ignore edge conditions where len of clump is 1
             segment = tt_df['tt'][clump[0]: clump[-1]]
             indices = segment[segment == segment.min()].index
             # noinspection PyTypeChecker
             minimum_index = round(np.median(indices), 0)
+            minimum_tt = tt_df['tt'].loc[minimum_index]
+            minimum_elapsed_time = td(seconds=int(minimum_tt*timestep))
             if minimum_index != clump[0] and minimum_index != clump[-1]:
                 start_segment = segment.loc[segment.index[0]:minimum_index]
                 end_segment = segment.loc[minimum_index:segment.index[-1]]
@@ -86,9 +89,13 @@ def minima_table(transit_time_array):
                 tt_df.at[minimum_index, 'start'] = start_segment.index[0]
                 tt_df.at[minimum_index, 'minima'] = minimum_index
                 tt_df.at[minimum_index, 'end'] = end_segment.index[0]
-                tt_df.at[minimum_index, 'start_tt'] = start_segment.loc[start_segment.index[0]]
-                tt_df.at[minimum_index, 'minima_tt'] = tt_df.at[minimum_index, 'tt']
-                tt_df.at[minimum_index, 'end_tt'] = end_segment.loc[end_segment.index[0]]
+                tt_df.at[minimum_index, 'start_time'] = index_to_time(start, int(start_segment.index[0]))
+                tt_df.at[minimum_index, 'minimum_time'] = index_to_time(start, int(minimum_index))
+                tt_df.at[minimum_index, 'end_time'] = index_to_time(start, int(end_segment.index[0]))
+                tt_df.at[minimum_index, 'rounded_start'] = index_to_time(start, nearest_minutes(start_segment.index[0],travel_window))
+                tt_df.at[minimum_index, 'rounded_min'] = index_to_time(start, nearest_minutes(minimum_index,travel_window))
+                tt_df.at[minimum_index, 'rounded_end'] = index_to_time(start, nearest_minutes(end_segment.index[0],travel_window))
+                tt_df.at[minimum_index, 'minima_tt'] = str(minimum_elapsed_time)
                 tt_df.at[start_segment.index[0], 'plot'] = 'S'
                 tt_df.at[minimum_index, 'plot'] = 'M'
                 tt_df.at[end_segment.index[0], 'plot'] = 'E'

@@ -9,6 +9,7 @@ fw("ignore", message="The localize method is no longer necessary, as this time z
 
 timestep = 15  # seconds
 window_size = 20  # minutes
+travel_window = 15  # minutes
 boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]  # knots
 
 def sign(value): return value/abs(value)
@@ -16,6 +17,9 @@ def seconds(start, end): return int((end-start).total_seconds())
 def time_to_index(start, time): return seconds(start, time)
 def index_to_time(start, index): return start + td(seconds=index)
 def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
+def nearest_minutes(total_seconds, num_minutes):
+    total_minutes = total_seconds/60
+    return round(total_minutes/num_minutes)*num_minutes*60  # returning seconds
 
 class Environment:
 
@@ -56,9 +60,11 @@ class ChartYear:
     def set_year(self, args):
         if not self.__year:
             self.__year = args['year']
-            self.__first_day = dp.parse('1/1/' + str(self.__year))
+            self.__first_date = '1/1/'+str(self.__year)
+            self.__last_date = '12/31/' + str(self.__year)
+            self.__first_day = dp.parse(self.__first_date)
             self.__first_day_minus_one = self.__first_day - td(days=1)
-            self.__last_day = dp.parse('12/31/' + str(self.__year))
+            self.__last_day = dp.parse(self.__last_date)
             self.__last_day_plus_one = self.__last_day + td(days=1)
             self.__last_day_plus_two = self.__last_day + td(days=2)
             self.__last_day_plus_three = self.__last_day + td(days=3)
@@ -73,6 +79,8 @@ class ChartYear:
 
     def __init__(self):
         self.__year = None
+        self.__first_date = None
+        self.__last_date = None
         self.__first_day_minus_one = None
         self.__first_day = None
         self.__last_day = None

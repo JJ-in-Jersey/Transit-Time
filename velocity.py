@@ -1,5 +1,5 @@
 import logging
-from os import environ
+from os import environ, umask
 from glob import glob
 from os.path import join, exists, getctime
 from pathlib import Path
@@ -114,3 +114,4 @@ class VelocityJob:
         self.__end = chart_yr.last_day_plus_three()
         self.__seconds = seconds(self.__start, self.__end)
         self.__expected_length = int(self.__seconds / timestep)
+        umask(0)
