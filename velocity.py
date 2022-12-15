@@ -66,7 +66,7 @@ class VelocityJob:
             # noinspection PyTypeChecker
             return tuple([self.__id, np.load(self.__output_file)])
         else:
-            print(f'+     {self.__intro} {self.__code} {self.__name} velocity calculation starting', flush=True)
+            print(f'+     {self.__intro} {self.__code} {self.__name} velocity (1st day - 1, last day + 3)', flush=True)
             year = self.__chart_yr.year()
             noaa_dataframe = pd.DataFrame()
 

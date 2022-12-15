@@ -38,7 +38,7 @@ class ElapsedTimeJob:
             print(f'+     {self.__intro} {self.__edge_name} reading data file', flush=True)
             return tuple([self.__id, pd.read_csv(self.__output_file, header='infer')])
         else:
-            print(f'+     {self.__intro} {self.__edge_name} elapsed time calculation starting', flush=True)
+            print(f'+     {self.__intro} {self.__edge_name} elapsed time (1st day - 1, last day + 2)', flush=True)
             sa = self.__start_array
             ea = self.__end_array
             ts_in_hr = timestep / 3600  # in hours because NOAA speeds are in knots (nautical miles per hour)

@@ -31,14 +31,13 @@ class TransitTimeMinimaJob:
             tt_minima_df = pd.read_csv(self.__output_file, header='infer')
             return tuple([self.__speed, tt_minima_df])
         else:
-            print(f'+     {self.__intro} Transit time ({self.__speed}) calculation starting', flush=True)
+            print(f'+     {self.__intro} Transit time ({self.__speed}) transit time (1st day - 1, last day + 1)', flush=True)
             transit_times = np.fromiter([total_transit_time(row, self.__speed_df) for row in range(0, self.__no_timesteps)], dtype=int)
             tt_minima_df = minima_table(transit_times)
             tt_minima_df.to_csv(self.__debug_file)
             tt_minima_df.drop(columns=['tt', 'midline', 'min_segments', 'plot'], inplace=True)
-            tt_minima_df.drop(columns=tt_minima_df.columns[0], inplace=True)
             tt_minima_df.dropna(inplace=True)
-            tt_minima_df.to_csv(self.__output_file)
+            tt_minima_df.to_csv(self.__output_file, index=False)
             return tuple([self.__speed, tt_minima_df])
 
     def execute_callback(self, result):
