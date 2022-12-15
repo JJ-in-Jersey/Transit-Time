@@ -83,8 +83,6 @@ def minima_table(transit_time_array):
                 window_offset = minimum_tt + window_size*60/timestep
                 start_segment = start_segment[start_segment <= window_offset]
                 end_segment = end_segment[end_segment >= window_offset]
-                # print(f'seg[0]={segment.index[0]} min_TT={minimum_tt} win_offset={window_offset} seg[-1]={segment.index[-1]}')
-                # print(f'start[0]={start_segment.index[0]} start[-1]={start_segment.index[-1]} end[0]={end_segment.index[0]} end[-1]={end_segment.index[-1]}')
                 tt_df.at[minimum_index, 'start'] = start_segment.index[0]
                 tt_df.at[minimum_index, 'minima'] = minimum_index
                 tt_df.at[minimum_index, 'end'] = end_segment.index[0]
