@@ -17,9 +17,11 @@ def seconds(start, end): return int((end-start).total_seconds())
 def time_to_index(start, time): return seconds(start, time)
 def index_to_time(start, index): return start + td(seconds=index)
 def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
-def nearest_minutes(total_seconds, num_minutes):
-    total_minutes = total_seconds/60
-    return round(total_minutes/num_minutes)*num_minutes*60  # returning seconds
+def rounded_to_minutes(time, rounded_to_num_minutes):
+    start = dp.parse('1/1/2000')
+    total_minutes = time_to_index(start, time)/60
+    rounded_seconds = round(total_minutes/rounded_to_num_minutes)*rounded_to_num_minutes*60
+    return index_to_time(start, rounded_seconds)
 
 class Environment:
 

@@ -50,7 +50,7 @@ class ElapsedTimeJob:
                 et_df['dist'] = distance(ea[1:], sa[:-1], s, ts_in_hr) if s > 0 else distance(sa[1:], ea[:-1], s, ts_in_hr)
                 dist = et_df['dist'].to_numpy()
                 elapsed_times_df[col_name] = np.fromiter([elapsed_time(i, dist, sign(s)*self.__length) for i in range(0, self.__no_timesteps)], dtype=int)
-        elapsed_times_df.to_csv(self.__output_file, index=False)
+        elapsed_times_df.to_csv(self.__output_file, index=False)  # number of time steps
         return tuple([self.__id, elapsed_times_df])
 
     def execute_callback(self, result):
