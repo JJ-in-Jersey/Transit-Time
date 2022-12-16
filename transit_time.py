@@ -6,7 +6,7 @@ from scipy.signal import savgol_filter
 from datetime import timedelta as td
 from warnings import filterwarnings as fw
 
-from project_globals import seconds, timestep, window_size, index_to_time, nearest_minutes, travel_window
+from project_globals import seconds, timestep, window_size, index_to_time, nearest_minutes, transit_window_size
 
 fw("ignore", message="FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.",)
 
@@ -15,6 +15,7 @@ class TransitTimeMinimaJob:
     def __init__(self, route, speed, environ, chart_yr, intro=''):
         self.__speed = speed
         self.__intro = intro
+        self.__minima__index_table_file = Path(str(environ.transit_time_folder()) + '/TT_' + str(self.__speed) + '_minima_index.csv')
         self.__output_file = Path(str(environ.transit_time_folder()) + '/TT_' + str(self.__speed) + '.csv')
         self.__debug_file = Path(str(environ.transit_time_folder()) + '/TT_' + str(self.__speed) + '_debug.csv')
         self.__start = chart_yr.first_day_minus_one()
@@ -34,12 +35,14 @@ class TransitTimeMinimaJob:
         else:
             print(f'+     {self.__intro} Transit time ({self.__speed}) transit time (1st day - 1, last day + 1)', flush=True)
             transit_times = np.fromiter([total_transit_time(row, self.__speed_df) for row in range(0, self.__no_timesteps)], dtype=int)
-            tt_minima_df = minima_table(self.__start, transit_times)
-            tt_minima_df.to_csv(self.__debug_file)
-            tt_minima_df.drop(columns=['tt', 'midline', 'min_segments', 'plot'], inplace=True)
-            tt_minima_df.dropna(inplace=True)
-            tt_minima_df.to_csv(self.__output_file, index=False)
-            return tuple([self.__speed, tt_minima_df])
+            minima_index_table_df = minima_table(transit_times)
+            #minima_index_table_df['date'] = minima_index_table_df.index*2
+            #minima_index_table_df['date'] = minima_index_table_df.apply(lambda x: index_to_time(self.__start, timestep*minima_index_table_df.index))
+            minima_index_table_df.to_csv(self.__minima__index_table_file)
+            # tt_minima_df.drop(columns=['tt', 'midline', 'min_segments', 'plot'], inplace=True)
+            # tt_minima_df.dropna(inplace=True)
+            # tt_minima_df.to_csv(self.__output_file, index=False)
+            return tuple([self.__speed, minima_index_table_df])
 
     def execute_callback(self, result):
         print(f'-     {self.__intro} {self.__speed} {"SUCCESSFUL" if isinstance(result[1], pd.DataFrame) else "FAILED"} {self.__no_timesteps}', flush=True)
@@ -55,13 +58,7 @@ def total_transit_time(init_row, d_frame):
         row += val
     return tt
 
-def median_index(index_array, tt_series):
-    segment = tt_series[index_array[0]: index_array[-1]]
-    indices_of_minima = segment[segment == segment.min()].index
-    # noinspection PyTypeChecker
-    return round(np.median(indices_of_minima), 0)
-
-def minima_table(start, transit_time_array):
+def minima_tab(start, transit_time_array):
     tt_df = pd.DataFrame()
     tt_df['tt'] = transit_time_array
     tt_df['midline'] = savgol_filter(transit_time_array, 50000, 1)
@@ -104,3 +101,31 @@ def minima_table(start, transit_time_array):
             clump = []
 
     return tt_df
+
+
+def minima_table(transit_time_array):
+    tt_df = pd.DataFrame()
+    tt_df['tt'] = transit_time_array
+    tt_df['midline'] = savgol_filter(transit_time_array, 50000, 1)
+    tt_df['min_segments'] = tt_df.apply(lambda row: True if row.tt < row.midline else False, axis=1)
+    clump = []
+    mlv = tt_df['min_segments'].to_numpy()
+    for index, val in enumerate(mlv):
+        if val:
+            clump.append(index)
+        elif len(clump) > 1:  # ignore zero length clumps
+            segment = tt_df['tt'][clump[0]: clump[-1]]
+            indices = segment[segment == segment.min()].index
+            # noinspection PyTypeChecker
+            minimum_index = round(np.median(indices), 0)
+            if minimum_index != clump[0] and minimum_index != clump[-1]:  # ignore minima at edges
+                offset = tt_df.at[minimum_index, 'tt'] + window_size * 60 / timestep
+                start_segment = segment.loc[segment.index[0]:minimum_index]
+                end_segment = segment.loc[minimum_index:segment.index[-1]]
+                tt_df.at[minimum_index, 'start_index'] = start_segment[start_segment <= offset].index[0]
+                tt_df.at[minimum_index, 'minima_index'] = minimum_index
+                tt_df.at[minimum_index, 'end_index'] = end_segment[end_segment >= offset].index[0]
+            clump = []
+    tt_df.drop(columns=['midline', 'min_segments'], inplace=True)
+    return tt_df
+

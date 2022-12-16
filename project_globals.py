@@ -9,7 +9,7 @@ fw("ignore", message="The localize method is no longer necessary, as this time z
 
 timestep = 15  # seconds
 window_size = 20  # minutes
-travel_window = 15  # minutes
+transit_window_size = 15  # minutes
 boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]  # knots
 
 def sign(value): return value/abs(value)
