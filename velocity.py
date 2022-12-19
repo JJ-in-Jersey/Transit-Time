@@ -3,10 +3,9 @@ from os import environ, umask
 from glob import glob
 from os.path import join, exists, getctime
 from pathlib import Path
-from time import sleep
+from time import sleep, perf_counter
 import pandas as pd
 from scipy.interpolate import CubicSpline
-import numpy as np
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -16,7 +15,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
-from project_globals import seconds, dash_to_zero, time_to_index, timestep
+from project_globals import TIMESTEP, seconds, dash_to_zero
 
 logging.getLogger('WDM').setLevel(logging.NOTSET)
 
@@ -50,7 +49,6 @@ class VelocityJob:
             sleep(0.1)
             newest_after = newest_file(self.__n_dir)
         return newest_after
-
     def __velocity_page(self, year):
         code_string = 'Annual?id=' + self.__code  # select annual predictions
         self.__wdw.until(ec.element_to_be_clickable((By.CSS_SELECTOR, "a[href*='" + code_string + "']"))).click()
@@ -61,14 +59,14 @@ class VelocityJob:
         dropdown.select_by_index(options.index(year))
 
     def execute(self):
-        if exists(self.__output_file):
+        if exists(self.__output_table_name):
             print(f'+     {self.__intro} {self.__code} {self.__name} reading data file', flush=True)
             # noinspection PyTypeChecker
-            return tuple([self.__id, np.load(self.__output_file)])
+            return tuple([self.__id, pd.read_csv(self.__output_table_name, header='infer')])
         else:
             print(f'+     {self.__intro} {self.__code} {self.__name} velocity (1st day - 1, last day + 3)', flush=True)
             year = self.__chart_yr.year()
-            noaa_dataframe = pd.DataFrame()
+            download_df = pd.DataFrame()
 
             self.__driver = get_chrome_driver(self.__user_profile, self.__n_dir)
             for y in range(year - 1, year + 2):  # + 2 because of range behavior2
@@ -77,28 +75,31 @@ class VelocityJob:
                 self.__velocity_page(y)
                 file = self.__velocity_download()
                 file_dataframe = pd.read_csv(file, header='infer', converters={' Speed (knots)': dash_to_zero}, parse_dates=['Date_Time (LST/LDT)'])
-                noaa_dataframe = pd.concat([noaa_dataframe, file_dataframe])
+                download_df = pd.concat([download_df, file_dataframe])
             self.__driver.quit()
 
-            noaa_dataframe.rename(columns={'Date_Time (LST/LDT)': 'time', ' Event': 'event', ' Speed (knots)': 'velocity'}, inplace=True)
-            noaa_dataframe = noaa_dataframe[(self.__start <= noaa_dataframe['time']) & (noaa_dataframe['time'] <= self.__end)]
-            noaa_dataframe = noaa_dataframe.reset_index(drop=True)
-            noaa_dataframe['seconds'] = noaa_dataframe['time'].apply(lambda time: time_to_index(self.__start, time)).to_numpy()  # time_to_index returns seconds from start
-            noaa_dataframe.to_csv(Path(str(self.__v_dir)+'/'+self.__code+'_dataframe.csv'), index=False)
-            cs = CubicSpline(noaa_dataframe['seconds'].to_numpy(), noaa_dataframe['velocity'].to_numpy())  # (time, velocity) v = cs(t)
-            #  number of rows in v_range is the number of timesteps from start to end
-            v_range = range(0, self.__seconds, timestep)
-            result = np.fromiter([cs(t) for t in v_range], dtype=np.half)  # array of velocities at each timestep
-            # noinspection PyTypeChecker
-            np.save(self.__output_file, result)
-            return tuple([self.__id, result])
+            download_df.rename(columns={'Date_Time (LST/LDT)': 'date', ' Event': 'event', ' Speed (knots)': 'velocity'}, inplace=True)
+            download_df = download_df[(self.__start <= download_df['date']) & (download_df['date'] <= self.__end)]
+            download_df['time_index'] = download_df['date'].apply(self.__chart_yr.time_to_index)
+            download_df.to_csv(self.__download_table_name, index=False)
+            cs = CubicSpline(download_df['time_index'], download_df['velocity'])
+            del download_df
+            output_df = pd.DataFrame()
+            output_df['time_index'] = range(self.__chart_yr.time_to_index(self.__start), self.__chart_yr.time_to_index(self.__end), TIMESTEP)
+            output_df['date'] = pd.to_timedelta(output_df['time_index'], unit='seconds') + self.__index_basis
+            output_df['velocity'] = output_df['time_index'].apply(cs)
+            output_df.to_csv(self.__output_table_name, index=False)
+            return tuple([self.__id, output_df])
 
+    # noinspection PyUnusedLocal
     def execute_callback(self, result):
-        print(f'-     {self.__intro} {self.__code} {"SUCCESSFUL" if isinstance(result[1], np.ndarray) and len(result[1]) == self.__expected_length else "FAILED"} {len(result[1])}', flush=True)
+        print(f'-     {self.__intro} {self.__code} {round((perf_counter() - self.__init_time), 2)} seconds', flush=True)
     def error_callback(self, result):
         print(f'!     {self.__intro} {self.__code} process has raised an error: {result}', flush=True)
 
     def __init__(self, route_node, chart_yr, env, intro=''):
+        self.__init_time = perf_counter()
+        self.__download_time = self.__spline_time = 0
         self.__wdw = self.__driver = None
         self.__chart_yr = chart_yr
         self.__intro = intro
@@ -109,9 +110,10 @@ class VelocityJob:
         self.__n_dir = env.node_folder(route_node.code())
         self.__v_dir = env.velocity_folder()
         self.__user_profile = env.user_profile()
-        self.__output_file = Path(str(env.velocity_folder())+'/'+self.__code+'_array.npy')
+        self.__download_table_name = Path(str(self.__n_dir) + '/' + self.__code + '_download_table.csv')
+        self.__output_table_name = Path(str(self.__v_dir) + '/' + self.__code + '_output_table.csv')
         self.__start = chart_yr.first_day_minus_one()
         self.__end = chart_yr.last_day_plus_three()
-        self.__seconds = seconds(self.__start, self.__end)
-        self.__expected_length = int(self.__seconds / timestep)
+        self.__index_basis = chart_yr.index_basis()
+        self.__expected_length = int(seconds(self.__start, self.__end) / TIMESTEP)
         umask(0)
