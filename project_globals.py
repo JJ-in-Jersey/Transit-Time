@@ -7,21 +7,18 @@ from warnings import filterwarnings as fw
 
 fw("ignore", message="The localize method is no longer necessary, as this time zone supports the fold attribute",)
 
-timestep = 15  # seconds
-window_size = 20  # minutes
-transit_window_size = 15  # minutes
+TIMESTEP = 15  # seconds
+WINDOW_SIZE = 15  # minutes
 boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]  # knots
 
 def sign(value): return value/abs(value)
 def seconds(start, end): return int((end-start).total_seconds())
-def time_to_index(start, time): return seconds(start, time)
-def index_to_time(start, index): return start + td(seconds=index)
 def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 def rounded_to_minutes(time, rounded_to_num_minutes):
-    start = dp.parse('1/1/2000')
-    total_minutes = time_to_index(start, time)/60
+    basis = dp.parse('1/1/2020')
+    total_minutes = int((time - basis).total_seconds())/60
     rounded_seconds = round(total_minutes/rounded_to_num_minutes)*rounded_to_num_minutes*60
-    return index_to_time(start, rounded_seconds)
+    return basis + td(seconds=rounded_seconds)
 
 class Environment:
 
@@ -70,6 +67,7 @@ class ChartYear:
             self.__last_day_plus_one = self.__last_day + td(days=1)
             self.__last_day_plus_two = self.__last_day + td(days=2)
             self.__last_day_plus_three = self.__last_day + td(days=3)
+            self.__index_basis = self.__first_day_minus_one
 
     def year(self): return self.__year
     def first_day_minus_one(self): return self.__first_day_minus_one
@@ -78,6 +76,9 @@ class ChartYear:
     def last_day_plus_one(self): return self.__last_day_plus_one
     def last_day_plus_two(self): return self.__last_day_plus_two
     def last_day_plus_three(self): return self.__last_day_plus_three
+    def time_to_index(self, time): return seconds(self.__index_basis, time)
+    def index_to_time(self, index): return self.__index_basis + td(seconds=index)
+    def index_basis(self): return self.__index_basis
 
     def __init__(self):
         self.__year = None
@@ -89,3 +90,4 @@ class ChartYear:
         self.__last_day_plus_one = None
         self.__last_day_plus_two = None
         self.__last_day_plus_three = None
+        self.__index_basis = None
