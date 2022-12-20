@@ -7,7 +7,7 @@ from route_objects import GpxRoute
 from velocity import VelocityJob
 from elapsed_time import ElapsedTimeJob
 from transit_time import TransitTimeMinimaJob
-from project_globals import timestep, boat_speeds
+from project_globals import TIMESTEP
 
 if __name__ == '__main__':
 
@@ -32,27 +32,31 @@ if __name__ == '__main__':
     # Assemble route and route objects
     route = GpxRoute(args['filepath'])
     print(f'Number of waypoints: {len(route.route_nodes())}')
-    print(f'Timestep: {timestep}')
+    print(f'timestep: {TIMESTEP}')
 
     # Download noaa data and create velocity arrays for each waypoint (node)
     print(f'\nCalculating velocities')
     for rn in route.route_nodes(): mp.job_queue.put(VelocityJob(rn, mp.chart_yr, mp.environs, mp.pool_notice))
     mp.job_queue.join()
-    for rn in route.route_nodes(): rn.velocity_array(mp.result_lookup[id(rn)])
+    for rn in route.route_nodes(): rn.velocity_table(mp.result_lookup[id(rn)])
+    # vj = VelocityJob(route.route_nodes()[0], mp.chart_yr, mp.environs, mp.pool_notice)
+    # vj.execute()
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times')
     for re in route.route_edges(): mp.job_queue.put(ElapsedTimeJob(re, mp.chart_yr, mp.environs, mp.pool_notice))
     mp.job_queue.join()
     for re in route.route_edges(): re.elapsed_time_dataframe(mp.result_lookup[id(re)])
+    # ej = ElapsedTimeJob(route.route_edges()[0], mp.chart_yr, mp.environs, mp.pool_notice)
+    # ej.execute()
 
     # calculate the number of timesteps from first node to last node
     print(f'\nCalculating transit times')
-    for speed in boat_speeds: mp.job_queue.put(TransitTimeMinimaJob(route, speed, mp.environs, mp.chart_yr, mp.pool_notice))
-    mp.job_queue.join()
-    for speed in boat_speeds: route.transit_time_lookup(speed, mp.result_lookup[speed])
-    # tj = TransitTimeMinimaJob(route, -3, mp.environs, mp.chart_yr, mp.pool_notice)
-    # tj.execute()
+    # for speed in boat_speeds: mp.job_queue.put(TransitTimeMinimaJob(route, speed, mp.environs, mp.chart_yr, mp.pool_notice))
+    # mp.job_queue.join()
+    # for speed in boat_speeds: route.transit_time_lookup(speed, mp.result_lookup[speed])
+    tj = TransitTimeMinimaJob(route, -3, mp.environs, mp.chart_yr, mp.pool_notice)
+    tj.execute()
 
     # # Aggregate the elapsed time information by speed rather than edge
     # print(f'\nAssigning elapsed times by speed')
