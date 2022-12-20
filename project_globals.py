@@ -22,23 +22,16 @@ def rounded_to_minutes(time, rounded_to_num_minutes):
 
 class Environment:
 
-    def node_folder(self, name):
-        node_path = Path(str(self.velocity_folder()) + '/' + name + '/')
-        makedirs(node_path, exist_ok=True)
-        return node_path
-    def velocity_folder(self):
-        v_path = Path(str(self.__project_folder) + '/Velocity/')
-        makedirs(v_path, exist_ok=True)
-        return v_path
-    def elapsed_time_folder(self):
-        et_path = Path(str(self.__project_folder) + '/Elapsed Time/')
-        makedirs(et_path, exist_ok=True)
-        return et_path
-    def transit_time_folder(self):
-        tt_path = Path(str(self.__project_folder) + '/Transit Time/')
-        makedirs(tt_path, exist_ok=True)
-        return tt_path
-    def user_profile(self): return self.__user_profile
+    def node_folder(self, name=None):
+        if name:
+            self.__node_folder = self.velocity_folder().joinpath(name)
+            makedirs(self.__node_folder, exist_ok=True)
+        return self.__node_folder
+    def edge_folder(self, name=None):
+        if name:
+            self.__edge_folder = self.elapsed_time_folder().joinpath(name)
+            makedirs(self.__edge_folder, exist_ok=True)
+        return self.__edge_folder
     def project_folder(self, args=None):
         if args:
             self.__project_folder = Path(self.__user_profile + '/Downloads/' + args['project_name']+'/')
@@ -46,11 +39,31 @@ class Environment:
                 shutil.rmtree(self.__project_folder, ignore_errors=True)
                 makedirs(self.__project_folder, exist_ok=True)
                 return self.__project_folder
-        else:
-            return self.__project_folder
+        return self.__project_folder
+    def velocity_folder(self):
+        if not self.__velocity_folder:
+            self.__velocity_folder = self.__project_folder.joinpath('Velocity')
+            makedirs(self.__velocity_folder, exist_ok=True)
+        return self.__velocity_folder
+    def elapsed_time_folder(self):
+        if not self.__elapsed_time_folder:
+            self.__elapsed_time_folder = self.__project_folder.joinpath('Elapsed Time')
+            makedirs(self.__elapsed_time_folder, exist_ok=True)
+        return self.__elapsed_time_folder
+    def transit_time_folder(self):
+        if not self.__transit_time_folder:
+            self.__transit_time_folder = self.__project_folder.joinpath('/Transit Time')
+            makedirs(self.__transit_time_folder, exist_ok=True)
+        return self.__transit_time_folder
+    def user_profile(self): return self.__user_profile
 
     def __init__(self):
-        self.__project_folder = ''
+        self.__project_folder = None
+        self.__node_folder = None
+        self.__edge_folder = None
+        self.__velocity_folder = None
+        self.__elapsed_time_folder = None
+        self.__transit_time_folder = None
         self.__user_profile = environ['USERPROFILE']
         umask(0)
 

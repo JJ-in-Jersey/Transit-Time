@@ -17,7 +17,6 @@ class TransitTimeMinimaJob:
         self.__intro = intro
         self.__minima__index_table_file = Path(str(environ.transit_time_folder()) + '/TT_' + str(self.__speed) + '_minima_index.csv')
         self.__output_file = Path(str(environ.transit_time_folder()) + '/TT_' + str(self.__speed) + '.csv')
-        self.__debug_file = Path(str(environ.transit_time_folder()) + '/TT_' + str(self.__speed) + '_debug.csv')
         self.__start = chart_yr.first_day_minus_one()
         self.__end = chart_yr.last_day_plus_one()
         self.__seconds = seconds(self.__start, self.__end)

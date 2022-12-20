@@ -21,50 +21,49 @@ def elapsed_time(departure_index, distances, length):
 
 class ElapsedTimeJob:
 
-    def __init__(self, edge, chart_yr, environ, intro=''):
-        self.__init_time = perf_counter()
-        self.__chart_yr = chart_yr
-        self.__index_basis = chart_yr.index_basis()
-        self.__intro = intro
-        self.__id = id(edge)
-        self.__length = edge.length()
-        self.__edge_name = edge.name()
-        self.__start_velocity_table = edge.start().velocity_table()
-        self.__end_velocity_table = edge.end().velocity_table()
-        self.__distance_table = Path(str(environ.elapsed_time_folder())+'/'+str(self.__edge_name)+'_distance_table_')
-        self.__output_file = Path(str(environ.elapsed_time_folder())+'/'+str(self.__edge_name)+'.csv')
-        self.__start = chart_yr.first_day_minus_one()
-        self.__end = chart_yr.last_day_plus_two()
-        self.__no_timesteps = int(seconds(self.__start, self.__end) / TIMESTEP)
+    def __init__(self, edge, chart_yr, env, intro=''):
+        self.init_time = perf_counter()
+        self.date = chart_yr
+        self.env = env
+        self.intro = intro
+        self.length = edge.length()
+        self.edge_name = edge.name()
+        self.id = id(edge)
+        self.start_velocity_table = edge.start().velocity_table()
+        self.end_velocity_table = edge.end().velocity_table()
+        self.output_file = env.elapsed_time_folder().joinpath(edge.name()+'_ets_table.csv')
+        self.start = chart_yr.first_day_minus_one()
+        self.end = chart_yr.last_day_plus_two()
+        self.no_timesteps = int(seconds(self.start, self.end) / TIMESTEP)
 
     def execute(self):
-        if exists(self.__output_file):
-            print(f'+     {self.__intro} {self.__edge_name} reading data file', flush=True)
-            return tuple([self.__id, pd.read_csv(self.__output_file, header='infer')])
+        if exists(self.output_file):
+            print(f'+     {self.intro} {self.edge_name} reading data file', flush=True)
+            return tuple([self.id, pd.read_csv(self.output_file, header='infer')])
         else:
-            print(f'+     {self.__intro} {self.__edge_name} elapsed time (1st day - 1, last day + 2)', flush=True)
-            sa = self.__start_velocity_table['velocity']
-            ea = self.__end_velocity_table['velocity']
+            print(f'+     {self.intro} {self.edge_name} elapsed time (1st day - 1, last day + 2)', flush=True)
+            sa = self.start_velocity_table['velocity']
+            ea = self.end_velocity_table['velocity']
             ts_in_hr = TIMESTEP / 3600  # in hours because NOAA speeds are in knots (nautical miles per hour)
             elapsed_times_df = pd.DataFrame()
-            elapsed_times_df['departure_index'] = self.__start_velocity_table['time_index']
-            elapsed_times_df['departure_time'] = pd.to_timedelta(elapsed_times_df['departure_index'], unit='seconds') + self.__index_basis
-            elapsed_times_df = elapsed_times_df[elapsed_times_df['departure_time'] < self.__end]
+            elapsed_times_df['departure_index'] = self.start_velocity_table['time_index']
+            elapsed_times_df['departure_time'] = pd.to_timedelta(elapsed_times_df['departure_index'], unit='seconds') + self.date.index_basis()
+            elapsed_times_df = elapsed_times_df[elapsed_times_df['departure_time'] < self.end]
 
             for s in boat_speeds:
-                col_name = self.__edge_name+' '+str(s)
+                col_name = self.edge_name+' '+str(s)
                 et_df = pd.DataFrame()
-                et_df['date'] = self.__start_velocity_table['date']
-                et_df['time_index'] = self.__start_velocity_table['time_index']
-                et_df['dist'] = distance(ea[1:], sa[:-1], s, ts_in_hr) if s > 0 else distance(sa[1:], ea[:-1], s, ts_in_hr)
+                et_df['time_index'] = self.start_velocity_table['time_index']
+                et_df['date'] = self.start_velocity_table['date']
+                et_df['distance'] = distance(ea[1:], sa[:-1], s, ts_in_hr) if s > 0 else distance(sa[1:], ea[:-1], s, ts_in_hr)
                 et_df.fillna(0, inplace=True)
-                et_df.to_csv(Path(str(self.__distance_table)+str(s)+'.csv'), index=False)
-                elapsed_times_df[col_name] = [elapsed_time(i, et_df['dist'].to_numpy(), sign(s)*self.__length) for i in range(0, self.__no_timesteps)]
-            elapsed_times_df.to_csv(self.__output_file, index=False)  # number of time steps
-        return tuple([self.__id, elapsed_times_df])
+                et_df.to_csv(self.env.edge_folder(self.edge_name).joinpath(self.edge_name+'_distance_table_'+str(s)+'.csv'), index=False)
+                elapsed_times_df[col_name] = [elapsed_time(i, et_df['distance'].to_numpy(), sign(s)*self.length) for i in range(0, self.no_timesteps)]
+            elapsed_times_df.to_csv(self.output_file, index=False)  # number of time steps
+        return tuple([self.id, elapsed_times_df])
 
     # noinspection PyUnusedLocal
     def execute_callback(self, result):
-        print(f'-     {self.__intro} {self.__edge_name} {round((perf_counter() - self.__init_time), 2)} seconds {round(self.__length, 2)} nautical miles', flush=True)
+        print(f'-     {self.intro} {self.edge_name} {round((perf_counter() - self.init_time), 2)} seconds {round(self.length, 2)} nautical miles', flush=True)
     def error_callback(self, result):
-        print(f'!     {self.__intro} {self.__edge_name} process has raised an error: {result}', flush=True)
+        print(f'!     {self.intro} {self.edge_name} process has raised an error: {result}', flush=True)
