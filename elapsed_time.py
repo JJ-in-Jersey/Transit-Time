@@ -1,6 +1,4 @@
-import numpy as np
 import pandas as pd
-from pathlib import Path
 from os.path import exists
 from time import perf_counter
 
@@ -62,8 +60,7 @@ class ElapsedTimeJob:
             elapsed_times_df.to_csv(self.output_file, index=False)  # number of time steps
         return tuple([self.id, elapsed_times_df])
 
-    # noinspection PyUnusedLocal
-    def execute_callback(self, result):
+    def execute_callback(self):
         print(f'-     {self.intro} {self.edge_name} {round((perf_counter() - self.init_time), 2)} seconds {round(self.length, 2)} nautical miles', flush=True)
     def error_callback(self, result):
         print(f'!     {self.intro} {self.edge_name} process has raised an error: {result}', flush=True)
