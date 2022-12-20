@@ -7,7 +7,7 @@ from route_objects import GpxRoute
 from velocity import VelocityJob
 from elapsed_time import ElapsedTimeJob
 from transit_time import TransitTimeMinimaJob
-from project_globals import TIMESTEP
+from project_globals import TIMESTEP, boat_speeds
 
 if __name__ == '__main__':
 
@@ -52,15 +52,11 @@ if __name__ == '__main__':
 
     # calculate the number of timesteps from first node to last node
     print(f'\nCalculating transit times')
-    # for speed in boat_speeds: mp.job_queue.put(TransitTimeMinimaJob(route, speed, mp.environs, mp.chart_yr, mp.pool_notice))
-    # mp.job_queue.join()
-    # for speed in boat_speeds: route.transit_time_lookup(speed, mp.result_lookup[speed])
-    tj = TransitTimeMinimaJob(route, -3, mp.environs, mp.chart_yr, mp.pool_notice)
-    tj.execute()
-
-    # # Aggregate the elapsed time information by speed rather than edge
-    # print(f'\nAssigning elapsed times by speed')
-    # route.elapsed_times_by_speed()
+    for speed in boat_speeds: mp.job_queue.put(TransitTimeMinimaJob(route, speed, mp.environs, mp.chart_yr, mp.pool_notice))
+    mp.job_queue.join()
+    for speed in boat_speeds: route.transit_time_lookup(speed, mp.result_lookup[speed])
+    # tj = TransitTimeMinimaJob(route, -3, mp.environs, mp.chart_yr, mp.pool_notice)
+    # tj.execute()
 
     mp.som.shutdown()
     if jm.is_alive(): jm.terminate()
