@@ -43,10 +43,10 @@ class ElapsedTimeJob:
             sa = self.start_velocity_table['velocity']
             ea = self.end_velocity_table['velocity']
             ts_in_hr = TIMESTEP / 3600  # in hours because NOAA speeds are in knots (nautical miles per hour)
-            elapsed_times_df = pd.DataFrame()
-            elapsed_times_df['departure_index'] = self.start_velocity_table['time_index']
-            elapsed_times_df['departure_time'] = pd.to_timedelta(elapsed_times_df['departure_index'], unit='seconds') + self.date.index_basis()
-            elapsed_times_df = elapsed_times_df[elapsed_times_df['departure_time'] < self.end]
+            elapsed_time_df = pd.DataFrame()
+            elapsed_time_df['departure_index'] = self.start_velocity_table['time_index']
+            elapsed_time_df['departure_time'] = pd.to_timedelta(elapsed_time_df['departure_index'], unit='seconds') + self.date.index_basis()
+            elapsed_time_df = elapsed_time_df[elapsed_time_df['departure_time'] < self.end]
 
             for s in boat_speeds:
                 col_name = self.edge_name+' '+str(s)
@@ -56,11 +56,12 @@ class ElapsedTimeJob:
                 et_df['distance'] = distance(ea[1:], sa[:-1], s, ts_in_hr) if s > 0 else distance(sa[1:], ea[:-1], s, ts_in_hr)
                 et_df.fillna(0, inplace=True)
                 et_df.to_csv(self.env.edge_folder(self.edge_name).joinpath(self.edge_name+'_distance_table_'+str(s)+'.csv'), index=False)
-                elapsed_times_df[col_name] = [elapsed_time(i, et_df['distance'].to_numpy(), sign(s)*self.length) for i in range(0, self.no_timesteps)]
-            elapsed_times_df.to_csv(self.output_file, index=False)  # number of time steps
-        return tuple([self.id, elapsed_times_df])
+                elapsed_time_df[col_name] = [elapsed_time(i, et_df['distance'].to_numpy(), sign(s)*self.length) for i in range(0, self.no_timesteps)]
+            elapsed_time_df.to_csv(self.output_file, index=False)  # number of time steps
+        return tuple([self.id, elapsed_time_df])
 
-    def execute_callback(self):
+    # noinspection PyUnusedLocal
+    def execute_callback(self, result):
         print(f'-     {self.intro} {self.edge_name} {round((perf_counter() - self.init_time), 2)} seconds {round(self.length, 2)} nautical miles', flush=True)
     def error_callback(self, result):
         print(f'!     {self.intro} {self.edge_name} process has raised an error: {result}', flush=True)

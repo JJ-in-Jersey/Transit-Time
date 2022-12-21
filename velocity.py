@@ -61,8 +61,8 @@ class VelocityJob:
     def execute(self):
         if exists(self.output_table_name):
             print(f'+     {self.intro} {self.code} {self.name} reading data file', flush=True)
-            # noinspection PyTypeChecker
             return tuple([self.id, pd.read_csv(self.output_table_name, header='infer')])
+            # return tuple([self.id, pd.read_hdf(self.output_table_name, mode='r')])
         else:
             print(f'+     {self.intro} {self.code} {self.name} velocity (1st day - 1, last day + 3)', flush=True)
             year = self.date.year()
@@ -82,13 +82,15 @@ class VelocityJob:
             download_df = download_df[(self.start <= download_df['date']) & (download_df['date'] <= self.end)]
             download_df['time_index'] = download_df['date'].apply(self.date.time_to_index)
             download_df.to_csv(self.download_table_name, index=False)
+            # download_df.to_hdf(self.download_table_name, format='fixed', key='abc', mode='w', index=False)
             cs = CubicSpline(download_df['time_index'], download_df['velocity'])
             del download_df
             output_df = pd.DataFrame()
             output_df['time_index'] = range(self.date.time_to_index(self.start), self.date.time_to_index(self.end), TIMESTEP)
-            output_df['date'] = pd.to_timedelta(output_df['time_index'], unit='seconds') + self.index_basis
+            output_df['date'] = pd.to_timedelta(output_df['time_index'], unit='seconds') + self.date.index_basis()
             output_df['velocity'] = output_df['time_index'].apply(cs)
             output_df.to_csv(self.output_table_name, index=False)
+            # output_df.to_hdf(self.output_table_name, format='fixed', key='abc', mode='w', index=False)
             return tuple([self.id, output_df])
 
     # noinspection PyUnusedLocal
@@ -111,5 +113,4 @@ class VelocityJob:
         self.output_table_name = env.velocity_folder().joinpath(self.code+'_output_table.csv')
         self.start = self.date.first_day_minus_one()
         self.end = self.date.last_day_plus_three()
-        self.index_basis = self.date.index_basis()
         umask(0)

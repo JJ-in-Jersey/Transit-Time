@@ -88,10 +88,10 @@ class RouteEdge:
     def start(self): return self.__start
     def end(self): return self.__end
     def name(self): return self.__name
-    def elapsed_time_dataframe(self, df=None):
-        if isinstance(df, pd.DataFrame) and not self.__et_dataframe:
-            self.__et_dataframe = df
-        return self.__et_dataframe
+    def elapsed_time_df(self, df=None):
+        if self.__elapsed_time_df is None and df is not None:
+            self.__elapsed_time_df = df
+        return self.__elapsed_time_df
 
     @staticmethod
     def calc_length(start, end):
@@ -104,7 +104,7 @@ class RouteEdge:
 
     def __init__(self, start, end):
         super().__init__()
-        self.__et_dataframe = None
+        self.__elapsed_time_df = None
         self.__start = start
         self.__end = end
         self.__length = self.calc_length(start, end)
@@ -125,22 +125,22 @@ class GpxRoute:
     def length(self): return self.__length
     def direction(self): return GpxRoute.directionLookup[self.__direction]
     def transit_time_lookup(self, key, array=None):
-        if key not in self.__transit_time_dict and array is not None:
-            self.__transit_time_dict[key] = array
+        if key not in self.transit_time_dict and array is not None:
+            self.transit_time_dict[key] = array
         else:
-            return self.__transit_time_dict[key]
+            return self.transit_time_dict[key]
 
     def __init__(self, filepath):
         self.__nodes = self.__route_nodes = self.__edges = self.__route_edges = None
         self.__direction = None
-        self.__transit_time_dict = {}
+        self.transit_time_dict = {}
         self.__length = 0
 
         with open(filepath, 'r') as f: gpxfile = f.read()
         tree = Soup(gpxfile, 'xml')
 
         # create graph nodes
-        self.__nodes = [RouteNode(point) if point.desc else Node(point) for point in tree.find_all('rtept')]
+        self.__nodes = [RouteNode(waypoint) if waypoint.desc else Node(waypoint) for waypoint in tree.find_all('rtept')]
         self.__route_nodes = [node for node in self.__nodes if isinstance(node, RouteNode)]
 
         # create graph edges - instantiating edges updates next and prev references nodes

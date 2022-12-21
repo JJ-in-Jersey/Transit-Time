@@ -46,7 +46,7 @@ if __name__ == '__main__':
     print(f'\nCalculating elapsed times')
     for re in route.route_edges(): mp.job_queue.put(ElapsedTimeJob(re, mp.chart_yr, mp.environs, mp.pool_notice))
     mp.job_queue.join()
-    for re in route.route_edges(): re.elapsed_time_dataframe(mp.result_lookup[id(re)])
+    for re in route.route_edges(): re.elapsed_time_df(mp.result_lookup[id(re)])
     # ej = ElapsedTimeJob(route.route_edges()[0], mp.chart_yr, mp.environs, mp.pool_notice)
     # ej.execute()
 
