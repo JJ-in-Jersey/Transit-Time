@@ -1,6 +1,8 @@
 from pathlib import Path
 from os import environ, makedirs, umask
+from os.path import exists
 import shutil
+import pandas as pd
 import dateparser as dp
 from datetime import timedelta as td
 from warnings import filterwarnings as fw
@@ -19,8 +21,12 @@ def rounded_to_minutes(time, rounded_to_num_minutes):
     total_minutes = int((time - basis).total_seconds())/60
     rounded_seconds = round(total_minutes/rounded_to_num_minutes)*rounded_to_num_minutes*60
     return basis + td(seconds=rounded_seconds)
-def write(name, filetype):
-    pass
+def write_df_csv(df, path): df.to_csv(path.with_suffix('.csv'), index=False)
+def read_df_csv(path): pd.read_csv(path.with_suffix('.csv'), header='infer')
+def write_df_pkl(df, path): df.to_pickle(path.with_suffix('.pkl'))
+def read_df_pkl(path): return pd.read_pickle(path.with_suffix('.pkl'))
+def output_file_exists(path): return True if exists(path.with_suffix('.cvs')) or exists(path.with_suffix('.pkl')) else False
+
 
 class Environment:
 
@@ -28,11 +34,10 @@ class Environment:
         node_folder = self.velocity_folder().joinpath(name)
         makedirs(node_folder, exist_ok=True)
         return node_folder
-    def edge_folder(self, name=None):
-        if name:
-            self.__edge_folder = self.elapsed_time_folder().joinpath(name)
-            makedirs(self.__edge_folder, exist_ok=True)
-        return self.__edge_folder
+    def create_edge_folder(self, name):
+        edge_folder = self.elapsed_time_folder().joinpath(name)
+        makedirs(edge_folder, exist_ok=True)
+        return edge_folder
     def project_folder(self, args=None):
         if args:
             self.__project_folder = Path(self.__user_profile + '/Downloads/' + args['project_name']+'/')
@@ -60,7 +65,6 @@ class Environment:
 
     def __init__(self):
         self.__project_folder = None
-        self.__edge_folder = None
         self.__velocity_folder = None
         self.__elapsed_time_folder = None
         self.__transit_time_folder = None

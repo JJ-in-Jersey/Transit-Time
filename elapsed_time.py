@@ -1,8 +1,7 @@
 import pandas as pd
-from os.path import exists
 from time import perf_counter
 
-from project_globals import TIMESTEP, boat_speeds, seconds, sign
+from project_globals import TIMESTEP, boat_speeds, seconds, sign, write_df_pkl, read_df_pkl, output_file_exists
 
 def distance(water_vf, water_vi, boat_speed, time): return ((water_vf + water_vi) / 2 + boat_speed)*time
 
@@ -29,15 +28,15 @@ class ElapsedTimeJob:
         self.id = id(edge)
         self.start_velocity_table = edge.start().velocity_table()
         self.end_velocity_table = edge.end().velocity_table()
-        self.output_file = env.elapsed_time_folder().joinpath(edge.name()+'_ets_table.pkl')
+        self.output_file = env.create_edge_folder(edge.name()).joinpath(edge.name()+'_ets_table')
         self.start = chart_yr.first_day_minus_one()
         self.end = chart_yr.last_day_plus_two()
         self.no_timesteps = int(seconds(self.start, self.end) / TIMESTEP)
 
     def execute(self):
-        if exists(self.output_file):
+        if output_file_exists(self.output_file):
             print(f'+     {self.intro} {self.edge_name} {round(self.length, 2)} nm reading data file', flush=True)
-            return tuple([self.id, pd.read_pickle(self.output_file)])
+            return tuple([self.id, read_df_pkl(self.output_file)])
         else:
             print(f'+     {self.intro} {self.edge_name} {round(self.length, 2)} nm (1st day - 1, last day + 2)', flush=True)
             sa = self.start_velocity_table['velocity']
@@ -55,9 +54,9 @@ class ElapsedTimeJob:
                 et_df['date'] = self.start_velocity_table['date']
                 et_df['distance'] = distance(ea[1:], sa[:-1], s, ts_in_hr) if s > 0 else distance(sa[1:], ea[:-1], s, ts_in_hr)
                 et_df.fillna(0, inplace=True)
-                et_df.to_pickle(self.env.edge_folder(self.edge_name).joinpath(self.edge_name+'_distance_table_'+str(s)+'.pkl'))
+                write_df_pkl(et_df, self.env.create_edge_folder(self.edge_name).joinpath(self.edge_name+'_distance_table_'+str(s)))
                 elapsed_time_df[col_name] = [elapsed_time(i, et_df['distance'].to_numpy(), sign(s)*self.length) for i in range(0, self.no_timesteps)]
-            elapsed_time_df.to_pickle(self.output_file)  # number of time steps
+            write_df_pkl(elapsed_time_df, self.output_file)
         return tuple([self.id, elapsed_time_df])
 
     # noinspection PyUnusedLocal

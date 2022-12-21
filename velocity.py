@@ -15,7 +15,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
-from project_globals import TIMESTEP, dash_to_zero
+from project_globals import TIMESTEP, dash_to_zero, write_df_pkl, read_df_pkl, output_file_exists
 
 logging.getLogger('WDM').setLevel(logging.NOTSET)
 
@@ -59,11 +59,9 @@ class VelocityJob:
         dropdown.select_by_index(options.index(year))
 
     def execute(self):
-        if exists(self.output_table_name):
+        if output_file_exists(self.output_table_name):
             print(f'+     {self.intro} {self.code} {self.name} reading data file', flush=True)
-            # return tuple([self.id, pd.read_csv(self.output_table_name, header='infer')])
-            # return tuple([self.id, pd.read_hdf(self.output_table_name, mode='r')])
-            return tuple([self.id, pd.read_pickle(self.output_table_name)])
+            return tuple([self.id, read_df_pkl(self.output_table_name)])
         else:
             print(f'+     {self.intro} {self.code} {self.name} velocity (1st day - 1, last day + 3)', flush=True)
             year = self.date.year()
@@ -82,17 +80,14 @@ class VelocityJob:
             download_df.rename(columns={'Date_Time (LST/LDT)': 'date', ' Event': 'event', ' Speed (knots)': 'velocity'}, inplace=True)
             download_df = download_df[(self.start <= download_df['date']) & (download_df['date'] <= self.end)]
             download_df['time_index'] = download_df['date'].apply(self.date.time_to_index)
-            # download_df.to_csv(self.download_table_name, index=False)
-            # download_df.to_hdf(self.download_table_name, key='df', mode='w', index=False)
-            download_df.to_pickle(self.download_table_name)
+            write_df_pkl(download_df, self.download_table_name)
             cs = CubicSpline(download_df['time_index'], download_df['velocity'])
             del download_df
             output_df = pd.DataFrame()
             output_df['time_index'] = range(self.date.time_to_index(self.start), self.date.time_to_index(self.end), TIMESTEP)
             output_df['date'] = pd.to_timedelta(output_df['time_index'], unit='seconds') + self.date.index_basis()
             output_df['velocity'] = output_df['time_index'].apply(cs)
-            # output_df.to_csv(self.output_table_name, index=False)
-            output_df.to_pickle(self.output_table_name)
+            write_df_pkl(output_df, self.output_table_name)
             return tuple([self.id, output_df])
 
     # noinspection PyUnusedLocal
@@ -112,10 +107,8 @@ class VelocityJob:
         self.url = route_node.url()
         self.id = id(route_node)
         self.node_folder = env.create_node_folder(self.code)
-        # self.download_table_name = env.node_folder(self.code).joinpath(self.code+'_download_table.csv')
-        # self.output_table_name = env.velocity_folder().joinpath(self.code+'_output_table.csv')
-        self.download_table_name = self.node_folder.joinpath(self.code+'_download_table.pkl')
-        self.output_table_name = env.velocity_folder().joinpath(self.code+'_output_table.pkl')
+        self.download_table_name = self.node_folder.joinpath(self.code+'_download_table')
+        self.output_table_name = env.velocity_folder().joinpath(self.code+'_velocity_table')
         self.start = self.date.first_day_minus_one()
         self.end = self.date.last_day_plus_three()
         umask(0)
