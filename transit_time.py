@@ -16,18 +16,17 @@ class TransitTimeMinimaJob:
         self.env = environ
         self.date = chart_yr
         self.intro = intro
-        self.minima_index_table_file = environ.transit_time_folder().joinpath('/tt_' + str(self.speed) + '_minima_index.csv')
-        self.speed_elapsed_time_table = environ.transit_time_folder().joinpath('/et_' + str(self.speed) + '.csv')
+        self.minima_index_table_file = environ.transit_time_folder().joinpath('tt_' + str(self.speed) + '_minima_index.csv')
+        self.elapsed_time_table = environ.transit_time_folder().joinpath('et_' + str(self.speed) + '.csv')
         self.output_file = environ.transit_time_folder().joinpath('/t_' + str(self.speed) + '.csv')
         self.start = chart_yr.first_day_minus_one()
         self.end = chart_yr.last_day_plus_one()
         self.seconds = seconds(self.start, self.end)
         self.no_timesteps = int(self.seconds / TIMESTEP)
-        share_columns = ['departure_index', 'departure_time']
-        speed_columns = [edge.name() + ' ' + str(speed) for edge in route.route_edges()]
-        self.elapsed_time_df = reduce(lambda left, right: pd.merge(left, right, on=share_columns), [edge.elapsed_time_df() for edge in route.route_edges()])
-        self.elapsed_time_df = self.elapsed_time_df[share_columns + speed_columns].copy()
-        self.elapsed_time_df.to_csv(self.speed_elapsed_time_table, index=False)
+        self.shared_columns = ['departure_index', 'departure_time']
+        self.speed_columns = [edge.name() + ' ' + str(speed) for edge in route.route_edges()]
+        self.elapsed_time_df = reduce(lambda left, right: pd.merge(left, right, on=self.shared_columns), [edge.elapsed_time_df() for edge in route.route_edges()])
+        self.elapsed_time_df.to_csv(self.elapsed_time_table, index=False)
 
     def execute(self):
         if exists(self.output_file):
@@ -36,7 +35,7 @@ class TransitTimeMinimaJob:
             return tuple([self.speed, tt_minima_df])
         else:
             print(f'+     {self.intro} Transit time ({self.speed}) transit time (1st day - 1, last day + 1)', flush=True)
-            transit_times = [TransitTimeMinimaJob.total_transit_time(row, self.elapsed_time_df) for row in range(0, self.no_timesteps)]
+            transit_times = [TransitTimeMinimaJob.total_transit_time(row, self.elapsed_time_df, self.speed_columns) for row in range(0, self.no_timesteps)]
             minima_index_table_df = self.minima_table(transit_times)
             minima_index_table_df.to_csv(self.minima_index_table_file)
             minima_time_table_df = self.start_min_end(minima_index_table_df)
@@ -49,10 +48,10 @@ class TransitTimeMinimaJob:
         print(f'!     {self.intro} {self.speed} process has raised an error: {result}', flush=True)
 
     @staticmethod
-    def total_transit_time(init_row, d_frame):
+    def total_transit_time(init_row, d_frame, cols):
         row = init_row
         tt = 0
-        for col in d_frame.columns[2:]:
+        for col in cols:
             val = d_frame.at[row, col]
             tt += val
             row += val
@@ -61,8 +60,7 @@ class TransitTimeMinimaJob:
     def start_min_end(self, minima_table_df):
         minima_table_df = minima_table_df.dropna()
         minima_table_df.reset_index(inplace=True)
-        minima_table_df['start_timeorig'] =[self.date.index_to_time(minima_table_df.at[index, 'start_index']*TIMESTEP) for index in range(0, len(minima_table_df))]
-        minima_table_df['start_time'] = pd.to_timedelta(minima_table_df['start_index'], unit='seconds')*TIMESTEP + self.index_basis*TIMESTEP
+        minima_table_df['start_time'] = pd.to_timedelta(minima_table_df['start_index'], unit='seconds')*TIMESTEP + self.date.index_basis()*TIMESTEP
         minima_table_df = minima_table_df.assign(start_time=[self.date.index_to_time(minima_table_df.at[index, 'start_index']*TIMESTEP) for index in range(0, len(minima_table_df))])
         minima_table_df = minima_table_df.assign(minima_time=[self.date.index_to_time(minima_table_df.at[index, 'minima_index']*TIMESTEP) for index in range(0, len(minima_table_df))])
         minima_table_df = minima_table_df.assign(end_time=[self.date.index_to_time(minima_table_df.at[index, 'end_index']*TIMESTEP) for index in range(0, len(minima_table_df))])
@@ -72,11 +70,12 @@ class TransitTimeMinimaJob:
         return minima_table_df
 
     def minima_table(self, transit_time_array):
-        tt_df = pd.DataFrame()
+        index = self.shared_columns[0]
+        date = self.shared_columns[1]
+        tt_df = self.elapsed_time_df[[self.shared_columns[0]]]
+        tt_df[self.shared_columns[1]] = pd.to_timedelta(tt_df[self.shared_columns[0]], unit='seconds') + self.date.index_basis()
+        tt_df = tt_df[tt_df[self.shared_columns[1]] < self.end]
         tt_df['tt'] = transit_time_array
-        tt_df['date'] = pd.to_timedelta(tt_df['time_index'], unit='seconds') + self.index_basis
-
-        tt_df['date'] = [self.date.index_to_time(index*TIMESTEP) for index in range(0, len(transit_time_array))]
         tt_df['midline'] = savgol_filter(transit_time_array, 50000, 1)
         tt_df['min_segments'] = tt_df.apply(lambda row: True if row.tt < row.midline else False, axis=1)
         clump = []

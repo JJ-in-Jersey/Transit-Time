@@ -22,11 +22,10 @@ def rounded_to_minutes(time, rounded_to_num_minutes):
 
 class Environment:
 
-    def node_folder(self, name=None):
-        if name:
-            self.__node_folder = self.velocity_folder().joinpath(name)
-            makedirs(self.__node_folder, exist_ok=True)
-        return self.__node_folder
+    def create_node_folder(self, name):
+        node_folder = self.velocity_folder().joinpath(name)
+        makedirs(node_folder, exist_ok=True)
+        return node_folder
     def edge_folder(self, name=None):
         if name:
             self.__edge_folder = self.elapsed_time_folder().joinpath(name)
@@ -52,14 +51,13 @@ class Environment:
         return self.__elapsed_time_folder
     def transit_time_folder(self):
         if not self.__transit_time_folder:
-            self.__transit_time_folder = self.__project_folder.joinpath('/Transit Time')
+            self.__transit_time_folder = self.__project_folder.joinpath('Transit Time')
             makedirs(self.__transit_time_folder, exist_ok=True)
         return self.__transit_time_folder
     def user_profile(self): return self.__user_profile
 
     def __init__(self):
         self.__project_folder = None
-        self.__node_folder = None
         self.__edge_folder = None
         self.__velocity_folder = None
         self.__elapsed_time_folder = None
