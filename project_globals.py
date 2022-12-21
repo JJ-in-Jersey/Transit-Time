@@ -19,7 +19,7 @@ def rounded_to_minutes(time, rounded_to_num_minutes):
     total_minutes = int((time - basis).total_seconds())/60
     rounded_seconds = round(total_minutes/rounded_to_num_minutes)*rounded_to_num_minutes*60
     return basis + td(seconds=rounded_seconds)
-def write(name, type):
+def write(name, filetype):
     pass
 
 class Environment:
