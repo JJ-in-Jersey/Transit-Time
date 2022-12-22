@@ -5,7 +5,7 @@ from scipy.signal import savgol_filter
 from functools import reduce
 from warnings import filterwarnings as fw
 
-from project_globals import TIMESTEP, WINDOW_MARGIN, seconds, rounded_to_minutes, write_df_pkl
+from project_globals import TIMESTEP, WINDOW_MARGIN, seconds, rounded_to_minutes, write_df_pkl, write_df_csv, read_df_pkl, read_df_csv
 
 fw("ignore", message="FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.",)
 
@@ -16,13 +16,12 @@ class TransitTimeMinimaJob:
         self.env = environ
         self.date = chart_yr
         self.intro = intro
-        self.minima_index_table_file = environ.transit_time_folder().joinpath('tt_' + str(self.speed) + '_minima_index.csv')
-        self.elapsed_time_table = environ.transit_time_folder().joinpath('et_' + str(self.speed) + '.csv')
-        self.output_file = environ.transit_time_folder().joinpath('/t_' + str(self.speed) + '.csv')
+        self.minima_index_table_file = environ.transit_time_folder().joinpath('tt_' + str(speed) + '_minima_index')
+        self.elapsed_time_table = environ.transit_time_folder().joinpath('et_' + str(speed))
+        self.output_file = environ.transit_time_folder().joinpath('/t_' + str(speed))
         self.start = chart_yr.first_day_minus_one()
         self.end = chart_yr.last_day_plus_one()
-        self.seconds = seconds(self.start, self.end)
-        self.no_timesteps = int(self.seconds / TIMESTEP)
+        self.no_timesteps = int(seconds(self.start, self.end) / TIMESTEP)
         self.shared_columns = ['departure_index', 'departure_time']
         self.speed_columns = [edge.name() + ' ' + str(speed) for edge in route.route_edges()]
         self.elapsed_time_df = reduce(lambda left, right: pd.merge(left, right, on=self.shared_columns), [edge.elapsed_time_df() for edge in route.route_edges()])
@@ -31,16 +30,15 @@ class TransitTimeMinimaJob:
     def execute(self):
         if exists(self.output_file):
             print(f'+     {self.intro} Transit time ({self.speed}) reading data file', flush=True)
-            tt_minima_df = pd.read_csv(self.output_file, header='infer')
+            tt_minima_df = read_df_csv(self.output_file)
             return tuple([self.speed, tt_minima_df])
         else:
             print(f'+     {self.intro} Transit time ({self.speed}) transit time', flush=True)
             transit_times = [TransitTimeMinimaJob.total_transit_time(row, self.elapsed_time_df, self.speed_columns) for row in range(0, self.no_timesteps)]
             minima_index_table_df = self.minima_table(transit_times)
-            minima_index_table_df.to_csv(self.minima_index_table_file)
+            write_df_csv(minima_index_table_df, self.minima_index_table_file)
             minima_time_table_df = self.start_min_end(minima_index_table_df)
-            write_df_pkl(minima_time_table_df, self.output_file)
-            #minima_time_table_df.to_csv(self.output_file)
+            write_df_csv(minima_time_table_df, self.output_file)
             return tuple([self.speed, minima_index_table_df])
 
     def execute_callback(self, result):
@@ -71,13 +69,13 @@ class TransitTimeMinimaJob:
         return minima_table_df
 
     def minima_table(self, transit_time_array):
-        tt_df = self.elapsed_time_df[[self.shared_columns[0]]]
-        tt_df[self.shared_columns[1]] = pd.to_timedelta(tt_df[self.shared_columns[0]], unit='seconds')
-        tt_df[self.shared_columns[1]] = tt_df[self.shared_columns[1]] + self.date.index_basis()
-        tt_df = tt_df[tt_df[self.shared_columns[1]] < self.end]
-        tt_df.assign(tt = transit_time_array)
+        tt_df = pd.DataFrame(columns=self.shared_columns+['tt', 'midline', 'min_segments'])
+        tt_df[self.shared_columns[0]] = self.elapsed_time_df[[self.shared_columns[0]]]
+        tt_df[self.shared_columns[1]] = pd.to_timedelta(tt_df[self.shared_columns[0]], unit='seconds') + self.date.index_basis()
+        tt_df = tt_df[tt_df[self.shared_columns[1]] < self.end]  # match the length of transit_time_array
+        tt_df['tt'] = transit_time_array
         tt_df['midline'] = savgol_filter(transit_time_array, 50000, 1)
-        tt_df['min_segments'] = tt_df.apply(lambda row: True if row.tt < row.midline else False, axis=1)
+        tt_df['min_segments'] = tt_df.apply(lambda row: True if row['tt'] < row['midline'] else False)
         clump = []
         mlv = tt_df['min_segments'].to_numpy()
         for index, val in enumerate(mlv):

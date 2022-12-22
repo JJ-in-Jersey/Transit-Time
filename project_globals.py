@@ -10,8 +10,8 @@ from pickle import HIGHEST_PROTOCOL
 
 fw("ignore", message="The localize method is no longer necessary, as this time zone supports the fold attribute",)
 
-TIMESTEP = 60  # seconds
-WINDOW_MARGIN = 15  # minutes
+TIMESTEP = 180  # seconds
+WINDOW_MARGIN = 10  # minutes
 #boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]  # knots
 boat_speeds = [v for v in range(-5, -1, 2)]+[v for v in range(3, 6, 2)]  # knots
 
