@@ -28,7 +28,8 @@ class ElapsedTimeJob:
         self.id = id(edge)
         self.start_velocity_table = edge.start().velocity_table()
         self.end_velocity_table = edge.end().velocity_table()
-        self.output_file = env.create_edge_folder(edge.name()).joinpath(edge.name()+'_ets_table')
+        self.output_file = env.elapsed_time_folder().joinpath(edge.name()+'_ets_table')
+
         self.start = chart_yr.first_day_minus_one()
         self.end = chart_yr.last_day_plus_two()
         self.no_timesteps = int(seconds(self.start, self.end) / TIMESTEP)
@@ -38,7 +39,7 @@ class ElapsedTimeJob:
             print(f'+     {self.intro} {self.edge_name} {round(self.length, 2)} nm reading data file', flush=True)
             return tuple([self.id, read_df_pkl(self.output_file)])
         else:
-            print(f'+     {self.intro} {self.edge_name} {round(self.length, 2)} nm (1st day - 1, last day + 2)', flush=True)
+            print(f'+     {self.intro} {self.edge_name} {round(self.length, 2)} nm', flush=True)
             sa = self.start_velocity_table['velocity']
             ea = self.end_velocity_table['velocity']
             ts_in_hr = TIMESTEP / 3600  # in hours because NOAA speeds are in knots (nautical miles per hour)
@@ -61,6 +62,6 @@ class ElapsedTimeJob:
 
     # noinspection PyUnusedLocal
     def execute_callback(self, result):
-        print(f'-     {self.intro} {self.edge_name} {round((perf_counter() - self.init_time), 2)} seconds', flush=True)
+        print(f'-     {self.intro} {self.edge_name} {round((perf_counter() - self.init_time)/60, 2)} minutes', flush=True)
     def error_callback(self, result):
         print(f'!     {self.intro} {self.edge_name} process has raised an error: {result}', flush=True)

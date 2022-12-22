@@ -6,12 +6,14 @@ import pandas as pd
 import dateparser as dp
 from datetime import timedelta as td
 from warnings import filterwarnings as fw
+from pickle import HIGHEST_PROTOCOL
 
 fw("ignore", message="The localize method is no longer necessary, as this time zone supports the fold attribute",)
 
-TIMESTEP = 15  # seconds
-WINDOW_SIZE = 15  # minutes
-boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]  # knots
+TIMESTEP = 60  # seconds
+WINDOW_MARGIN = 15  # minutes
+#boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]  # knots
+boat_speeds = [v for v in range(-5, -1, 2)]+[v for v in range(3, 6, 2)]  # knots
 
 def sign(value): return value/abs(value)
 def seconds(start, end): return int((end-start).total_seconds())
@@ -23,7 +25,7 @@ def rounded_to_minutes(time, rounded_to_num_minutes):
     return basis + td(seconds=rounded_seconds)
 def write_df_csv(df, path): df.to_csv(path.with_suffix('.csv'), index=False)
 def read_df_csv(path): pd.read_csv(path.with_suffix('.csv'), header='infer')
-def write_df_pkl(df, path): df.to_pickle(path.with_suffix('.pkl'))
+def write_df_pkl(df, path): df.to_pickle(path.with_suffix('.pkl'), protocol=HIGHEST_PROTOCOL)
 def read_df_pkl(path): return pd.read_pickle(path.with_suffix('.pkl'))
 def output_file_exists(path): return True if exists(path.with_suffix('.cvs')) or exists(path.with_suffix('.pkl')) else False
 

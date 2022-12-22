@@ -63,7 +63,7 @@ class VelocityJob:
             print(f'+     {self.intro} {self.code} {self.name} reading data file', flush=True)
             return tuple([self.id, read_df_pkl(self.output_table_name)])
         else:
-            print(f'+     {self.intro} {self.code} {self.name} velocity (1st day - 1, last day + 3)', flush=True)
+            print(f'+     {self.intro} {self.code} {self.name}', flush=True)
             year = self.date.year()
             download_df = pd.DataFrame()
 
@@ -92,7 +92,7 @@ class VelocityJob:
 
     # noinspection PyUnusedLocal
     def execute_callback(self, result):
-        print(f'-     {self.intro} {self.code} {round((perf_counter() - self.init_time), 2)} seconds', flush=True)
+        print(f'-     {self.intro} {self.code} {round((perf_counter() - self.init_time)/60, 2)} minutes', flush=True)
     def error_callback(self, result):
         print(f'!     {self.intro} {self.code} process has raised an error: {result}', flush=True)
 

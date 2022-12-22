@@ -33,9 +33,10 @@ if __name__ == '__main__':
     route = GpxRoute(args['filepath'])
     print(f'Number of waypoints: {len(route.route_nodes())}')
     print(f'timestep: {TIMESTEP}')
+    print(f'boat speeds: {boat_speeds}')
 
     # Download noaa data and create velocity arrays for each waypoint (node)
-    print(f'\nCalculating velocities')
+    print(f'\nCalculating currents at waypoints (1st day - 1 to last day + 3)')
     for rn in route.route_nodes(): mp.job_queue.put(VelocityJob(rn, mp.chart_yr, mp.environs, mp.pool_notice))
     mp.job_queue.join()
     for rn in route.route_nodes(): rn.velocity_table(mp.result_lookup[id(rn)])
@@ -43,7 +44,7 @@ if __name__ == '__main__':
     # vj.execute()
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
-    print(f'\nCalculating elapsed times')
+    print(f'\nCalculating elapsed times for edges (1st day - 1 to last day + 2)')
     for re in route.route_edges(): mp.job_queue.put(ElapsedTimeJob(re, mp.chart_yr, mp.environs, mp.pool_notice))
     mp.job_queue.join()
     for re in route.route_edges(): re.elapsed_time_df(mp.result_lookup[id(re)])
@@ -51,7 +52,7 @@ if __name__ == '__main__':
     # ej.execute()
 
     # calculate the number of timesteps from first node to last node
-    print(f'\nCalculating transit times')
+    print(f'\nCalculating transit times (1st day - 1 to last day + 1)')
     # for speed in boat_speeds: mp.job_queue.put(TransitTimeMinimaJob(route, speed, mp.environs, mp.chart_yr, mp.pool_notice))
     # mp.job_queue.join()
     # for speed in boat_speeds: route.transit_time_lookup(speed, mp.result_lookup[speed])
