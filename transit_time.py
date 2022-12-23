@@ -18,7 +18,7 @@ class TransitTimeMinimaJob:
         self.env = environ
         self.date = chart_yr
         self.intro = intro
-        self.minima_table_csv = environ.transit_time_folder().joinpath('tt_' + str(speed) + '_minima_table_for_plotting')
+        self.plotting_table = environ.transit_time_folder().joinpath('tt_' + str(speed) + '_plotting_table')
         self.elapsed_time_table = environ.transit_time_folder().joinpath('et_' + str(speed))
         self.output_file = environ.transit_time_folder().joinpath('/t_' + str(speed))
         self.start = chart_yr.first_day_minus_one()
@@ -38,7 +38,7 @@ class TransitTimeMinimaJob:
             print(f'+     {self.intro} Transit time ({self.speed}) transit time', flush=True)
             transit_timesteps = [TransitTimeMinimaJob.total_transit_time(row, self.elapsed_time_df, self.speed_columns) for row in range(0, self.no_timesteps)]  # in timesteps
             minima_table_df = self.minima_table(transit_timesteps)
-            write_df_csv(minima_table_df, self.minima_table_csv)
+            write_df_csv(minima_table_df, self.plotting_table)
             minima_time_table_df = self.start_min_end(minima_table_df)
             write_df_csv(minima_time_table_df, self.output_file)
             return tuple([self.speed, minima_time_table_df])
@@ -90,7 +90,7 @@ class TransitTimeMinimaJob:
                 median_index = seg_min_df['departure_index'].median()  # median departure index of segment minima
                 abs_diff = segment_df['departure_index'].sub(median_index).abs()  # abs of difference between actual index and median index
                 min_index = seg_min_df.at[abs_diff[abs_diff == abs_diff.min()].index[0], 'departure_index']  # actual index closest to median index
-                offset = segment_df['tts'].min() + TIMESTEP_MARGIN  # tss value at minimum departure index + margin
+                offset = segment_df['tts'].min() + TIMESTEP_MARGIN  # minimum tss + margin for window
                 if min_index != clump[0] and min_index != clump[-1]:  # ignore minima at edges
                     start_segment = segment_df[segment_df['departure_index'].le(min_index)]  # portion of segment from start to minimum
                     end_segment = segment_df[segment_df['departure_index'].ge(min_index)]  # portion of segment from minimum to end
