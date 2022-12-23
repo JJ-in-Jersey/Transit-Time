@@ -1,7 +1,7 @@
 import logging
 from os import environ, umask
 from glob import glob
-from os.path import join, exists, getctime
+from os.path import join, getctime
 from pathlib import Path
 from time import sleep, perf_counter
 import pandas as pd
@@ -15,7 +15,11 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
-from project_globals import TIMESTEP, dash_to_zero, write_df_pkl, read_df_pkl, output_file_exists
+from project_globals import TIMESTEP, dash_to_zero, output_file_exists
+# noinspection PyUnresolvedReferences
+from project_globals import write_df_pkl, read_df, write_df_csv
+
+#  VELOCITIES ARE DOWNLOADED, CALCULATED AND SAVE AS NAUTICAL MILES PER HOUR!
 
 logging.getLogger('WDM').setLevel(logging.NOTSET)
 
@@ -61,7 +65,7 @@ class VelocityJob:
     def execute(self):
         if output_file_exists(self.output_table_name):
             print(f'+     {self.intro} {self.code} {self.name} reading data file', flush=True)
-            return tuple([self.id, read_df_pkl(self.output_table_name)])
+            return tuple([self.id, read_df(self.output_table_name)])
         else:
             print(f'+     {self.intro} {self.code} {self.name}', flush=True)
             year = self.date.year()
@@ -80,14 +84,14 @@ class VelocityJob:
             download_df.rename(columns={'Date_Time (LST/LDT)': 'date', ' Event': 'event', ' Speed (knots)': 'velocity'}, inplace=True)
             download_df = download_df[(self.start <= download_df['date']) & (download_df['date'] <= self.end)]
             download_df['time_index'] = download_df['date'].apply(self.date.time_to_index)
-            write_df_pkl(download_df, self.download_table_name)
+            write_df_csv(download_df, self.download_table_name)
             cs = CubicSpline(download_df['time_index'], download_df['velocity'])
             del download_df
             output_df = pd.DataFrame()
             output_df['time_index'] = range(self.date.time_to_index(self.start), self.date.time_to_index(self.end), TIMESTEP)
             output_df['date'] = pd.to_timedelta(output_df['time_index'], unit='seconds') + self.date.index_basis()
             output_df['velocity'] = output_df['time_index'].apply(cs)
-            write_df_pkl(output_df, self.output_table_name)
+            write_df_csv(output_df, self.output_table_name)  # velocities are in knots
             return tuple([self.id, output_df])
 
     # noinspection PyUnusedLocal
@@ -108,7 +112,7 @@ class VelocityJob:
         self.id = id(route_node)
         self.node_folder = env.create_node_folder(self.code)
         self.download_table_name = self.node_folder.joinpath(self.code+'_download_table')
-        self.output_table_name = env.velocity_folder().joinpath(self.code+'_velocity_table')
+        self.output_table_name = env.velocity_folder().joinpath(self.code+'_table')
         self.start = self.date.first_day_minus_one()
         self.end = self.date.last_day_plus_three()
         umask(0)

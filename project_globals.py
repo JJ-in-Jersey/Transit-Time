@@ -1,6 +1,5 @@
 from pathlib import Path
 from os import environ, makedirs, umask
-from os.path import exists
 import shutil
 import pandas as pd
 import dateparser as dp
@@ -10,10 +9,11 @@ from pickle import HIGHEST_PROTOCOL
 
 fw("ignore", message="The localize method is no longer necessary, as this time zone supports the fold attribute",)
 
-TIMESTEP = 180  # seconds
+TIMESTEP = 240  # seconds
 WINDOW_MARGIN = 10  # minutes
-#boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]  # knots
-boat_speeds = [v for v in range(-5, -1, 2)]+[v for v in range(3, 6, 2)]  # knots
+TIMESTEP_MARGIN = WINDOW_MARGIN * 60 / TIMESTEP
+# boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]  # knots
+boat_speeds = [v for v in range(-3, -1, 2)]+[v for v in range(3, 4, 2)]  # knots
 
 def sign(value): return value/abs(value)
 def seconds(start, end): return int((end-start).total_seconds())
@@ -24,10 +24,13 @@ def rounded_to_minutes(time, rounded_to_num_minutes):
     rounded_seconds = round(total_minutes/rounded_to_num_minutes)*rounded_to_num_minutes*60
     return basis + td(seconds=rounded_seconds)
 def write_df_csv(df, path): df.to_csv(path.with_suffix('.csv'), index=False)
-def read_df_csv(path): pd.read_csv(path.with_suffix('.csv'), header='infer')
+def read_df_csv(path): return pd.read_csv(path.with_suffix('.csv'), header='infer')
 def write_df_pkl(df, path): df.to_pickle(path.with_suffix('.pkl'), protocol=HIGHEST_PROTOCOL)
 def read_df_pkl(path): return pd.read_pickle(path.with_suffix('.pkl'))
-def output_file_exists(path): return True if exists(path.with_suffix('.cvs')) or exists(path.with_suffix('.pkl')) else False
+def read_df(path):
+    if path.with_suffix('.csv').exists(): return read_df_csv(path)
+    elif path.with_suffix('.pkl').exists(): return read_df_pkl(path)
+def output_file_exists(path): return True if path.with_suffix('.csv').exists() or path.with_suffix('.pkl').exists() else False
 
 
 class Environment:
