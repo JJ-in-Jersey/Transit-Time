@@ -59,9 +59,9 @@ class ElapsedTimeJob:
                 et_df['date'] = self.start_velocity_table['date']
                 et_df['distance'] = distance(final_velocities[1:], initial_velocities[:-1], s, ts_in_hr) if s > 0 else distance(initial_velocities[1:], final_velocities[:-1], s, ts_in_hr)  # distance is nm
                 et_df.fillna(0, inplace=True)
-                write_df_csv(et_df, self.env.create_edge_folder(self.edge_name).joinpath(self.edge_name+'_distance_table_'+str(s)))
+                write_df_pkl(et_df, self.env.create_edge_folder(self.edge_name).joinpath(self.edge_name+'_distance_table_'+str(s)))
                 elapsed_time_df[col_name] = [elapsed_time(i, et_df['distance'].to_numpy(), sign(s)*self.length) for i in range(0, self.no_timesteps)]
-            write_df_csv(elapsed_time_df, self.output_file)
+            write_df_pkl(elapsed_time_df, self.output_file)
         return tuple([self.id, elapsed_time_df])  # elapsed times are reported in number of timesteps
 
     # noinspection PyUnusedLocal
