@@ -13,8 +13,8 @@ TIMESTEP = 15  # seconds
 TIME_RESOLUTION = 15  # rounded to minutes
 WINDOW_MARGIN = 10  # minutes
 TIMESTEP_MARGIN = WINDOW_MARGIN * 60 / TIMESTEP
-# boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]  # knots
-boat_speeds = [v for v in range(-3, -1, 2)]+[v for v in range(3, 4, 2)]  # knots
+boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]  # knots
+# boat_speeds = [v for v in range(-3, -1, 2)]+[v for v in range(3, 4, 2)]  # knots
 
 def sign(value): return value/abs(value)
 def seconds(start, end): return int((end-start).total_seconds())
