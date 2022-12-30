@@ -77,6 +77,9 @@ class Environment:
         self.__user_profile = environ['USERPROFILE']
         umask(0)
 
+    # def __del__(self):
+    #     print(f'Deleting Environment', flush=True)
+
 class ChartYear:
 
     def set_year(self, args):
@@ -114,3 +117,6 @@ class ChartYear:
         self.__last_day_plus_two = None
         self.__last_day_plus_three = None
         self.__index_basis = None
+
+    # def __del__(self):
+    #     print(f'Deleting Chart Year', flush=True)

@@ -9,6 +9,33 @@ from project_globals import write_df_pkl, read_df, write_df_csv
 
 fw("ignore", message="FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.",)
 
+class ElapsedTimeReduce:
+
+    def __init__(self, route, speed, env, chart_yr, intro=''):
+        self.speed = speed
+        self.date = chart_yr
+        self.intro = intro
+        self.route = route
+        self.elapsed_times_path = env.transit_time_folder().joinpath('et_reduce_' + str(speed))
+        self.shared_columns = ['departure_index', 'departure_time']
+        self.elapsed_time_tables = [read_df(segment.elapsed_time_table_path()) for segment in self.route.route_segments()]
+
+    def execute(self):
+        if output_file_exists(self.elapsed_times_path):
+            print(f'+     {self.intro} Elapsed Time Reduce ({self.speed}) reading data file', flush=True)
+            return tuple([self.speed, read_df(self.elapsed_times_path)])
+        else:
+            print(f'+     {self.intro} Elapsed Time Reduce ({self.speed})', flush=True)
+            et_reduce_df = reduce(lambda left, right: pd.merge(left, right, on=self.shared_columns), self.elapsed_time_tables)
+            write_df_pkl(et_reduce_df, self.elapsed_times_path)
+        return tuple([self.speed, et_reduce_df])
+
+    def execute_callback(self, result):
+        print(f'-     {self.intro} Elapsed Time Reduce ({self.speed}) {"SUCCESSFUL" if isinstance(result[1], pd.DataFrame) else "FAILED"}', flush=True)
+    def error_callback(self, result):
+        print(f'!     {self.intro} Elapsed Time Reduce ({self.speed}) process has raised an error: {result}', flush=True)
+
+
 class TransitTimeMinimaJob:
 
     def __init__(self, route, speed, environ, chart_yr, intro=''):
@@ -23,9 +50,12 @@ class TransitTimeMinimaJob:
         self.end = chart_yr.last_day_plus_one()
         self.no_timesteps = int(seconds(self.start, self.end) / TIMESTEP)
         self.shared_columns = ['departure_index', 'departure_time']
-        self.speed_columns = [edge.name() + ' ' + str(speed) for edge in route.route_edges()]
-        self.elapsed_time_df = reduce(lambda left, right: pd.merge(left, right, on=self.shared_columns), [edge.elapsed_time_df() for edge in route.route_edges()])
+        self.speed_columns = [segment.name() + ' ' + str(speed) for segment in route.route_segments()]
+        self.elapsed_time_df = reduce(lambda left, right: pd.merge(left, right, on=self.shared_columns), [segment.elapsed_time_df() for segment in route.route_segments()])
         write_df_pkl(self.elapsed_time_df, self.elapsed_time_table)
+
+    # def __del__(self):
+    #     print(f'Deleting Transit Time Job', flush=True)
 
     def execute(self):
         if output_file_exists(self.output_file):
@@ -67,7 +97,7 @@ class TransitTimeMinimaJob:
         minima_table_df['min_rounded'] = (minima_table_df['min_time'].apply(rounded_to_minutes))
         minima_table_df['end_rounded'] = (minima_table_df['end_time'].apply(rounded_to_minutes))
         minima_table_df['window_rounded'] = (minima_table_df['end_rounded'] - minima_table_df['start_rounded']).apply(hours_min)
-        minima_table_df.drop(columns=['midline'], inplace=True)
+        # minima_table_df.drop(columns=['midline'], inplace=True)
         return minima_table_df
 
     def minima_table(self, transit_array):

@@ -37,6 +37,9 @@ class JobManager:
                         q.task_done()
                 sleep(0.1)
 
+    # def __del__(self):
+    #     print(f'Deleting Job Manager', flush=True)
+
 class WaitForProcess(Process):
     def start(self, **kwargs):
         open(process_running_semaphore, 'w').close()
@@ -44,6 +47,9 @@ class WaitForProcess(Process):
         super().start(**kwargs)
         while exists(process_running_semaphore):
             sleep(0.1)
+
+    # def __del__(self):
+    #     print(f'Deleting Wait for Process', flush=True)
 
 class SharedObjectManager(BaseManager): pass
 SharedObjectManager.register('ENV', Environment)
