@@ -15,12 +15,13 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 from project_globals import TIMESTEP, dash_to_zero, output_file_exists
-# noinspection PyUnresolvedReferences
-from project_globals import write_df_pkl, read_df, write_df_csv
+from project_globals import read_df, write_df
 
 #  VELOCITIES ARE DOWNLOADED, CALCULATED AND SAVE AS NAUTICAL MILES PER HOUR!
 
 logging.getLogger('WDM').setLevel(logging.NOTSET)
+
+df_type = 'pkl'
 
 def newest_file(folder):
     types = ['*.txt', '*.csv']
@@ -79,14 +80,14 @@ class VelocityJob:
             download_df.rename(columns={'Date_Time (LST/LDT)': 'date', ' Event': 'event', ' Speed (knots)': 'velocity'}, inplace=True)
             download_df = download_df[(self.start <= download_df['date']) & (download_df['date'] <= self.end)]
             download_df['time_index'] = download_df['date'].apply(self.date.time_to_index)
-            write_df_pkl(download_df, self.download_table_path)
+            write_df(download_df, self.download_table_path, df_type)
             cs = CubicSpline(download_df['time_index'], download_df['velocity'])
             del download_df
             output_df = pd.DataFrame()
             output_df['time_index'] = range(self.date.time_to_index(self.start), self.date.time_to_index(self.end), TIMESTEP)
             output_df['date'] = pd.to_timedelta(output_df['time_index'], unit='seconds') + self.date.index_basis()
             output_df['velocity'] = output_df['time_index'].apply(cs)
-            write_df_pkl(output_df, self.velocity_table_path)  # velocities are in knots
+            write_df(output_df, self.velocity_table_path, df_type)  # velocities are in knots
             return tuple([self.id, output_df])
 
     # noinspection PyUnusedLocal
