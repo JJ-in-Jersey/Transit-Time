@@ -60,9 +60,11 @@ class VelocityJob:
 
     def execute(self):
         if output_file_exists(self.velocity_table_path):
+            self.init_time = perf_counter()
             print(f'+     {self.intro} {self.code} {self.name} reading data file', flush=True)
             return tuple([self.id, read_df(self.velocity_table_path)])
         else:
+            self.init_time = perf_counter()
             print(f'+     {self.intro} {self.code} {self.name}', flush=True)
             year = self.date.year()
             download_df = pd.DataFrame()
@@ -97,8 +99,7 @@ class VelocityJob:
         print(f'!     {self.intro} {self.code} process has raised an error: {result}', flush=True)
 
     def __init__(self, route_node, chart_yr, intro=''):
-        self.init_time = perf_counter()
-        self.wdw = self.driver = None
+        self.wdw = self.driver = self.init_time = None
         self.date = chart_yr
         self.intro = intro
         self.code = route_node.code()
@@ -111,6 +112,3 @@ class VelocityJob:
         self.start = self.date.first_day_minus_one()
         self.end = self.date.last_day_plus_three()
         umask(0)
-
-    # def __del__(self):
-    #     print(f'Deleting Velocity Job', flush=True)

@@ -6,7 +6,8 @@ import multiprocess as mp
 from route_objects import GpxRoute
 from velocity import VelocityJob
 from elapsed_time import ElapsedTimeJob
-from transit_time import ElapsedTimeReduce, TransitTimeMinimaJob
+from elapsed_time_reduce import elapsed_time_reduce
+from transit_time import TransitTimeMinimaJob
 from project_globals import TIMESTEP, boat_speeds
 
 if __name__ == '__main__':
@@ -40,17 +41,13 @@ if __name__ == '__main__':
     for node in route.route_nodes(): mp.job_queue.put(VelocityJob(node, mp.chart_yr, mp.pool_notice))
     mp.job_queue.join()
     for node in route.route_nodes(): node.velocity_table(mp.result_lookup[id(node)])
-    #
     # node = route.route_nodes()[0]
     # vj = VelocityJob(node, mp.chart_yr, mp.pool_notice)
-    # mp.job_queue.put(vj)
-    # mp.job_queue.join()
-    # node.velocity_table(mp.result_lookup[id(node)])
     # vj.execute()
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for edges (1st day-1 to last day+2)')
-    for segment in route.route_segments(): mp.job_queue.put(ElapsedTimeJob(segment, mp.chart_yr, mp.environs, mp.pool_notice))
+    for segment in route.route_segments(): mp.job_queue.put(ElapsedTimeJob(segment, mp.chart_yr, mp.pool_notice))
     mp.job_queue.join()
     for segment in route.route_segments(): segment.elapsed_time_df(mp.result_lookup[id(segment)])
     # ej = ElapsedTimeJob(route.route_segments()[0], mp.chart_yr, mp.environs, mp.pool_notice)
@@ -58,9 +55,8 @@ if __name__ == '__main__':
 
     # combine elapsed times by speed
     print(f'\nAssembling elapsed times by speed')
-    for speed in boat_speeds: mp.job_queue.put(ElapsedTimeReduce(route, speed, mp.environs, mp.chart_yr, mp.pool_notice))
-    mp.job_queue.join()
-    for speed in boat_speeds: route.elapsed_time_reduce_lookup(speed, mp.result_lookup[speed])
+    df = elapsed_time_reduce(route, mp.environs)
+    route.elapsed_times(df)
     # etr = ElapsedTimeReduce(route, -3, mp.environs, mp.chart_yr, mp.pool_notice)
     # etr.execute()
 

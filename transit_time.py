@@ -1,90 +1,63 @@
 import pandas as pd
 from scipy.signal import savgol_filter
-from functools import reduce
+from time import perf_counter
 from warnings import filterwarnings as fw
 
 from project_globals import TIMESTEP, TIMESTEP_MARGIN, seconds, rounded_to_minutes, output_file_exists, hours_min
-# noinspection PyUnresolvedReferences
-from project_globals import write_df_pkl, read_df, write_df_csv
+from project_globals import write_df, read_df, write_df
 
 fw("ignore", message="FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.",)
 
-class ElapsedTimeReduce:
+df_type = 'csv'
 
-    def __init__(self, route, speed, env, chart_yr, intro=''):
-        self.speed = speed
-        self.date = chart_yr
-        self.intro = intro
-        self.route = route
-        self.elapsed_times_path = env.transit_time_folder().joinpath('et_reduce_' + str(speed))
-        self.shared_columns = ['departure_index', 'departure_time']
-        self.elapsed_time_tables = [read_df(segment.elapsed_time_table_path()) for segment in self.route.route_segments()]
-
-    def execute(self):
-        if output_file_exists(self.elapsed_times_path):
-            print(f'+     {self.intro} Elapsed Time Reduce ({self.speed}) reading data file', flush=True)
-            return tuple([self.speed, read_df(self.elapsed_times_path)])
-        else:
-            print(f'+     {self.intro} Elapsed Time Reduce ({self.speed})', flush=True)
-            et_reduce_df = reduce(lambda left, right: pd.merge(left, right, on=self.shared_columns), self.elapsed_time_tables)
-            write_df_pkl(et_reduce_df, self.elapsed_times_path)
-        return tuple([self.speed, et_reduce_df])
-
-    def execute_callback(self, result):
-        print(f'-     {self.intro} Elapsed Time Reduce ({self.speed}) {"SUCCESSFUL" if isinstance(result[1], pd.DataFrame) else "FAILED"}', flush=True)
-    def error_callback(self, result):
-        print(f'!     {self.intro} Elapsed Time Reduce ({self.speed}) process has raised an error: {result}', flush=True)
-
+def total_transit_time(init_row, d_frame, cols):
+    row = init_row
+    tt = 0
+    for col in cols:
+        val = d_frame.at[row, col]
+        tt += val
+        row += val
+    return tt
 
 class TransitTimeMinimaJob:
 
-    def __init__(self, route, speed, environ, chart_yr, intro=''):
+    def __init__(self, route, speed, env, chart_yr, intro=''):
+        self.init_time = None
         self.speed = speed
-        self.env = environ
         self.date = chart_yr
         self.intro = intro
-        self.plotting_table = environ.transit_time_folder().joinpath('tt_' + str(speed) + '_plotting_table')
-        self.elapsed_time_table = environ.transit_time_folder().joinpath('et_' + str(speed))
-        self.output_file = environ.transit_time_folder().joinpath('transit_time_' + str(speed))
+        self.plotting_table = env.transit_time_folder().joinpath('tt_' + str(speed) + '_plotting_table')
+        self.elapsed_time_table = env.transit_time_folder().joinpath('et_' + str(speed))
+        self.output_file = env.transit_time_folder().joinpath('transit_time_' + str(speed))
         self.start = chart_yr.first_day_minus_one()
         self.end = chart_yr.last_day_plus_one()
         self.no_timesteps = int(seconds(self.start, self.end) / TIMESTEP)
-        self.shared_columns = ['departure_index', 'departure_time']
         self.speed_columns = [segment.name() + ' ' + str(speed) for segment in route.route_segments()]
-        self.elapsed_time_df = reduce(lambda left, right: pd.merge(left, right, on=self.shared_columns), [segment.elapsed_time_df() for segment in route.route_segments()])
-        write_df_pkl(self.elapsed_time_df, self.elapsed_time_table)
-
+        self.elapsed_time_df = route.elapsed_times()
+        
     # def __del__(self):
     #     print(f'Deleting Transit Time Job', flush=True)
 
     def execute(self):
         if output_file_exists(self.output_file):
+            self.init_time = perf_counter()
             print(f'+     {self.intro} Transit time ({self.speed}) reading data file', flush=True)
             tt_minima_df = read_df(self.output_file)
             return tuple([self.speed, tt_minima_df])
         else:
+            self.init_time = perf_counter()
             print(f'+     {self.intro} Transit time ({self.speed}) transit time', flush=True)
-            transit_timesteps = [TransitTimeMinimaJob.total_transit_time(row, self.elapsed_time_df, self.speed_columns) for row in range(0, self.no_timesteps)]  # in timesteps
+            transit_timesteps = [total_transit_time(row, self.elapsed_time_df, self.speed_columns) for row in range(0, self.no_timesteps)]  # in timesteps
             minima_table_df = self.minima_table(transit_timesteps)
-            write_df_csv(minima_table_df, self.plotting_table)
+            write_df(minima_table_df, self.plotting_table, df_type)
             minima_time_table_df = self.start_min_end(minima_table_df)
-            write_df_csv(minima_time_table_df, self.output_file)
+            write_df(minima_time_table_df, self.output_file, df_type)
             return tuple([self.speed, minima_time_table_df])
 
     def execute_callback(self, result):
-        print(f'-     {self.intro} {self.speed} {"SUCCESSFUL" if isinstance(result[1], pd.DataFrame) else "FAILED"} {self.no_timesteps}', flush=True)
+        print(f'-     {self.intro} {self.speed} {round((perf_counter() - self.init_time)/60, 2)} {self.no_timesteps}', flush=True)
     def error_callback(self, result):
         print(f'!     {self.intro} {self.speed} process has raised an error: {result}', flush=True)
-
-    @staticmethod
-    def total_transit_time(init_row, d_frame, cols):
-        row = init_row
-        tt = 0
-        for col in cols:
-            val = d_frame.at[row, col]
-            tt += val
-            row += val
-        return tt
 
     def start_min_end(self, minima_table_df):
         minima_table_df = minima_table_df.dropna()

@@ -2,10 +2,11 @@ import pandas as pd
 from time import perf_counter
 
 from project_globals import TIMESTEP, boat_speeds, seconds, sign, output_file_exists
-# noinspection PyUnresolvedReferences
-from project_globals import write_df_pkl, read_df, write_df_csv
+from project_globals import read_df, write_df
 
 #  Elapsed times are reported in number of timesteps
+
+df_type = 'csv'
 
 def distance(water_vf, water_vi, boat_speed, time): return ((water_vf + water_vi) / 2 + boat_speed)*time  # distance is nm
 
@@ -24,10 +25,8 @@ class ElapsedTimeJob:
 
     def distance_table_path(self, speed): return self.edge_folder.joinpath(self.edge_name + '_distance_table_' + str(speed))
 
-    def __init__(self, edge, chart_yr, env, intro=''):
-        self.init_time = perf_counter()
+    def __init__(self, edge, chart_yr, intro=''):
         self.date = chart_yr
-        self.env = env
         self.intro = intro
         self.length = edge.length()
         self.edge_name = edge.name()
@@ -40,15 +39,15 @@ class ElapsedTimeJob:
         self.start = chart_yr.first_day_minus_one()
         self.end = chart_yr.last_day_plus_two()
         self.no_timesteps = int(seconds(self.start, self.end) / TIMESTEP)
-
-    # def __del__(self):
-    #     print(f'Deleting Elapsed Time Job', flush=True)
+        self.init_time = None
 
     def execute(self):
         if output_file_exists(self.elapsed_time_table_path):
+            self.init_time = perf_counter()
             print(f'+     {self.intro} {self.edge_name} {round(self.length, 2)} nm reading data file', flush=True)
             return tuple([self.id, read_df(self.elapsed_time_table_path)])
         else:
+            self.init_time = perf_counter()
             print(f'+     {self.intro} {self.edge_name} {round(self.length, 2)} nm', flush=True)
             initial_velocities = self.start_velocity_table['velocity']  # in knots
             final_velocities = self.end_velocity_table['velocity']  # in knots
@@ -65,9 +64,9 @@ class ElapsedTimeJob:
                 et_df['date'] = self.start_velocity_table['date']
                 et_df['distance'] = distance(final_velocities[1:], initial_velocities[:-1], s, ts_in_hr) if s > 0 else distance(initial_velocities[1:], final_velocities[:-1], s, ts_in_hr)  # distance is nm
                 et_df.fillna(0, inplace=True)
-                write_df_pkl(et_df, self.distance_table_path(s))
+                write_df(et_df, self.distance_table_path(s), df_type)
                 elapsed_time_df[col_name] = [elapsed_time(i, et_df['distance'].to_numpy(), sign(s)*self.length) for i in range(0, self.no_timesteps)]
-            write_df_pkl(elapsed_time_df, self.elapsed_time_table_path)
+            write_df(elapsed_time_df, self.elapsed_time_table_path, df_type)
         return tuple([self.id, elapsed_time_df])  # elapsed times are reported in number of timesteps
 
     # noinspection PyUnusedLocal
