@@ -113,9 +113,15 @@ class GpxRoute:
     def elapsed_times(self, df=None):
         if self.__elapsed_times is None and df is not None: self.__elapsed_times = df
         return self.__elapsed_times
+    def elapsed_time_lookup(self, key, array=None):
+        if key not in self.transit_time_dict and array is not None:
+            self.transit_time_dict[key] = array
+        else:
+            return self.transit_time_dict[key]
+
     def __init__(self, filepath, env):
         self.transit_time_dict = {}
-        self.elapsed_time_reduce_dict = {}
+        self.elapsed_time_dict = {}
         self.__route_nodes = self.__route_edges = self.__elapsed_times = None
         self.__direction = self.__length = 0
 

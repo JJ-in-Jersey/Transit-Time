@@ -15,7 +15,7 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 from project_globals import TIMESTEP, dash_to_zero, output_file_exists
-from project_globals import read_df, write_df
+from project_globals import read_df, write_df, min_sec
 
 #  VELOCITIES ARE DOWNLOADED, CALCULATED AND SAVE AS NAUTICAL MILES PER HOUR!
 
@@ -59,10 +59,10 @@ class VelocityJob:
         dropdown.select_by_index(options.index(year))
 
     def execute(self):
+        init_time = perf_counter()
         if output_file_exists(self.velocity_table_path):
-            self.init_time = perf_counter()
             print(f'+     {self.intro} {self.code} {self.name} reading data file', flush=True)
-            return tuple([self.id, read_df(self.velocity_table_path)])
+            return tuple([self.id, read_df(self.velocity_table_path), init_time])
         else:
             self.init_time = perf_counter()
             print(f'+     {self.intro} {self.code} {self.name}', flush=True)
@@ -90,17 +90,16 @@ class VelocityJob:
             output_df['date'] = pd.to_timedelta(output_df['time_index'], unit='seconds') + self.date.index_basis()
             output_df['velocity'] = output_df['time_index'].apply(cs)
             write_df(output_df, self.velocity_table_path, df_type)  # velocities are in knots
-            return tuple([self.id, output_df])
+            return tuple([self.id, output_df, init_time])
 
     # noinspection PyUnusedLocal
     def execute_callback(self, result):
-        print(f'-     {self.intro} {self.code} {round((perf_counter() - self.init_time)/60, 2)} minutes', flush=True)
+        print(f'-     {self.intro} {self.code} {min_sec(perf_counter() - result[2])} minutes', flush=True)
     def error_callback(self, result):
         print(f'!     {self.intro} {self.code} process has raised an error: {result}', flush=True)
 
     def __init__(self, route_node, chart_yr, intro=''):
         self.wdw = self.driver = None
-        self.init_time = 0
         self.date = chart_yr
         self.intro = intro
         self.code = route_node.code()

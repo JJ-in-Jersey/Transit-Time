@@ -15,6 +15,7 @@ WINDOW_MARGIN = 10  # minutes
 TIMESTEP_MARGIN = WINDOW_MARGIN * 60 / TIMESTEP
 boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]  # knots
 # boat_speeds = [v for v in range(-3, -1, 2)]+[v for v in range(3, 4, 2)]  # knots
+shared_columns = ['departure_index', 'departure_time']
 
 def sign(value): return value/abs(value)
 def seconds(start, end): return int((end-start).total_seconds())
@@ -41,8 +42,13 @@ def write_df(df, path, extension):
     elif extension == 'hdf': write_df_hdf(df, path)
     else: print('Unrecognizable extension')
 def output_file_exists(path): return True if path.with_suffix('.csv').exists() or path.with_suffix('.pkl').exists() or path.with_suffix('.hdf').exists() else False
-def hours_min(timedelta): return str(int(timedelta.seconds / 3600)) + ':' + str(int(timedelta.seconds % 3600 / 60))
-
+#def hours_min(timedelta): return str(int(timedelta.seconds / 3600)) + ':' + str(int(timedelta.seconds % 3600 / 60))
+def hours_min(timedelta):
+    print(type(timedelta))
+    return "%d:%02d" % (timedelta.seconds // 3600, timedelta.seconds % 3600)
+def min_sec(secs):
+    print(type(secs))
+    return "%d:%02d" % (secs // 60, secs % 60)
 class Environment:
 
     def create_node_folder(self, name):

@@ -3,7 +3,7 @@ from scipy.signal import savgol_filter
 from time import perf_counter
 
 from project_globals import TIMESTEP, TIMESTEP_MARGIN, seconds, rounded_to_minutes, output_file_exists, hours_min
-from project_globals import write_df, read_df, write_df
+from project_globals import read_df, write_df, min_sec, shared_columns
 
 df_type = 'csv'
 
@@ -19,42 +19,40 @@ def total_transit_time(init_row, d_frame, cols):
 class TransitTimeMinimaJob:
 
     def __init__(self, route, speed, env, chart_yr, intro=''):
-        self.init_time = None
         self.speed = speed
         self.date = chart_yr
         self.intro = intro
+        self.start = chart_yr.first_day_minus_one()
+        self.end = chart_yr.last_day_plus_one()
+        self.elapsed_time_df = route.elapsed_times()
+        self.speed_columns = [segment.name() + ' ' + str(speed) for segment in route.route_segments()]
+        self.no_timesteps = int(seconds(self.start, self.end) / TIMESTEP)
         self.plotting_table = env.transit_time_folder().joinpath('tt_' + str(speed) + '_plotting_table')
         self.elapsed_time_table = env.transit_time_folder().joinpath('et_' + str(speed))
         self.output_file = env.transit_time_folder().joinpath('transit_time_' + str(speed))
-        self.start = chart_yr.first_day_minus_one()
-        self.end = chart_yr.last_day_plus_one()
-        self.no_timesteps = int(seconds(self.start, self.end) / TIMESTEP)
-        self.speed_columns = [segment.name() + ' ' + str(speed) for segment in route.route_segments()]
-        self.elapsed_time_df = route.elapsed_times()
-        
+
     # def __del__(self):
     #     print(f'Deleting Transit Time Job', flush=True)
 
     def execute(self):
+        init_time = perf_counter()
         if output_file_exists(self.output_file):
-            self.init_time = perf_counter()
             print(f'+     {self.intro} Transit time ({self.speed}) reading data file', flush=True)
             tt_minima_df = read_df(self.output_file)
-            return tuple([self.speed, tt_minima_df])
+            return tuple([self.speed, tt_minima_df, init_time])
         else:
-            self.init_time = perf_counter()
-            print(f'+     {self.intro} Transit time ({self.speed}) transit time', flush=True)
+            print(f'+     {self.intro} Transit time ({self.speed})', flush=True)
             transit_timesteps = [total_transit_time(row, self.elapsed_time_df, self.speed_columns) for row in range(0, self.no_timesteps)]  # in timesteps
             minima_table_df = self.minima_table(transit_timesteps)
             write_df(minima_table_df, self.plotting_table, df_type)
             minima_time_table_df = self.start_min_end(minima_table_df)
             write_df(minima_time_table_df, self.output_file, df_type)
-            return tuple([self.speed, minima_time_table_df])
+            return tuple([self.speed, minima_time_table_df, init_time])
 
     def execute_callback(self, result):
-        print(f'-     {self.intro} {self.speed} {round((perf_counter() - self.init_time)/60, 2)} {self.no_timesteps}', flush=True)
+        print(f'-     {self.intro} Transit time ({self.speed}) {min_sec(perf_counter() - result[2])} minutes', flush=True)
     def error_callback(self, result):
-        print(f'!     {self.intro} {self.speed} process has raised an error: {result}', flush=True)
+        print(f'!     {self.intro} Transit time ({self.speed}) process has raised an error: {result}', flush=True)
 
     def start_min_end(self, minima_table_df):
         minima_table_df = minima_table_df.dropna()
@@ -71,10 +69,10 @@ class TransitTimeMinimaJob:
         return minima_table_df
 
     def minima_table(self, transit_array):
-        tt_df = pd.DataFrame(columns=['departure_index', 'departure_time', 'tts', 'midline', 'min_segments', 'start_index', 'min_index', 'end_index', 'plot'])
-        tt_df['departure_index'] = self.elapsed_time_df[['departure_index']]
-        tt_df['departure_time'] = pd.to_datetime(self.elapsed_time_df['departure_time'])
-        tt_df = tt_df[tt_df['departure_time'].lt(self.end)]  # trim to lenth of transit array
+        tt_df = pd.DataFrame(columns=shared_columns+['tts', 'midline', 'min_segments', 'start_index', 'min_index', 'end_index', 'plot'])
+        tt_df[shared_columns[0]] = self.elapsed_time_df[[shared_columns[0]]]
+        tt_df[shared_columns[1]] = pd.to_datetime(self.elapsed_time_df[shared_columns[1]])
+        tt_df = tt_df[tt_df[shared_columns[1]].lt(self.end)]  # trim to lenth of transit array
         tt_df['tts'] = pd.Series(transit_array)
         tt_df['midline'] = savgol_filter(transit_array, 50000, 1)
         tt_df['min_segments'] = tt_df['tts'].lt(tt_df['midline'])

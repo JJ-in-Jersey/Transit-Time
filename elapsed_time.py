@@ -2,7 +2,7 @@ import pandas as pd
 from time import perf_counter
 
 from project_globals import TIMESTEP, boat_speeds, seconds, sign, output_file_exists
-from project_globals import read_df, write_df
+from project_globals import read_df, write_df, min_sec
 
 #  Elapsed times are reported in number of timesteps
 
@@ -39,16 +39,14 @@ class ElapsedTimeJob:
         self.start = chart_yr.first_day_minus_one()
         self.end = chart_yr.last_day_plus_two()
         self.no_timesteps = int(seconds(self.start, self.end) / TIMESTEP)
-        self.init_time = 0
 
     def execute(self):
+        init_time = perf_counter()
         if output_file_exists(self.elapsed_time_table_path):
-            self.init_time = perf_counter()
-            print(f'+     {self.intro} {self.edge_name} {round(self.length, 2)} nm reading data file', flush=True)
-            return tuple([self.id, read_df(self.elapsed_time_table_path)])
+            print(f'+     {self.intro} {self.edge_name} ({round(self.length, 2)} nm) reading data file', flush=True)
+            return tuple([self.id, read_df(self.elapsed_time_table_path), init_time])
         else:
-            self.init_time = perf_counter()
-            print(f'+     {self.intro} {self.edge_name} {round(self.length, 2)} nm', flush=True)
+            print(f'+     {self.intro} {self.edge_name} ({round(self.length, 2)} nm)', flush=True)
             initial_velocities = self.start_velocity_table['velocity']  # in knots
             final_velocities = self.end_velocity_table['velocity']  # in knots
             elapsed_time_df = self.start_velocity_table.drop(['velocity'], axis=1)
@@ -67,10 +65,10 @@ class ElapsedTimeJob:
                 write_df(et_df, self.distance_table_path(s), df_type)
                 elapsed_time_df[col_name] = [elapsed_time(i, et_df['distance'].to_numpy(), sign(s)*self.length) for i in range(0, self.no_timesteps)]
             write_df(elapsed_time_df, self.elapsed_time_table_path, df_type)
-        return tuple([self.id, elapsed_time_df])  # elapsed times are reported in number of timesteps
+        return tuple([self.id, elapsed_time_df, init_time])  # elapsed times are reported in number of timesteps
 
     # noinspection PyUnusedLocal
     def execute_callback(self, result):
-        print(f'-     {self.intro} {self.edge_name} {round((perf_counter() - self.init_time)/60, 2)} minutes', flush=True)
+        print(f'-     {self.intro} {self.edge_name} ({round(self.length, 2)} nm) {min_sec(perf_counter() - result[2])} minutes', flush=True)
     def error_callback(self, result):
         print(f'!     {self.intro} {self.edge_name} process has raised an error: {result}', flush=True)
