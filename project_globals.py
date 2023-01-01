@@ -31,6 +31,10 @@ def read_df_pkl(path): return pd.read_pickle(path.with_suffix('.pkl'))
 def read_df(path):
     if path.with_suffix('.csv').exists(): return read_df_csv(path)
     elif path.with_suffix('.pkl').exists(): return read_df_pkl(path)
+def write_df(df, path, extension):
+    if extension == 'csv': write_df_csv(df, path)
+    elif extension == 'pkl': write_df_pkl(df, path)
+    else: print('Unrecognizable extension')
 def output_file_exists(path): return True if path.with_suffix('.csv').exists() or path.with_suffix('.pkl').exists() else False
 def hours_min(timedelta): return str(int(timedelta.seconds / 3600)) + ':' + str(int(timedelta.seconds % 3600 / 60))
 
