@@ -4,10 +4,10 @@ import shutil
 import pandas as pd
 import dateparser as dp
 from datetime import timedelta as td
-from warnings import filterwarnings as fw
+import warnings
 from pickle import HIGHEST_PROTOCOL
 
-fw("ignore", message="The localize method is no longer necessary, as this time zone supports the fold attribute",)
+warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 TIMESTEP = 15  # seconds
 TIME_RESOLUTION = 15  # rounded to minutes
@@ -28,14 +28,19 @@ def write_df_csv(df, path): df.to_csv(path.with_suffix('.csv'), index=False)
 def read_df_csv(path): return pd.read_csv(path.with_suffix('.csv'), header='infer')
 def write_df_pkl(df, path): df.to_pickle(path.with_suffix('.pkl'), protocol=HIGHEST_PROTOCOL)
 def read_df_pkl(path): return pd.read_pickle(path.with_suffix('.pkl'))
+def write_df_hdf(df, path): df.to_hdf(path.with_suffix('.hdf'), key='gonzo', mode='w', index=False)
+def read_df_hdf(path): return pd.read_hdf(path.with_suffix('.hdf'))
 def read_df(path):
     if path.with_suffix('.csv').exists(): return read_df_csv(path)
     elif path.with_suffix('.pkl').exists(): return read_df_pkl(path)
+    elif path.with_suffix('.hdf').exists(): return read_df_hdf(path)
+    else: print('Unrecognizable extension')
 def write_df(df, path, extension):
     if extension == 'csv': write_df_csv(df, path)
     elif extension == 'pkl': write_df_pkl(df, path)
+    elif extension == 'hdf': write_df_hdf(df, path)
     else: print('Unrecognizable extension')
-def output_file_exists(path): return True if path.with_suffix('.csv').exists() or path.with_suffix('.pkl').exists() else False
+def output_file_exists(path): return True if path.with_suffix('.csv').exists() or path.with_suffix('.pkl').exists() or path.with_suffix('.hdf').exists() else False
 def hours_min(timedelta): return str(int(timedelta.seconds / 3600)) + ':' + str(int(timedelta.seconds % 3600 / 60))
 
 class Environment:

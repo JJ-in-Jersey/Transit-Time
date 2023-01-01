@@ -6,7 +6,7 @@ from project_globals import read_df, write_df
 
 #  Elapsed times are reported in number of timesteps
 
-df_type = 'csv'
+df_type = 'hdf'
 
 def distance(water_vf, water_vi, boat_speed, time): return ((water_vf + water_vi) / 2 + boat_speed)*time  # distance is nm
 
@@ -39,7 +39,7 @@ class ElapsedTimeJob:
         self.start = chart_yr.first_day_minus_one()
         self.end = chart_yr.last_day_plus_two()
         self.no_timesteps = int(seconds(self.start, self.end) / TIMESTEP)
-        self.init_time = None
+        self.init_time = 0
 
     def execute(self):
         if output_file_exists(self.elapsed_time_table_path):

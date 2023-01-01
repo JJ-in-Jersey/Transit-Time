@@ -21,7 +21,7 @@ from project_globals import read_df, write_df
 
 logging.getLogger('WDM').setLevel(logging.NOTSET)
 
-df_type = 'pkl'
+df_type = 'hdf'
 
 def newest_file(folder):
     types = ['*.txt', '*.csv']
@@ -99,7 +99,8 @@ class VelocityJob:
         print(f'!     {self.intro} {self.code} process has raised an error: {result}', flush=True)
 
     def __init__(self, route_node, chart_yr, intro=''):
-        self.wdw = self.driver = self.init_time = None
+        self.wdw = self.driver = None
+        self.init_time = 0
         self.date = chart_yr
         self.intro = intro
         self.code = route_node.code()

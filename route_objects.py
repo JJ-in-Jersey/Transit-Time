@@ -1,9 +1,6 @@
-from warnings import filterwarnings as fw
 from bs4 import BeautifulSoup as Soup
 from haversine import haversine as hvs, Unit
 from project_globals import sign
-
-fw("ignore", message="The localize method is no longer necessary, as this time zone supports the fold attribute",)
 
 class Node:
 

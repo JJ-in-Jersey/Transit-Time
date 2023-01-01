@@ -1,12 +1,9 @@
 import pandas as pd
 from scipy.signal import savgol_filter
 from time import perf_counter
-from warnings import filterwarnings as fw
 
 from project_globals import TIMESTEP, TIMESTEP_MARGIN, seconds, rounded_to_minutes, output_file_exists, hours_min
 from project_globals import write_df, read_df, write_df
-
-fw("ignore", message="FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.",)
 
 df_type = 'csv'
 
