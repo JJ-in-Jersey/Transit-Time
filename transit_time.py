@@ -2,8 +2,8 @@ import pandas as pd
 from scipy.signal import savgol_filter
 from time import perf_counter
 
-from project_globals import TIMESTEP, TIMESTEP_MARGIN, seconds, rounded_to_minutes, output_file_exists, hours_min
-from project_globals import read_df, write_df, min_sec, shared_columns, read_list, write_list, read_df_hdf, write_df_hdf
+from project_globals import TIMESTEP, TIMESTEP_MARGIN, seconds, rounded_to_minutes, output_file_exists, hours_min, min_sec
+from project_globals import read_df, read_df_hdf, write_df, write_df_csv, write_df_hdf, shared_columns, read_list, write_list
 
 df_type = 'csv'
 
@@ -31,16 +31,16 @@ class TransitTimeMinimaJob:
         self.transit_timesteps = env.transit_time_folder().joinpath('tt_' + str(speed) + '_timesteps')
         self.savgol = env.transit_time_folder().joinpath('tt_' + str(speed) + '_savgol')
         self.elapsed_time_table = env.transit_time_folder().joinpath('et_' + str(speed))
-        self.output_file = env.transit_time_folder().joinpath('transit_time_' + str(speed))
+        self.transit_time = env.transit_time_folder().joinpath('transit_time_' + str(speed))
 
     # def __del__(self):
     #     print(f'Deleting Transit Time Job', flush=True)
 
     def execute(self):
         init_time = perf_counter()
-        if output_file_exists(self.output_file):
+        if output_file_exists(self.transit_time):
             print(f'+     {self.intro} Transit time ({self.speed}) reading data file', flush=True)
-            tt_minima_df = read_df(self.output_file)
+            tt_minima_df = read_df(self.transit_time)
             return tuple([self.speed, tt_minima_df, init_time])
         else:
             print(f'+     {self.intro} Transit time ({self.speed})', flush=True)
@@ -49,9 +49,9 @@ class TransitTimeMinimaJob:
                 transit_timesteps = [total_transit_time(row, self.elapsed_time_df, self.speed_columns) for row in range(0, self.no_timesteps)]  # in timesteps
                 write_list(transit_timesteps, self.transit_timesteps)
             minima_table_df = self.minima_table(transit_timesteps)
-            write_df(minima_table_df, self.plotting_table, df_type)
+            write_df_csv(minima_table_df, self.plotting_table)
             minima_time_table_df = self.start_min_end(minima_table_df)
-            write_df(minima_time_table_df, self.output_file, df_type)
+            write_df_csv(minima_time_table_df, self.plotting_table)
             return tuple([self.speed, minima_time_table_df, init_time])
 
     def execute_callback(self, result):
@@ -116,4 +116,5 @@ class TransitTimeMinimaJob:
                     tt_df.at[tt_df_end_row, 'plot'] = 'E'
             clump = []
         tt_df.drop(columns=['min_segments'], inplace=True)
+        write_df(tt_df, self.transit_time, df_type)
         return tt_df
