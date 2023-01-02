@@ -54,17 +54,16 @@ if __name__ == '__main__':
     # ej.execute()
 
     # combine elapsed times by speed
-    print(f'\nMerging elapsed times into one file')
+    print(f'\nMerging elapsed times into one dataframe', flush=True)
     route.elapsed_times(elapsed_time_reduce(route, mp.environs))
-
 
     # calculate the number of timesteps from first node to last node
     print(f'\nCalculating transit times (1st day-1 to last day+1)')
-    # for speed in boat_speeds: mp.job_queue.put(TransitTimeMinimaJob(route, speed, mp.environs, mp.chart_yr, mp.pool_notice))
-    # mp.job_queue.join()
-    # for speed in boat_speeds: route.transit_time_lookup(speed, mp.result_lookup[speed])
-    tj = TransitTimeMinimaJob(route, -3, mp.environs, mp.chart_yr, mp.pool_notice)
-    tj.execute()
+    for speed in boat_speeds: mp.job_queue.put(TransitTimeMinimaJob(route, speed, mp.environs, mp.chart_yr, mp.pool_notice))
+    mp.job_queue.join()
+    for speed in boat_speeds: route.transit_time_lookup(speed, mp.result_lookup[speed])
+    # tj = TransitTimeMinimaJob(route, -3, mp.environs, mp.chart_yr, mp.pool_notice)
+    # tj.execute()
 
     mp.som.shutdown()
     if jm.is_alive(): jm.terminate()

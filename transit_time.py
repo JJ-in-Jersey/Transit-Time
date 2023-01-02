@@ -3,7 +3,7 @@ from scipy.signal import savgol_filter
 from time import perf_counter
 
 from project_globals import TIMESTEP, TIMESTEP_MARGIN, seconds, rounded_to_minutes, output_file_exists, hours_min
-from project_globals import read_df, write_df, min_sec, shared_columns
+from project_globals import read_df, write_df, min_sec, shared_columns, read_list, write_list, read_df_hdf, write_df_hdf
 
 df_type = 'csv'
 
@@ -28,6 +28,8 @@ class TransitTimeMinimaJob:
         self.speed_columns = [segment.name() + ' ' + str(speed) for segment in route.route_segments()]
         self.no_timesteps = int(seconds(self.start, self.end) / TIMESTEP)
         self.plotting_table = env.transit_time_folder().joinpath('tt_' + str(speed) + '_plotting_table')
+        self.transit_timesteps = env.transit_time_folder().joinpath('tt_' + str(speed) + '_timesteps')
+        self.savgol = env.transit_time_folder().joinpath('tt_' + str(speed) + '_savgol')
         self.elapsed_time_table = env.transit_time_folder().joinpath('et_' + str(speed))
         self.output_file = env.transit_time_folder().joinpath('transit_time_' + str(speed))
 
@@ -42,7 +44,10 @@ class TransitTimeMinimaJob:
             return tuple([self.speed, tt_minima_df, init_time])
         else:
             print(f'+     {self.intro} Transit time ({self.speed})', flush=True)
-            transit_timesteps = [total_transit_time(row, self.elapsed_time_df, self.speed_columns) for row in range(0, self.no_timesteps)]  # in timesteps
+            if output_file_exists(self.transit_timesteps): transit_timesteps = read_list(self.transit_timesteps)
+            else:
+                transit_timesteps = [total_transit_time(row, self.elapsed_time_df, self.speed_columns) for row in range(0, self.no_timesteps)]  # in timesteps
+                write_list(transit_timesteps, self.transit_timesteps)
             minima_table_df = self.minima_table(transit_timesteps)
             write_df(minima_table_df, self.plotting_table, df_type)
             minima_time_table_df = self.start_min_end(minima_table_df)
@@ -74,7 +79,10 @@ class TransitTimeMinimaJob:
         tt_df[shared_columns[1]] = pd.to_datetime(self.elapsed_time_df[shared_columns[1]])
         tt_df = tt_df[tt_df[shared_columns[1]].lt(self.end)]  # trim to lenth of transit array
         tt_df['tts'] = pd.Series(transit_array)
-        tt_df['midline'] = savgol_filter(transit_array, 50000, 1)
+        if output_file_exists(self.savgol): tt_df['midline'] = read_df_hdf(self.savgol)
+        else:
+            tt_df['midline'] = savgol_filter(transit_array, 50000, 1)
+            write_df_hdf(tt_df['midline'], self.savgol)
         tt_df['min_segments'] = tt_df['tts'].lt(tt_df['midline'])
 
         clump = []
@@ -82,16 +90,17 @@ class TransitTimeMinimaJob:
         for row, val in enumerate(min_segs):  # rows in tt_df, not the departure index
             if val:
                 clump.append(row)  # list of the rows within the clump of True min_segs
-            elif len(clump) > 1:  # ignore zero length clumps
+            elif len(clump) > 2*TIMESTEP_MARGIN:  # ignore clumps caused by small flucuations in midline, and too small to fit start and end
                 segment_df = tt_df[clump[0]:clump[-1]]  # subset of tt_df from first True to last True in clump
                 seg_min_df = segment_df[segment_df['tts'] == segment_df.min()['tts']]  # segment rows equal to the minimum
                 median_index = seg_min_df['departure_index'].median()  # median departure index of segment minima
                 abs_diff = segment_df['departure_index'].sub(median_index).abs()  # abs of difference between actual index and median index
-                min_index = seg_min_df.at[abs_diff[abs_diff == abs_diff.min()].index[0], 'departure_index']  # actual index closest to median index
+                min_index = segment_df.at[abs_diff[abs_diff == abs_diff.min()].index[0], 'departure_index']  # actual index closest to median index, may not be minimum tts
                 offset = segment_df['tts'].min() + TIMESTEP_MARGIN  # minimum tss + margin for window
                 if min_index != clump[0] and min_index != clump[-1]:  # ignore minima at edges
                     start_segment = segment_df[segment_df['departure_index'].le(min_index)]  # portion of segment from start to minimum
                     end_segment = segment_df[segment_df['departure_index'].ge(min_index)]  # portion of segment from minimum to end
+                    print(f'index = {min_index}  len clump: {len(clump)}  len segment: {len(segment_df)}  len start: {len(start_segment)}  len end: {len(end_segment)}')
                     start_row = start_segment[start_segment['tts'].le(offset)].index[0]
                     end_row = end_segment[end_segment['tts'].ge(offset)].index[0]
                     start_index = start_segment.at[start_row, 'departure_index']
@@ -105,6 +114,6 @@ class TransitTimeMinimaJob:
                     tt_df.at[tt_df_start_row, 'plot'] = 'S'
                     tt_df.at[tt_df_min_row, 'plot'] = 'M'
                     tt_df.at[tt_df_end_row, 'plot'] = 'E'
-                clump = []
+            clump = []
         tt_df.drop(columns=['min_segments'], inplace=True)
         return tt_df
