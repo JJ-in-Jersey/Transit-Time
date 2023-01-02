@@ -54,9 +54,8 @@ if __name__ == '__main__':
     # ej.execute()
 
     # combine elapsed times by speed
-    print(f'\nMerging elapsed times into one file')
+    print(f'\nMerging elapsed times into one dataframe', flush=True)
     route.elapsed_times(elapsed_time_reduce(route, mp.environs))
-
 
     # calculate the number of timesteps from first node to last node
     print(f'\nCalculating transit times (1st day-1 to last day+1)')

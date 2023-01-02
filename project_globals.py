@@ -2,6 +2,7 @@ from pathlib import Path
 from os import environ, makedirs, umask
 import shutil
 import pandas as pd
+import numpy as np
 import dateparser as dp
 from datetime import timedelta as td
 import warnings
@@ -26,10 +27,10 @@ def rounded_to_minutes(time):
     rounded_seconds = round(total_minutes/TIME_RESOLUTION)*TIME_RESOLUTION*60
     return basis + td(seconds=rounded_seconds)
 def write_df_csv(df, path): df.to_csv(path.with_suffix('.csv'), index=False)
-def read_df_csv(path): return pd.read_csv(path.with_suffix('.csv'), header='infer')
 def write_df_pkl(df, path): df.to_pickle(path.with_suffix('.pkl'), protocol=HIGHEST_PROTOCOL)
-def read_df_pkl(path): return pd.read_pickle(path.with_suffix('.pkl'))
 def write_df_hdf(df, path): df.to_hdf(path.with_suffix('.hdf'), key='gonzo', mode='w', index=False)
+def read_df_csv(path): return pd.read_csv(path.with_suffix('.csv'), header='infer')
+def read_df_pkl(path): return pd.read_pickle(path.with_suffix('.pkl'))
 def read_df_hdf(path): return pd.read_hdf(path.with_suffix('.hdf'))
 def read_df(path):
     if path.with_suffix('.csv').exists(): return read_df_csv(path)
@@ -41,14 +42,23 @@ def write_df(df, path, extension):
     elif extension == 'pkl': write_df_pkl(df, path)
     elif extension == 'hdf': write_df_hdf(df, path)
     else: print('Unrecognizable extension')
-def output_file_exists(path): return True if path.with_suffix('.csv').exists() or path.with_suffix('.pkl').exists() or path.with_suffix('.hdf').exists() else False
-#def hours_min(timedelta): return str(int(timedelta.seconds / 3600)) + ':' + str(int(timedelta.seconds % 3600 / 60))
-def hours_min(timedelta):
-    print(type(timedelta))
-    return "%d:%02d" % (timedelta.seconds // 3600, timedelta.seconds % 3600)
-def min_sec(secs):
-    print(type(secs))
-    return "%d:%02d" % (secs // 60, secs % 60)
+def read_arr(path):
+    if path.with_suffix('.npy').exists(): return np.load(path.with_suffix('.npy'))
+def write_arr(arr, path): np.save(path, arr, allow_pickle=False)
+def read_list(path):
+    if path.with_suffix('.npy').exists(): return list(np.load(path.with_suffix('.npy')))
+def write_list(lst, path): write_arr(lst, path)
+def output_file_exists(path): return True if path.with_suffix('.csv').exists() or path.with_suffix('.pkl').exists() or path.with_suffix('.hdf').exists() or path.with_suffix('.npy').exists() else False
+def hours_min(time):
+    if isinstance(time, td): return "%d:%02d" % (time.seconds // 3600, time.seconds % 3600)
+    elif isinstance(time, float): return "%d:%02d" % (time // 3600, time % 3600)
+    else: print('Unrecognizable time unit')
+    return "%d:%02d" % (time.seconds // 3600, time.seconds % 3600)
+def min_sec(time):
+    if isinstance(time, td): return "%d:%02d" % (time.seconds // 60, time.seconds % 60)
+    elif isinstance(time, float): return "%d:%02d" % (time // 60, time % 60)
+    else: print('Unrecognizable time unit')
+
 class Environment:
 
     def create_node_folder(self, name):
@@ -91,9 +101,6 @@ class Environment:
         self.__transit_time_folder = None
         self.__user_profile = environ['USERPROFILE']
         umask(0)
-
-    # def __del__(self):
-    #     print(f'Deleting Environment', flush=True)
 
 class ChartYear:
 

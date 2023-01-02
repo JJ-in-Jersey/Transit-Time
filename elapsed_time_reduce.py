@@ -4,7 +4,7 @@ from time import perf_counter
 
 from project_globals import read_df, write_df, min_sec, output_file_exists, shared_columns
 
-df_type = 'csv'
+df_type = 'hdf'
 
 def elapsed_time_reduce(route, env):
     init_time = perf_counter()
