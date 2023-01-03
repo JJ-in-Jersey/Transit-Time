@@ -5,7 +5,6 @@ import pandas as pd
 import numpy as np
 import dateparser as dp
 from datetime import timedelta as td
-from math import floor
 import warnings
 from pickle import HIGHEST_PROTOCOL
 
@@ -38,11 +37,9 @@ def write_df_csv(df, path):
     df.to_csv(path.with_suffix('.csv'), index=False)
     if len(df) > excel_size:
         num_of_spreadsheets = len(df)/excel_size
-        whole_spreadsheets = floor(num_of_spreadsheets)
-        for i in range(0,whole_spreadsheets):
-            df.loc[i*excel_size : i*excel_size+excel_size-1].to_csv(path.parent.joinpath(path.name+'_excel_'+str(i)).with_suffix('.csv'))
-        if num_of_spreadsheets > whole_spreadsheets:
-            df.loc[whole_spreadsheets*excel_size : -1].to_csv(path.parent.joinpath(path.name+'_excel_'+str(whole_spreadsheets)).with_suffix('.csv'))
+        whole_spreadsheets = len(df)//excel_size
+        for i in range(0,whole_spreadsheets): df.loc[i*excel_size:i*excel_size+excel_size-1].to_csv(path.parent.joinpath(path.name+'_excel_'+str(i)).with_suffix('.csv'))
+        if num_of_spreadsheets > whole_spreadsheets: df.loc[whole_spreadsheets*excel_size:].to_csv(path.parent.joinpath(path.name+'_excel_'+str(whole_spreadsheets)).with_suffix('.csv'))
 def write_df_pkl(df, path): df.to_pickle(path.with_suffix('.pkl'), protocol=HIGHEST_PROTOCOL)
 def write_df_hdf(df, path): df.to_hdf(path.with_suffix('.hdf'), key='gonzo', mode='w', index=False)
 def read_df_csv(path): return pd.read_csv(path.with_suffix('.csv'), header='infer')
@@ -66,8 +63,8 @@ def read_list(path):
 def write_list(lst, path): write_arr(lst, path)
 def output_file_exists(path): return True if path.with_suffix('.csv').exists() or path.with_suffix('.pkl').exists() or path.with_suffix('.hdf').exists() or path.with_suffix('.npy').exists() else False
 def hours_min(time):
-    if isinstance(time, td): return "%d:%02d" % (time.seconds // 3600, time.seconds % 3600)
-    elif isinstance(time, float): return "%d:%02d" % (time // 3600, time % 3600)
+    if isinstance(time, td): return "%d:%02d" % (time.seconds // 3600, time.seconds % 3600 // 60)
+    elif isinstance(time, float): return "%d:%02d" % (time // 3600, time % 3600 // 60)
     else: print('Unrecognizable time unit')
 def min_sec(time):
     if isinstance(time, td): return "%d:%02d" % (time.seconds // 60, time.seconds % 60)

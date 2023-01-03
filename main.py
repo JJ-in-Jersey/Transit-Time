@@ -71,12 +71,5 @@ if __name__ == '__main__':
     # for speed in boat_speeds: route.transit_time_lookup(speed, mp.result_lookup[speed])
     tj = TransitTimeMinimaJob(route, -9, mp.environs, mp.chart_yr, mp.pool_notice)
     tj.execute()
-    # jm = mp.WaitForProcess(target=mp.JobManager, args=(mp.job_queue, mp.result_lookup))
-    # jm.start()
-    # mp.job_queue.put(TransitTimeMinimaJob(route, -9, mp.environs, mp.chart_yr, mp.pool_notice))
-    # mp.job_queue.join()
-    # semaphore_off(mp.job_manager_semaphore)
-    # route.transit_time_lookup(-9, mp.result_lookup[-9])
-
 
     mp.som.shutdown()
