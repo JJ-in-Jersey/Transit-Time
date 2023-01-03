@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import dateparser as dp
 from datetime import timedelta as td
+from math import floor
 import warnings
 from pickle import HIGHEST_PROTOCOL
 
@@ -13,7 +14,8 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 TIMESTEP = 15  # seconds
 TIME_RESOLUTION = 15  # rounded to minutes
 WINDOW_MARGIN = 10  # minutes
-TIMESTEP_MARGIN = WINDOW_MARGIN * 60 / TIMESTEP
+TIMESTEP_MARGIN = WINDOW_MARGIN * 60 / TIMESTEP  # number of timesteps to add to minimum to find edges of time windows
+FIVE_HOURS_OF_TIMESTEPS = 5*3600 / TIMESTEP  # only consider windows of transit times less than the midline that are at least 5 ours long (6 hour tide change)
 
 boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]  # knots
 # boat_speeds = [v for v in range(-3, -1, 2)]+[v for v in range(3, 4, 2)]  # knots
@@ -31,7 +33,16 @@ def rounded_to_minutes(time):
     total_minutes = int((time - basis).total_seconds())/60
     rounded_seconds = round(total_minutes/TIME_RESOLUTION)*TIME_RESOLUTION*60
     return basis + td(seconds=rounded_seconds)
-def write_df_csv(df, path): df.to_csv(path.with_suffix('.csv'), index=False)
+def write_df_csv(df, path):
+    excel_size = 1000000
+    df.to_csv(path.with_suffix('.csv'), index=False)
+    if len(df) > excel_size:
+        num_of_spreadsheets = len(df)/excel_size
+        whole_spreadsheets = floor(num_of_spreadsheets)
+        for i in range(0,whole_spreadsheets):
+            df.loc[i*excel_size : i*excel_size+excel_size-1].to_csv(path.parent.joinpath(path.name+'_excel_'+str(i)).with_suffix('.csv'))
+        if num_of_spreadsheets > whole_spreadsheets:
+            df.loc[whole_spreadsheets*excel_size : -1].to_csv(path.parent.joinpath(path.name+'_excel_'+str(whole_spreadsheets)).with_suffix('.csv'))
 def write_df_pkl(df, path): df.to_pickle(path.with_suffix('.pkl'), protocol=HIGHEST_PROTOCOL)
 def write_df_hdf(df, path): df.to_hdf(path.with_suffix('.hdf'), key='gonzo', mode='w', index=False)
 def read_df_csv(path): return pd.read_csv(path.with_suffix('.csv'), header='infer')

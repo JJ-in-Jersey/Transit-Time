@@ -2,7 +2,7 @@ import pandas as pd
 from scipy.signal import savgol_filter
 from time import perf_counter
 
-from project_globals import TIMESTEP, TIMESTEP_MARGIN, seconds, rounded_to_minutes, output_file_exists, hours_min, min_sec
+from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS, seconds, rounded_to_minutes, output_file_exists, hours_min, min_sec
 from project_globals import read_df, read_df_hdf, write_df, write_df_csv, write_df_hdf, shared_columns, read_list, write_list
 
 df_type = 'csv'
@@ -44,7 +44,8 @@ class TransitTimeMinimaJob:
             return tuple([self.speed, tt_minima_df, init_time])
         else:
             print(f'+     {self.intro} Transit time ({self.speed})', flush=True)
-            if output_file_exists(self.transit_timesteps): transit_timesteps = read_list(self.transit_timesteps)
+            if output_file_exists(self.transit_timesteps):
+                transit_timesteps = read_list(self.transit_timesteps)
             else:
                 transit_timesteps = [total_transit_time(row, self.elapsed_time_df, self.speed_columns) for row in range(0, self.no_timesteps)]  # in timesteps
                 write_list(transit_timesteps, self.transit_timesteps)
@@ -60,6 +61,7 @@ class TransitTimeMinimaJob:
         print(f'!     {self.intro} Transit time ({self.speed}) process has raised an error: {result}', flush=True)
 
     def start_min_end(self, minima_table_df):
+        print('start_min_end')
         minima_table_df = minima_table_df.dropna()
         minima_table_df.reset_index(inplace=True, drop=True)
         minima_table_df = minima_table_df.assign(start_time = pd.to_timedelta(minima_table_df['start_index'], unit='seconds') + self.date.index_basis(),
@@ -85,15 +87,13 @@ class TransitTimeMinimaJob:
             tt_df['midline'] = savgol_filter(transit_array, 50000, 1)
             write_df_hdf(tt_df['midline'], self.savgol)
         tt_df['min_segments'] = tt_df['tts'].lt(tt_df['midline'])
-
         # self.seg_check(tt_df['min_segments'])
-
         clump = []
         min_segs = tt_df['min_segments'].to_list()  # list of True or False the same length as tt_df
         for row, val in enumerate(min_segs):  # rows in tt_df, not the departure index
             if val:
                 clump.append(row)  # list of the rows within the clump of True min_segs
-            elif len(clump) > 5:  # ignore clumps caused by small flucuations in midline
+            elif len(clump) > FIVE_HOURS_OF_TIMESTEPS:  # ignore clumps caused by small flucuations in midline or end conditions ( ~ 5 hour tide window )
                 segment_df = tt_df[clump[0]:clump[-1]]  # subset of tt_df from first True to last True in clump
                 seg_min_df = segment_df[segment_df['tts'] == segment_df.min()['tts']]  # segment rows equal to the minimum
                 median_index = seg_min_df['departure_index'].median()  # median departure index of segment minima
@@ -105,6 +105,14 @@ class TransitTimeMinimaJob:
                     end_segment = segment_df[segment_df['departure_index'].ge(min_index)]  # portion of segment from minimum to end
                     start_row = start_segment[start_segment['tts'].le(offset)].index[0]
                     end_row = end_segment[end_segment['tts'].ge(offset)].index[0]
+                    # if len(start_segment['tts'].le(offset)):
+                    #     start_row = start_segment[start_segment['tts'].le(offset)].index[0]
+                    # else:
+                    #     start_row = start_segment[0]
+                    # if len(end_segment['tts'].ge(offset)):
+                    #     end_row = end_segment[end_segment['tts'].ge(offset)].index[0]
+                    # else:
+                    #     end_row = end_segment[-1]
                     start_index = start_segment.at[start_row, 'departure_index']
                     end_index = end_segment.at[end_row, 'departure_index']
                     tt_df_start_row = tt_df[tt_df['departure_index'] == start_index].index[0]
@@ -120,7 +128,7 @@ class TransitTimeMinimaJob:
         tt_df.drop(columns=['min_segments'], inplace=True)
         return tt_df
 
-    def seg_check(self, col):
+def seg_check(col):
         segs = col.to_list()
         checks = []
         tuples = []
