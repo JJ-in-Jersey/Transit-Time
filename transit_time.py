@@ -28,8 +28,8 @@ class TransitTimeMinimaJob:
         self.speed_columns = [segment.name() + ' ' + str(speed) for segment in route.route_segments()]
         self.no_timesteps = int(seconds(self.start, self.end) / TIMESTEP)
         self.plotting_table = env.transit_time_folder().joinpath('tt_' + str(speed) + '_plotting_table')
-        self.transit_timesteps = env.transit_time_folder().joinpath('tt_' + str(speed) + '_timesteps')
         self.savgol = env.transit_time_folder().joinpath('tt_' + str(speed) + '_savgol')
+        self.transit_timesteps = env.transit_time_folder().joinpath('tt_' + str(speed) + '_timesteps')
         self.elapsed_time_table = env.transit_time_folder().joinpath('et_' + str(speed))
         self.transit_time = env.transit_time_folder().joinpath('transit_time_' + str(speed))
 
@@ -51,7 +51,7 @@ class TransitTimeMinimaJob:
             minima_table_df = self.minima_table(transit_timesteps)
             write_df_csv(minima_table_df, self.plotting_table)
             minima_time_table_df = self.start_min_end(minima_table_df)
-            write_df_csv(minima_time_table_df, self.plotting_table)
+            write_df(minima_time_table_df, self.transit_time, df_type)
             return tuple([self.speed, minima_time_table_df, init_time])
 
     def execute_callback(self, result):
@@ -62,14 +62,14 @@ class TransitTimeMinimaJob:
     def start_min_end(self, minima_table_df):
         minima_table_df = minima_table_df.dropna()
         minima_table_df.reset_index(inplace=True, drop=True)
-        minima_table_df['start_time'] = pd.to_timedelta(minima_table_df['start_index'], unit='seconds') + self.date.index_basis()
-        minima_table_df['min_time'] = pd.to_timedelta(minima_table_df['min_index'], unit='seconds') + self.date.index_basis()
-        minima_table_df['end_time'] = pd.to_timedelta(minima_table_df['end_index'], unit='seconds') + self.date.index_basis()
-        minima_table_df['window_time'] = (minima_table_df['end_time'] - minima_table_df['start_time']).apply(hours_min)
-        minima_table_df['start_rounded'] = minima_table_df['start_time'].apply(rounded_to_minutes)
-        minima_table_df['min_rounded'] = (minima_table_df['min_time'].apply(rounded_to_minutes))
-        minima_table_df['end_rounded'] = (minima_table_df['end_time'].apply(rounded_to_minutes))
-        minima_table_df['window_rounded'] = (minima_table_df['end_rounded'] - minima_table_df['start_rounded']).apply(hours_min)
+        minima_table_df = minima_table_df.assign(start_time = pd.to_timedelta(minima_table_df['start_index'], unit='seconds') + self.date.index_basis(),
+                                                 min_time = pd.to_timedelta(minima_table_df['min_index'], unit='seconds') + self.date.index_basis(),
+                                                 end_time = pd.to_timedelta(minima_table_df['end_index'], unit='seconds') + self.date.index_basis())
+        minima_table_df = minima_table_df.assign(start_rounded = minima_table_df['start_time'].apply(rounded_to_minutes),
+                                                 min_rounded = minima_table_df['min_time'].apply(rounded_to_minutes),
+                                                 end_rounded = minima_table_df['end_time'].apply(rounded_to_minutes))
+        # window_time = (minima_table_df['end_time'] - minima_table_df['start_time']).apply(hours_min),
+        # window_rounded = minima_table_df['end_rounded'] - minima_table_df['start_rounded']).apply(hours_min)
         # minima_table_df.drop(columns=['midline'], inplace=True)
         return minima_table_df
 
@@ -78,19 +78,22 @@ class TransitTimeMinimaJob:
         tt_df[shared_columns[0]] = self.elapsed_time_df[[shared_columns[0]]]
         tt_df[shared_columns[1]] = pd.to_datetime(self.elapsed_time_df[shared_columns[1]])
         tt_df = tt_df[tt_df[shared_columns[1]].lt(self.end)]  # trim to lenth of transit array
-        tt_df['tts'] = pd.Series(transit_array)
-        if output_file_exists(self.savgol): tt_df['midline'] = read_df_hdf(self.savgol)
+        tt_df = tt_df.assign(tts = transit_array)
+        if output_file_exists(self.savgol):
+            tt_df['midline'] = read_df_hdf(self.savgol)
         else:
             tt_df['midline'] = savgol_filter(transit_array, 50000, 1)
             write_df_hdf(tt_df['midline'], self.savgol)
         tt_df['min_segments'] = tt_df['tts'].lt(tt_df['midline'])
+
+        # self.seg_check(tt_df['min_segments'])
 
         clump = []
         min_segs = tt_df['min_segments'].to_list()  # list of True or False the same length as tt_df
         for row, val in enumerate(min_segs):  # rows in tt_df, not the departure index
             if val:
                 clump.append(row)  # list of the rows within the clump of True min_segs
-            elif len(clump) > 2*TIMESTEP_MARGIN:  # ignore clumps caused by small flucuations in midline, and too small to fit start and end
+            elif len(clump) > 5:  # ignore clumps caused by small flucuations in midline
                 segment_df = tt_df[clump[0]:clump[-1]]  # subset of tt_df from first True to last True in clump
                 seg_min_df = segment_df[segment_df['tts'] == segment_df.min()['tts']]  # segment rows equal to the minimum
                 median_index = seg_min_df['departure_index'].median()  # median departure index of segment minima
@@ -100,7 +103,6 @@ class TransitTimeMinimaJob:
                 if min_index != clump[0] and min_index != clump[-1]:  # ignore minima at edges
                     start_segment = segment_df[segment_df['departure_index'].le(min_index)]  # portion of segment from start to minimum
                     end_segment = segment_df[segment_df['departure_index'].ge(min_index)]  # portion of segment from minimum to end
-                    print(f'index = {min_index}  len clump: {len(clump)}  len segment: {len(segment_df)}  len start: {len(start_segment)}  len end: {len(end_segment)}')
                     start_row = start_segment[start_segment['tts'].le(offset)].index[0]
                     end_row = end_segment[end_segment['tts'].ge(offset)].index[0]
                     start_index = start_segment.at[start_row, 'departure_index']
@@ -114,7 +116,18 @@ class TransitTimeMinimaJob:
                     tt_df.at[tt_df_start_row, 'plot'] = 'S'
                     tt_df.at[tt_df_min_row, 'plot'] = 'M'
                     tt_df.at[tt_df_end_row, 'plot'] = 'E'
-            clump = []
+                clump = []
         tt_df.drop(columns=['min_segments'], inplace=True)
-        write_df(tt_df, self.transit_time, df_type)
         return tt_df
+
+    def seg_check(self, col):
+        segs = col.to_list()
+        checks = []
+        tuples = []
+        for i in range(0,len(segs)-1):
+            if segs[i] != segs[i+1]: checks.append(i)
+        for j in range(0,len(checks)-1):
+            tuples.append(tuple([checks[j], checks[j+1], checks[j+1]-checks[j]]))
+        tuples.sort(key = lambda x: x[2])
+        print(tuples)
+

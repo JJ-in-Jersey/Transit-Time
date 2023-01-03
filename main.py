@@ -8,7 +8,7 @@ from velocity import VelocityJob
 from elapsed_time import ElapsedTimeJob
 from elapsed_time_reduce import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
-from project_globals import TIMESTEP, boat_speeds
+from project_globals import TIMESTEP, boat_speeds, semaphore_on, semaphore_off
 
 if __name__ == '__main__':
 
@@ -40,11 +40,11 @@ if __name__ == '__main__':
     jm.start()
     for node in route.route_nodes(): mp.job_queue.put(VelocityJob(node, mp.chart_yr, mp.pool_notice))
     mp.job_queue.join()
+    semaphore_off(mp.job_manager_semaphore)
     for node in route.route_nodes(): node.velocity_table(mp.result_lookup[id(node)])
     # node = route.route_nodes()[0]
     # vj = VelocityJob(node, mp.chart_yr, mp.pool_notice)
     # vj.execute()
-    jm.terminate()
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for edges (1st day-1 to last day+2)')
@@ -52,24 +52,24 @@ if __name__ == '__main__':
     jm.start()
     for segment in route.route_segments(): mp.job_queue.put(ElapsedTimeJob(segment, mp.chart_yr, mp.pool_notice))
     mp.job_queue.join()
+    semaphore_off(mp.job_manager_semaphore)
     for segment in route.route_segments(): segment.elapsed_time_df(mp.result_lookup[id(segment)])
     # ej = ElapsedTimeJob(route.route_segments()[0], mp.chart_yr, mp.environs, mp.pool_notice)
     # ej.execute()
-    jm.terminate()
 
     # combine elapsed times by speed
     print(f'\nMerging elapsed times into one dataframe', flush=True)
     route.elapsed_times(elapsed_time_reduce(route, mp.environs))
 
     # calculate the number of timesteps from first node to last node
+    print(f'\nCalculating transit times (1st day-1 to last day+1)')
     jm = mp.WaitForProcess(target=mp.JobManager, args=(mp.job_queue, mp.result_lookup))
     jm.start()
-    print(f'\nCalculating transit times (1st day-1 to last day+1)')
     for speed in boat_speeds: mp.job_queue.put(TransitTimeMinimaJob(route, speed, mp.environs, mp.chart_yr, mp.pool_notice))
     mp.job_queue.join()
+    semaphore_off(mp.job_manager_semaphore)
     for speed in boat_speeds: route.transit_time_lookup(speed, mp.result_lookup[speed])
     # tj = TransitTimeMinimaJob(route, -3, mp.environs, mp.chart_yr, mp.pool_notice)
     # tj.execute()
-    jm.terminate()
 
     mp.som.shutdown()

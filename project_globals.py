@@ -1,5 +1,5 @@
 from pathlib import Path
-from os import environ, makedirs, umask
+from os import environ, makedirs, umask, remove
 import shutil
 import pandas as pd
 import numpy as np
@@ -14,9 +14,14 @@ TIMESTEP = 15  # seconds
 TIME_RESOLUTION = 15  # rounded to minutes
 WINDOW_MARGIN = 10  # minutes
 TIMESTEP_MARGIN = WINDOW_MARGIN * 60 / TIMESTEP
+
 boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]  # knots
 # boat_speeds = [v for v in range(-3, -1, 2)]+[v for v in range(3, 4, 2)]  # knots
 shared_columns = ['departure_index', 'departure_time']
+
+def semaphore_on(name): open(Path(environ['TEMP']).joinpath(name).with_suffix('.tmp'), 'w').close()
+def semaphore_off(name): remove(Path(environ['TEMP']).joinpath(name).with_suffix('.tmp'))
+def is_semaphore_set(name): return True if Path(environ['TEMP']).joinpath(name).with_suffix('.tmp').exists() else False
 
 def sign(value): return value/abs(value)
 def seconds(start, end): return int((end-start).total_seconds())
