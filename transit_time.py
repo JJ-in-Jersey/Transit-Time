@@ -62,7 +62,7 @@ class TransitTimeMinimaJob:
 
     def start_min_end(self, minima_table_df):
         minima_table_df = minima_table_df.dropna()
-        minima_table_df.drop(columns=['midline'], inplace=True)
+        minima_table_df = minima_table_df.drop(columns=['midline'])
         minima_table_df.reset_index(inplace=True, drop=True)
         minima_table_df = minima_table_df.assign(start_time = pd.to_timedelta(minima_table_df['start_index'], unit='seconds') + self.date.index_basis(),
                                                  min_time = pd.to_timedelta(minima_table_df['min_index'], unit='seconds') + self.date.index_basis(),
@@ -70,10 +70,8 @@ class TransitTimeMinimaJob:
         minima_table_df = minima_table_df.assign(start_rounded = minima_table_df['start_time'].apply(rounded_to_minutes),
                                                  min_rounded = minima_table_df['min_time'].apply(rounded_to_minutes),
                                                  end_rounded = minima_table_df['end_time'].apply(rounded_to_minutes))
-        minima_table_df = minima_table_df.assign(window_time = (minima_table_df['end_time'] - minima_table_df['start_time']),
-                                                 window_rounded = minima_table_df['end_rounded'] - minima_table_df['start_rounded'])
-        minima_table_df['window_time'] = minima_table_df['window_time'].apply(hours_min)
-        minima_table_df['window_rounded'] = minima_table_df['window_rounded'].apply(hours_min)
+        minima_table_df['window_time'] = (minima_table_df['end_time'] - minima_table_df['start_time']).apply(hours_min)
+        minima_table_df['window_rounded'] = (minima_table_df['end_rounded'] - minima_table_df['start_rounded']).apply(hours_min)
         return minima_table_df
 
     def minima_table(self, transit_array):
