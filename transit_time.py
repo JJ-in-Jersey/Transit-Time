@@ -22,6 +22,8 @@ class TransitTimeMinimaJob:
         self.speed = speed
         self.date = chart_yr
         self.intro = intro
+        self.first_day = chart_yr.first_day()
+        self.last_day = chart_yr.last_day()
         self.start = chart_yr.first_day_minus_one()
         self.end = chart_yr.last_day_plus_one()
         self.elapsed_time_df = route.elapsed_times()
@@ -52,7 +54,8 @@ class TransitTimeMinimaJob:
             minima_table_df = self.minima_table(transit_timesteps)
             write_df_csv(minima_table_df, self.plotting_table)
             minima_time_table_df = self.start_min_end(minima_table_df)
-            write_df(minima_time_table_df, self.transit_time, df_type)
+            final_df = self.trim_to_year(minima_time_table_df)
+            write_df(final_df, self.transit_time, df_type)
             return tuple([self.speed, minima_time_table_df, init_time])
 
     def execute_callback(self, result):
@@ -60,19 +63,19 @@ class TransitTimeMinimaJob:
     def error_callback(self, result):
         print(f'!     {self.intro} Transit time ({self.speed}) process has raised an error: {result}', flush=True)
 
-    def start_min_end(self, minima_table_df):
-        minima_table_df = minima_table_df.dropna()
-        minima_table_df = minima_table_df.drop(columns=['midline'])
-        minima_table_df.reset_index(inplace=True, drop=True)
-        minima_table_df = minima_table_df.assign(start_time = pd.to_timedelta(minima_table_df['start_index'], unit='seconds') + self.date.index_basis(),
-                                                 min_time = pd.to_timedelta(minima_table_df['min_index'], unit='seconds') + self.date.index_basis(),
-                                                 end_time = pd.to_timedelta(minima_table_df['end_index'], unit='seconds') + self.date.index_basis())
-        minima_table_df = minima_table_df.assign(start_rounded = minima_table_df['start_time'].apply(rounded_to_minutes),
-                                                 min_rounded = minima_table_df['min_time'].apply(rounded_to_minutes),
-                                                 end_rounded = minima_table_df['end_time'].apply(rounded_to_minutes))
-        minima_table_df['window_time'] = (minima_table_df['end_time'] - minima_table_df['start_time']).apply(hours_min)
-        minima_table_df['window_rounded'] = (minima_table_df['end_rounded'] - minima_table_df['start_rounded']).apply(hours_min)
-        return minima_table_df
+    def start_min_end(self, minima_df):
+        minima_df = minima_df.dropna()
+        minima_df = minima_df.drop(columns=['midline'])
+        minima_df.reset_index(inplace=True, drop=True)
+        minima_df = minima_df.assign(start_time = pd.to_timedelta(minima_df['start_index'], unit='seconds') + self.date.index_basis(),
+                                                 min_time = pd.to_timedelta(minima_df['min_index'], unit='seconds') + self.date.index_basis(),
+                                                 end_time = pd.to_timedelta(minima_df['end_index'], unit='seconds') + self.date.index_basis())
+        minima_df = minima_df.assign(start_rounded = minima_df['start_time'].apply(rounded_to_minutes),
+                                                 min_rounded = minima_df['min_time'].apply(rounded_to_minutes),
+                                                 end_rounded = minima_df['end_time'].apply(rounded_to_minutes))
+        minima_df['window_time'] = (minima_df['end_time'] - minima_df['start_time']).apply(hours_min)
+        minima_df['window_rounded'] = (minima_df['end_rounded'] - minima_df['start_rounded']).apply(hours_min)
+        return minima_df
 
     def minima_table(self, transit_array):
         tt_df = pd.DataFrame(columns=shared_columns+['tts', 'midline', 'start_index', 'min_index', 'end_index', 'plot'])
@@ -124,6 +127,11 @@ class TransitTimeMinimaJob:
                     tt_df.at[tt_df_end_row, 'plot'] = 'E'
                 clump = []
         return tt_df
+
+    def trim_to_year(self, final_df):
+        final_df = final_df[final_df['end_rounded'] > self.first_day]
+        final_df = final_df[final_df['start_rounded'] < self.last_day]
+        return final_df
 
 def seg_check(col):
         segs = col.to_list()
