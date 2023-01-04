@@ -33,6 +33,8 @@ if __name__ == '__main__':
     print(f'Number of waypoints: {len(route.route_nodes())}')
     print(f'timestep: {TIMESTEP}')
     print(f'boat speeds: {boat_speeds}')
+    print(f'length {route.length()}')
+    print(f'direction {route.direction()}')
 
     # Download noaa data and create velocity arrays for each waypoint (node)
     print(f'\nCalculating currents at waypoints (1st day-1 to last day+3)')
