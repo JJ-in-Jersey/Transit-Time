@@ -15,7 +15,7 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 from project_globals import TIMESTEP, dash_to_zero, output_file_exists
-from project_globals import read_df, write_df, min_sec
+from project_globals import read_df, write_df, min_sec, date_to_index
 
 #  VELOCITIES ARE DOWNLOADED, CALCULATED AND SAVE AS NAUTICAL MILES PER HOUR!
 
@@ -66,29 +66,26 @@ class VelocityJob:
         else:
             self.init_time = perf_counter()
             print(f'+     {self.intro} {self.code} {self.name}', flush=True)
-            year = self.date.year()
             download_df = pd.DataFrame()
 
             self.driver = get_chrome_driver(self.download_folder)
-            for y in range(year - 1, year + 2):  # + 2 because of range behavior2
+            for y in range(self.year - 1, self.year + 2):  # + 2 because of range behavior2
                 self.driver.get(self.url)
                 self.wdw = WebDriverWait(self.driver, 1000)
                 self.velocity_page(y)
                 file = self.velocity_download()
-                file_dataframe = pd.read_csv(file, header='infer', converters={' Speed (knots)': dash_to_zero}, parse_dates=['Date_Time (LST/LDT)'])
+                file_dataframe = pd.read_csv(file, usecols=[' Speed (knots)','Date_Time (LST/LDT)'], converters={' Speed (knots)': dash_to_zero, 'Date_Time (LST/LDT)': date_to_index})
+                file_dataframe.rename(columns={'Date_Time (LST/LDT)': 'date_index', ' Speed (knots)': 'velocity'}, inplace=True)
                 download_df = pd.concat([download_df, file_dataframe])
             self.driver.quit()
 
-            download_df.rename(columns={'Date_Time (LST/LDT)': 'date', ' Event': 'event', ' Speed (knots)': 'velocity'}, inplace=True)
-            download_df = download_df[(self.start <= download_df['date']) & (download_df['date'] <= self.end)]
-            download_df['time_index'] = download_df['date'].apply(self.date.time_to_index)
+            download_df = download_df[(self.start_index <= download_df['date_index']) & (download_df['date_index'] <= self.end_index)]
             write_df(download_df, self.download_table_path, df_type)
-            cs = CubicSpline(download_df['time_index'], download_df['velocity'])
+            cs = CubicSpline(download_df['date_index'], download_df['velocity'])
             del download_df
             output_df = pd.DataFrame()
-            output_df['time_index'] = range(self.date.time_to_index(self.start), self.date.time_to_index(self.end), TIMESTEP)
-            output_df['date'] = pd.to_timedelta(output_df['time_index'], unit='seconds') + self.date.index_basis()
-            output_df['velocity'] = output_df['time_index'].apply(cs)
+            output_df['date_index'] = range(self.start_index, self.end_index, TIMESTEP)
+            output_df['velocity'] = output_df['date_index'].apply(cs)
             write_df(output_df, self.velocity_table_path, df_type)  # velocities are in knots
             return tuple([self.id, output_df, init_time])
 
@@ -100,7 +97,9 @@ class VelocityJob:
 
     def __init__(self, route_node, chart_yr, intro=''):
         self.wdw = self.driver = None
-        self.date = chart_yr
+        self.year = chart_yr.year()
+        self.start_index = date_to_index(chart_yr.first_day_minus_one())
+        self.end_index = date_to_index(chart_yr.last_day_plus_three())
         self.intro = intro
         self.code = route_node.code()
         self.name = route_node.name()
@@ -109,6 +108,5 @@ class VelocityJob:
         self.download_table_path = route_node.download_table_path()
         self.velocity_table_path = route_node.velocity_table_path()
         self.download_folder = route_node.download_folder()
-        self.start = self.date.first_day_minus_one()
-        self.end = self.date.last_day_plus_three()
+
         umask(0)
