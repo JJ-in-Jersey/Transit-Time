@@ -3,8 +3,10 @@ from os import environ, makedirs, umask, remove
 import shutil
 import pandas as pd
 import numpy as np
+import time
 import dateparser as dp
 from datetime import timedelta as td
+from datetime import datetime as dt
 import warnings
 from pickle import HIGHEST_PROTOCOL
 
@@ -27,24 +29,32 @@ def is_semaphore_set(name): return True if Path(environ['TEMP']).joinpath(name).
 def sign(value): return value/abs(value)
 def seconds(start, end): return int((end-start).total_seconds())
 def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
-def rounded_to_minutes(time):
+def rounded_to_minutes(date_time):
     basis = dp.parse('1/1/2020')
-    total_minutes = int((time - basis).total_seconds())/60
+    total_minutes = int((date_time - basis).total_seconds())/60
     rounded_seconds = round(total_minutes/TIME_RESOLUTION)*TIME_RESOLUTION*60
     return basis + td(seconds=rounded_seconds)
+
+def read_df_csv(path): return pd.read_csv(path.with_suffix('.csv'), header='infer')
 def write_df_csv(df, path):
-    excel_size = 1000000
     df.to_csv(path.with_suffix('.csv'), index=False)
+    excel_size = 1000000
     if len(df) > excel_size:
         num_of_spreadsheets = len(df)/excel_size
         whole_spreadsheets = len(df)//excel_size
-        for i in range(0,whole_spreadsheets): df.loc[i*excel_size:i*excel_size+excel_size-1].to_csv(path.parent.joinpath(path.name+'_excel_'+str(i)).with_suffix('.csv'))
-        if num_of_spreadsheets > whole_spreadsheets: df.loc[whole_spreadsheets*excel_size:].to_csv(path.parent.joinpath(path.name+'_excel_'+str(whole_spreadsheets)).with_suffix('.csv'))
-def write_df_pkl(df, path): df.to_pickle(path.with_suffix('.pkl'), protocol=HIGHEST_PROTOCOL)
-def write_df_hdf(df, path): df.to_hdf(path.with_suffix('.hdf'), key='gonzo', mode='w', index=False)
-def read_df_csv(path): return pd.read_csv(path.with_suffix('.csv'), header='infer')
+        for i in range(0,whole_spreadsheets):
+            temp = df.loc[i*excel_size: i*excel_size+excel_size-1]
+            temp.to_csv(path.parent.joinpath(path.name+'_excel_'+str(i)).with_suffix('.csv'), index=False)
+        if num_of_spreadsheets > whole_spreadsheets:
+            temp = df.loc[whole_spreadsheets*excel_size: ]
+            temp.to_csv(path.parent.joinpath(path.name+'_excel_'+str(whole_spreadsheets)).with_suffix('.csv'), index=False)
+
 def read_df_pkl(path): return pd.read_pickle(path.with_suffix('.pkl'))
+def write_df_pkl(df, path): df.to_pickle(path.with_suffix('.pkl'), protocol=HIGHEST_PROTOCOL)
+
 def read_df_hdf(path): return pd.read_hdf(path.with_suffix('.hdf'))
+def write_df_hdf(df, path): df.to_hdf(path.with_suffix('.hdf'), key='gonzo', mode='w', index=False)
+
 def read_df(path):
     if path.with_suffix('.csv').exists(): return read_df_csv(path)
     elif path.with_suffix('.pkl').exists(): return read_df_pkl(path)
@@ -55,21 +65,26 @@ def write_df(df, path, extension):
     elif extension == 'pkl': write_df_pkl(df, path)
     elif extension == 'hdf': write_df_hdf(df, path)
     else: print('Unrecognizable extension')
-def read_arr(path):
-    if path.with_suffix('.npy').exists(): return np.load(path.with_suffix('.npy'))
-def write_arr(arr, path): np.save(path, arr, allow_pickle=False)
-def read_list(path):
-    if path.with_suffix('.npy').exists(): return list(np.load(path.with_suffix('.npy')))
+
+def read_arr(path): return np.load(path.with_suffix('.npy'))
+def write_arr(arr, path):arr.save(path, path.with_suffix('.npy'), allow_pickle=False)
+
+def read_list(path): return list(read_arr(path))
 def write_list(lst, path): write_arr(lst, path)
+
+def date_to_index(date_time):
+    if isinstance(date_time, dt): return int(time.mktime(date_time.timetuple()))
+    elif isinstance(date_time, str): return int(time.mktime(dp.parse(date_time).timetuple()))
+def index_to_date(index): return time.localtime(index)
+
 def output_file_exists(path): return True if path.with_suffix('.csv').exists() or path.with_suffix('.pkl').exists() or path.with_suffix('.hdf').exists() or path.with_suffix('.npy').exists() else False
-def hours_min(time):
-    if isinstance(time, td): return "%d:%02d" % (time.seconds // 3600, time.seconds % 3600 // 60)
-    elif isinstance(time, float): return "%d:%02d" % (time // 3600, time % 3600 // 60)
-    else: print('Unrecognizable time unit')
-def min_sec(time):
-    if isinstance(time, td): return "%d:%02d" % (time.seconds // 60, time.seconds % 60)
-    elif isinstance(time, float): return "%d:%02d" % (time // 60, time % 60)
-    else: print('Unrecognizable time unit')
+
+def hours_min(date_time):
+    if isinstance(date_time, td): return "%d:%02d" % (date_time.seconds // 3600, date_time.seconds % 3600 // 60)
+    else: return "%d:%02d" % (date_time // 3600, date_time % 3600 // 60)
+def min_sec(date_time):
+    if isinstance(date_time, td): return "%d:%02d" % (date_time.seconds // 60, date_time.seconds % 60)
+    else: return "%d:%02d" % (date_time // 60, date_time % 60)
 
 class Environment:
 
@@ -127,7 +142,6 @@ class ChartYear:
             self.__last_day_plus_one = self.__last_day + td(days=1)
             self.__last_day_plus_two = self.__last_day + td(days=2)
             self.__last_day_plus_three = self.__last_day + td(days=3)
-            self.__index_basis = self.__first_day_minus_one
 
     def year(self): return self.__year
     def first_day_minus_one(self): return self.__first_day_minus_one
@@ -136,9 +150,6 @@ class ChartYear:
     def last_day_plus_one(self): return self.__last_day_plus_one
     def last_day_plus_two(self): return self.__last_day_plus_two
     def last_day_plus_three(self): return self.__last_day_plus_three
-    def time_to_index(self, time): return seconds(self.__index_basis, time)
-    def index_to_time(self, index): return self.__index_basis + td(seconds=index)
-    def index_basis(self): return self.__index_basis
 
     def __init__(self):
         self.__year = None
@@ -150,4 +161,3 @@ class ChartYear:
         self.__last_day_plus_one = None
         self.__last_day_plus_two = None
         self.__last_day_plus_three = None
-        self.__index_basis = None
