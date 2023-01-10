@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup as Soup
 from haversine import haversine as hvs, Unit
-from project_globals import sign
+from project_globals import sign, TIMESTEP
 
 class Node:
 
@@ -27,24 +27,24 @@ class RouteNode(Node):
         self.__next_route_edge = edge if edge and not self.__next_route_edge else self.__next_route_edge  # can be set only once
         return self.__next_route_edge
     def url(self): return self.__url
-    def velocity_table(self, velo_df=None):
-        self.__velo_table = velo_df if velo_df is not None and self.__velo_table is None else self.__velo_table  # can be set only onece
-        return self.__velo_table
-    def velocity_table_path(self): return self.__velo_table_path
+    def velocities(self, velo=None):
+        self.__velocities = velo if velo is not None and self.__velocities is None else self.__velocities  # can be set only onece
+        return self.__velocities
+    def velocity_path(self): return self.__velo_path
     def download_table_path(self): return self.__download_table_path
     def download_folder(self): return self.__download_folder
+    def start_index(self): return self.__start_index
+    def end_index(self): return self.__end_index
 
-    def __init__(self, gpxtag, env):
+    def __init__(self, gpxtag, env, chart_yr):
         super().__init__(gpxtag)
         self.__next_route_edge = None
         self.__url = gpxtag.link.attrs['href']
-        self.__velo_table_path = env.velocity_folder().joinpath(self.code()+'_table')
+        self.__velocities = None
+        self.__velo_path = env.velocity_folder().joinpath(self.code()+'_table')
         self.__download_table_path = env.create_node_folder(self.code()).joinpath(self.code()+'_download_table')
         self.__download_folder = env.create_node_folder(self.code())
-        self.__next_route_edge = self.__velo_table = None
-
-    # def __del__(self):
-    #     print(f'Deleting Route Node', flush=True)
+        self.__next_route_edge = None
 
 class Edge:
 
@@ -110,16 +110,13 @@ class GpxRoute:
             self.transit_time_dict[key] = array
         else:
             return self.transit_time_dict[key]
-    def elapsed_times(self, df=None):
-        if self.__elapsed_times is None and df is not None: self.__elapsed_times = df
-        return self.__elapsed_times
     def elapsed_time_lookup(self, key, array=None):
-        if key not in self.transit_time_dict and array is not None:
-            self.transit_time_dict[key] = array
+        if key not in self.elapsed_time_dict and array is not None:
+            self.elapsed_time_dict[key] = array
         else:
-            return self.transit_time_dict[key]
+            return self.elapsed_time_dict[key]
 
-    def __init__(self, filepath, env):
+    def __init__(self, filepath, env, chart_yr):
         self.transit_time_dict = {}
         self.elapsed_time_dict = {}
         self.__route_nodes = self.__route_edges = self.__elapsed_times = None
@@ -129,7 +126,7 @@ class GpxRoute:
         tree = Soup(gpxfile, 'xml')
 
         # create graph nodes
-        nodes = [RouteNode(waypoint, env) if waypoint.desc else Node(waypoint) for waypoint in tree.find_all('rtept')]
+        nodes = [RouteNode(waypoint, env, chart_yr) if waypoint.desc else Node(waypoint) for waypoint in tree.find_all('rtept')]
         self.__route_nodes = [node for node in nodes if isinstance(node, RouteNode)]
 
         # create graph edges and segments
@@ -150,5 +147,3 @@ class GpxRoute:
         elif (lat_sign < 0 < lon_sign and lon_dist >= lat_dist) or (lat_sign < 0 and lon_sign < 0 and lon_dist >= lat_dist): self.__direction = 'EW'
         elif (lat_sign > 0 and lon_sign > 0 and lon_dist >= lat_dist) or (lat_sign > 0 > lon_sign and lon_dist >= lat_dist): self.__direction = 'WE'
 
-    # def __del__(self):
-    #     print(f'Deleting GPX Route', flush=True)

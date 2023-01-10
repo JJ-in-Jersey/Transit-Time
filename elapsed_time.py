@@ -1,8 +1,9 @@
+import numpy as np
 import pandas as pd
 from time import perf_counter
 
-from project_globals import TIMESTEP, boat_speeds, seconds, sign, output_file_exists
-from project_globals import read_df, write_df, min_sec
+from project_globals import TIMESTEP, boat_speeds, sign, output_file_exists
+from project_globals import read_df, write_df, min_sec, write_arr
 
 #  Elapsed times are reported in number of timesteps
 
@@ -10,8 +11,8 @@ df_type = 'hdf'
 
 def distance(water_vf, water_vi, boat_speed, time): return ((water_vf + water_vi) / 2 + boat_speed)*time  # distance is nm
 
-def elapsed_time(departure_index, distances, length):  # returns number of timesteps
-    distance_index = departure_index + 1  # distance at departure time is 0
+def elapsed_time(distance_start_index, distances, length):  # returns number of timesteps
+    distance_index = distance_start_index + 1  # distance at departure time is 0
     count = total = 0
     not_there_yet = True
     while not_there_yet:
@@ -23,52 +24,46 @@ def elapsed_time(departure_index, distances, length):  # returns number of times
 
 class ElapsedTimeJob:
 
-    def distance_table_path(self, speed): return self.edge_folder.joinpath(self.edge_name + '_distance_table_' + str(speed))
+    def distance_array_path(self, speed): return self.edge_folder.joinpath(self.name + '_distance_array_' + str(speed))
 
     def __init__(self, edge, chart_yr, intro=''):
-        self.date = chart_yr
         self.intro = intro
         self.length = edge.length()
-        self.edge_name = edge.name()
+        self.name = edge.name()
         self.id = id(edge)
-        self.start_velocity_table = edge.start().velocity_table()
-        self.end_velocity_table = edge.end().velocity_table()
+        self.start_velocities = edge.start().velocities()
+        self.end_velocities = edge.end().velocities()
         self.edge_folder = edge.edge_folder()
         self.elapsed_time_table_path = edge.elapsed_time_table_path()
 
-        self.start = chart_yr.first_day_minus_one()
-        self.end = chart_yr.last_day_plus_two()
-        self.no_timesteps = int(seconds(self.start, self.end) / TIMESTEP)
+        self.start_index = chart_yr.edge_start_index()
+        self.end_index = chart_yr.edge_end_index()
+        self.edge_range = chart_yr.edge_range()
+        self.waypoint_range = chart_yr.waypoint_range()
 
     def execute(self):
         init_time = perf_counter()
         if output_file_exists(self.elapsed_time_table_path):
-            print(f'+     {self.intro} {self.edge_name} ({round(self.length, 2)} nm) reading data file', flush=True)
-            return tuple([self.id, read_df(self.elapsed_time_table_path), init_time])
+            print(f'+     {self.intro} {self.name} ({round(self.length, 2)} nm) reading data file', flush=True)
+            elapsed_times_df = read_df(self.elapsed_time_table_path)
+            return tuple([self.id, elapsed_times_df, init_time])
         else:
-            print(f'+     {self.intro} {self.edge_name} ({round(self.length, 2)} nm)', flush=True)
-            initial_velocities = self.start_velocity_table['velocity']  # in knots
-            final_velocities = self.end_velocity_table['velocity']  # in knots
-            elapsed_time_df = self.start_velocity_table.drop(['velocity'], axis=1)
-            elapsed_time_df['date'] = pd.to_datetime(elapsed_time_df['date'])
-            elapsed_time_df.rename(columns={'time_index': 'departure_index', 'date': 'departure_time'}, inplace=True)
-            elapsed_time_df = elapsed_time_df[elapsed_time_df['departure_time'] < self.end]  # trim off excess velocity rows
-
+            print(f'+     {self.intro} {self.name} ({round(self.length, 2)} nm)', flush=True)
+            initial_velocities = self.start_velocities  # in knots
+            final_velocities = self.end_velocities  # in knots
+            elapsed_times_df = pd.DataFrame(data=self.edge_range, columns=['departure_index'])
             ts_in_hr = TIMESTEP / 3600  # in hours because NOAA speeds are in knots (nautical miles per hour)
             for s in boat_speeds:
-                col_name = self.edge_name+' '+str(s)
-                et_df = pd.DataFrame()
-                et_df['time_index'] = self.start_velocity_table['time_index']
-                et_df['date'] = self.start_velocity_table['date']
-                et_df['distance'] = distance(final_velocities[1:], initial_velocities[:-1], s, ts_in_hr) if s > 0 else distance(initial_velocities[1:], final_velocities[:-1], s, ts_in_hr)  # distance is nm
-                et_df.fillna(0, inplace=True)
-                write_df(et_df, self.distance_table_path(s), df_type)
-                elapsed_time_df[col_name] = [elapsed_time(i, et_df['distance'].to_numpy(), sign(s)*self.length) for i in range(0, self.no_timesteps)]
-            write_df(elapsed_time_df, self.elapsed_time_table_path, df_type)
-        return tuple([self.id, elapsed_time_df, init_time])  # elapsed times are reported in number of timesteps
+                col_name = self.name+' '+str(s)
+                dist = distance(final_velocities[1:], initial_velocities[:-1], s, ts_in_hr)  # distance in nm
+                dist = np.insert(dist,0,0.0)  # because distance uses an offset calculation VIx VFx+1, we need to add a zero to the begining
+                write_arr(dist, self.distance_array_path(s))
+                elapsed_times_df[col_name] = [elapsed_time(i, dist, sign(s)*self.length) for i in range(0, len(self.edge_range))]
+                elapsed_times_df.fillna(0, inplace=True)
+            write_df(elapsed_times_df, self.elapsed_time_table_path, df_type)
+        return tuple([self.id, elapsed_times_df, init_time])  # elapsed times are reported in number of timesteps
 
-    # noinspection PyUnusedLocal
     def execute_callback(self, result):
-        print(f'-     {self.intro} {self.edge_name} ({round(self.length, 2)} nm) {min_sec(perf_counter() - result[2])} minutes', flush=True)
+        print(f'-     {self.intro} {self.name} ({round(self.length, 2)} nm) {min_sec(perf_counter() - result[2])} minutes', flush=True)
     def error_callback(self, result):
-        print(f'!     {self.intro} {self.edge_name} process has raised an error: {result}', flush=True)
+        print(f'!     {self.intro} {self.name} process has raised an error: {result}', flush=True)

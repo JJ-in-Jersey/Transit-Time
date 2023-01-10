@@ -22,7 +22,7 @@ from project_globals import write_df, write_arr, read_arr, min_sec, date_to_inde
 
 logging.getLogger('WDM').setLevel(logging.NOTSET)
 
-df_type = 'csv'
+df_type = 'hdf'
 
 class VelocityJob:
 
@@ -67,7 +67,8 @@ class VelocityJob:
         init_time = perf_counter()
         if output_file_exists(self.velo_path):
             print(f'+     {self.intro} {self.code} {self.name} reading data file', flush=True)
-            return tuple([self.id, read_arr(self.velo_path), init_time])
+            velo_array = read_arr(self.velo_path)
+            return tuple([self.id, velo_array, init_time])
         else:
             init_time = perf_counter()
             print(f'+     {self.intro} {self.code} {self.name}', flush=True)

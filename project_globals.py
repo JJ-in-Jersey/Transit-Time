@@ -20,7 +20,8 @@ FIVE_HOURS_OF_TIMESTEPS = 5*3600 / TIMESTEP  # only consider windows of transit 
 
 boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]  # knots
 # boat_speeds = [v for v in range(-3, -1, 2)]+[v for v in range(3, 4, 2)]  # knots
-shared_columns = ['departure_index', 'departure_time']
+# shared_columns = ['departure_index', 'departure_time']
+shared_columns = ['departure_index']
 
 def semaphore_on(name): open(Path(environ['TEMP']).joinpath(name).with_suffix('.tmp'), 'w').close()
 def semaphore_off(name): remove(Path(environ['TEMP']).joinpath(name).with_suffix('.tmp'))
@@ -67,7 +68,7 @@ def write_df(df, path, extension):
     else: print('Unrecognizable extension')
 
 def read_arr(path): return np.load(path.with_suffix('.npy'))
-def write_arr(arr, path):arr.save(path, path.with_suffix('.npy'), allow_pickle=False)
+def write_arr(arr, path): np.save(path.with_suffix('.npy'), arr, allow_pickle=False)
 
 def read_list(path): return list(read_arr(path))
 def write_list(lst, path): write_arr(lst, path)
@@ -131,33 +132,52 @@ class Environment:
 
 class ChartYear:
 
-    def set_year(self, args):
-        if not self.__year:
-            self.__year = args['year']
-            self.__first_date = '1/1/'+str(self.__year)
-            self.__last_date = '12/31/' + str(self.__year)
-            self.__first_day = dp.parse(self.__first_date)
-            self.__first_day_minus_one = self.__first_day - td(days=1)
-            self.__last_day = dp.parse(self.__last_date)
-            self.__last_day_plus_one = self.__last_day + td(days=1)
-            self.__last_day_plus_two = self.__last_day + td(days=2)
-            self.__last_day_plus_three = self.__last_day + td(days=3)
-
     def year(self): return self.__year
-    def first_day_minus_one(self): return self.__first_day_minus_one
-    def first_day(self): return self.__first_day
-    def last_day(self): return self.__last_day
-    def last_day_plus_one(self): return self.__last_day_plus_one
-    def last_day_plus_two(self): return self.__last_day_plus_two
-    def last_day_plus_three(self): return self.__last_day_plus_three
+    def waypoint_start_index(self): return self.__waypoint_start_index
+    def waypoint_end_index(self): return self.__waypoint_end_index
+    def waypoint_range(self): return self.__waypoint_range
+    def edge_start_index(self): return self.__edge_start_index
+    def edge_end_index(self): return self.__edge_end_index
+    def edge_range(self): return self.__edge_range
+    def transit_start_index(self): return self.__transit_start_index
+    def transit_end_index(self): return self.__transit_end_index
+    def transit_range(self): return self.__transit_range
+
+    def initialize(self, args):
+        self.__year = args['year']
+        self.__first_day = dp.parse('1/1/'+str(self.__year))
+        self.__last_day = dp.parse('12/31/' + str(self.__year))
+        self.__first_day_minus_one = self.__first_day - td(days=1)
+        self.__last_day_plus_one = self.__last_day + td(days=1)
+        self.__last_day_plus_two = self.__last_day + td(days=2)
+        self.__last_day_plus_three = self.__last_day + td(days=3)
+
+        self.__waypoint_start_index = date_to_index(self.__first_day_minus_one)  # velocity calculations start index
+        self.__edge_start_index = date_to_index(self.__first_day_minus_one)  # elapsed time start index
+        self.__transit_start_index = date_to_index(self.__first_day_minus_one)  # transit time start index
+
+        self.__waypoint_end_index = date_to_index(self.__last_day_plus_three)  # velocity calculations end index
+        self.__edge_end_index = date_to_index(self.__last_day_plus_two)
+        self.__transit_end_index = date_to_index(self.__last_day_plus_one)
+
+        self.__waypoint_range = range(self.__waypoint_start_index, self.__waypoint_end_index, TIMESTEP)
+        self.__edge_range = range(self.__edge_start_index, self.__edge_end_index, TIMESTEP)
+        self.__transit_range = range(self.__transit_start_index, self.__transit_end_index, TIMESTEP)
 
     def __init__(self):
         self.__year = None
         self.__first_date = None
         self.__last_date = None
-        self.__first_day_minus_one = None
         self.__first_day = None
+        self.__first_day_minus_one = None
         self.__last_day = None
         self.__last_day_plus_one = None
         self.__last_day_plus_two = None
         self.__last_day_plus_three = None
+        self.__waypoint_start_index = 0
+        self.__waypoint_end_index = 0
+        self.__edge_start_index = 0
+        self.__edge_end_index = 0
+        self.__transit_start_index = 0
+        self.__transit_end_index = 0
+        self.__waypoint_range = self.__edge_range = self.__transit_range = None

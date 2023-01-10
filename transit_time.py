@@ -26,17 +26,13 @@ class TransitTimeMinimaJob:
         self.last_day = chart_yr.last_day()
         self.start = chart_yr.first_day_minus_one()
         self.end = chart_yr.last_day_plus_one()
-        self.elapsed_time_df = route.elapsed_times()
-        self.speed_columns = [segment.name() + ' ' + str(speed) for segment in route.route_segments()]
+        self.elapsed_times_df = route.elapsed_time_lookup(speed)
         self.no_timesteps = int(seconds(self.start, self.end) / TIMESTEP)
         self.plotting_table = env.transit_time_folder().joinpath('tt_' + str(speed) + '_plotting_table')
         self.savgol = env.transit_time_folder().joinpath('tt_' + str(speed) + '_savgol')
         self.transit_timesteps = env.transit_time_folder().joinpath('tt_' + str(speed) + '_timesteps')
         self.elapsed_time_table = env.transit_time_folder().joinpath('et_' + str(speed))
         self.transit_time = env.transit_time_folder().joinpath('transit_time_' + str(speed))
-
-    # def __del__(self):
-    #     print(f'Deleting Transit Time Job', flush=True)
 
     def execute(self):
         init_time = perf_counter()
@@ -49,7 +45,7 @@ class TransitTimeMinimaJob:
             if output_file_exists(self.transit_timesteps):
                 transit_timesteps = read_list(self.transit_timesteps)
             else:
-                transit_timesteps = [total_transit_time(row, self.elapsed_time_df, self.speed_columns) for row in range(0, self.no_timesteps)]  # in timesteps
+                transit_timesteps = [total_transit_time(row, self.elapsed_times_df, self.elapsed_times_df.columns.to_list()) for row in range(0, self.no_timesteps)]  # in timesteps
                 write_list(transit_timesteps, self.transit_timesteps)
             minima_table_df = self.minima_table(transit_timesteps)
             write_df_csv(minima_table_df, self.plotting_table)
@@ -78,11 +74,12 @@ class TransitTimeMinimaJob:
         return minima_df
 
     def minima_table(self, transit_array):
-        tt_df = pd.DataFrame(columns=shared_columns+['tts', 'midline', 'start_index', 'min_index', 'end_index', 'plot'])
-        tt_df[shared_columns[0]] = self.elapsed_time_df[[shared_columns[0]]]
-        tt_df[shared_columns[1]] = pd.to_datetime(self.elapsed_time_df[shared_columns[1]])
+        tt_df = pd.DataFrame(columns=shared_columns+['tts', 'ttime', 'midline', 'start_index', 'min_index', 'end_index', 'plot'])
+        tt_df[shared_columns[0]] = self.elapsed_times_df[[shared_columns[0]]]
+        tt_df[shared_columns[1]] = pd.to_datetime(self.elapsed_times_df[shared_columns[1]])
         tt_df = tt_df[tt_df[shared_columns[1]].lt(self.end)]  # trim to lenth of transit array
         tt_df = tt_df.assign(tts = transit_array)
+        tt_df['ttime'] = (tt_df['tts']*TIMESTEP).apply(lambda x: hours_min(x))
         if output_file_exists(self.savgol):
             tt_df['midline'] = read_df_hdf(self.savgol)
         else:
@@ -106,14 +103,6 @@ class TransitTimeMinimaJob:
                     end_segment = segment_df[segment_df['departure_index'].ge(min_index)]  # portion of segment from minimum to end
                     start_row = start_segment[start_segment['tts'].le(offset)].index[0]
                     end_row = end_segment[end_segment['tts'].ge(offset)].index[0]
-                    # if len(start_segment['tts'].le(offset)):
-                    #     start_row = start_segment[start_segment['tts'].le(offset)].index[0]
-                    # else:
-                    #     start_row = start_segment[0]
-                    # if len(end_segment['tts'].ge(offset)):
-                    #     end_row = end_segment[end_segment['tts'].ge(offset)].index[0]
-                    # else:
-                    #     end_row = end_segment[-1]
                     start_index = start_segment.at[start_row, 'departure_index']
                     end_index = end_segment.at[end_row, 'departure_index']
                     tt_df_start_row = tt_df[tt_df['departure_index'] == start_index].index[0]
