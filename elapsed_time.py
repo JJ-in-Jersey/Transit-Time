@@ -41,12 +41,14 @@ class ElapsedTimeJob:
         self.edge_range = chart_yr.edge_range()
         self.waypoint_range = chart_yr.waypoint_range()
 
+        if output_file_exists(self.elapsed_time_table_path):
+            print(f':     {self.name} ({round(self.length, 2)} nm) reading data file', flush=True)
+            edge.elapsed_time_df(read_df(self.elapsed_time_table_path))
+
     def execute(self):
         init_time = perf_counter()
         if output_file_exists(self.elapsed_time_table_path):
-            print(f'+     {self.intro} {self.name} ({round(self.length, 2)} nm) reading data file', flush=True)
-            elapsed_times_df = read_df(self.elapsed_time_table_path)
-            return tuple([self.id, elapsed_times_df, init_time])
+            return tuple([self.id, None, init_time])
         else:
             print(f'+     {self.intro} {self.name} ({round(self.length, 2)} nm)', flush=True)
             initial_velocities = self.start_velocities  # in knots

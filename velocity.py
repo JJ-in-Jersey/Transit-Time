@@ -66,11 +66,8 @@ class VelocityJob:
     def execute(self):
         init_time = perf_counter()
         if output_file_exists(self.velo_path):
-            print(f'+     {self.intro} {self.code} {self.name} reading data file', flush=True)
-            velo_array = read_arr(self.velo_path)
-            return tuple([self.id, velo_array, init_time])
+            return tuple([self.id, None, init_time])
         else:
-            init_time = perf_counter()
             print(f'+     {self.intro} {self.code} {self.name}', flush=True)
             download_df = pd.DataFrame()
 
@@ -80,7 +77,7 @@ class VelocityJob:
                 self.wdw = WebDriverWait(self.driver, 1000)
                 self.velocity_page(y, self.code, self.driver, self.wdw)
                 file = self.velocity_download(self.download_folder, self.wdw)
-                file_dataframe = pd.read_csv(file, usecols=[' Speed (knots)','Date_Time (LST/LDT)'], converters={' Speed (knots)': dash_to_zero, 'Date_Time (LST/LDT)': date_to_index})
+                file_dataframe = pd.read_csv(file, usecols=[' Speed (knots)', 'Date_Time (LST/LDT)'], converters={' Speed (knots)': dash_to_zero, 'Date_Time (LST/LDT)': date_to_index})
                 file_dataframe.rename(columns={'Date_Time (LST/LDT)': 'date_index', ' Speed (knots)': 'velocity'}, inplace=True)
                 download_df = pd.concat([download_df, file_dataframe])
             self.driver.quit()
@@ -118,3 +115,7 @@ class VelocityJob:
         self.velo_path = route_node.velocity_path()
         self.download_folder = route_node.download_folder()
         umask(0)
+
+        if output_file_exists(self.velo_path):
+            print(f':     {self.code} {self.name} reading data file', flush=True)
+            route_node.velocities(read_arr(self.velo_path))
