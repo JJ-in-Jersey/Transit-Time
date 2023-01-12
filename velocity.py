@@ -15,7 +15,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
-from project_globals import dash_to_zero, output_file_exists
+from project_globals import WDW, dash_to_zero, output_file_exists
 from project_globals import write_df, write_arr, read_arr, mins_secs, date_to_index
 
 #  VELOCITIES ARE DOWNLOADED, CALCULATED AND SAVE AS NAUTICAL MILES PER HOUR!
@@ -72,9 +72,9 @@ class VelocityJob:
             download_df = pd.DataFrame()
 
             self.driver = self.get_chrome_driver(self.download_folder)
-            for y in range(self.year - 1, self.year + 2):  # + 2 because of range behavior2
+            for y in range(self.year - 1, self.year + 2):  # + 2 because of range behavior
                 self.driver.get(self.url)
-                self.wdw = WebDriverWait(self.driver, 1000)
+                self.wdw = WebDriverWait(self.driver, WDW)
                 self.velocity_page(y, self.code, self.driver, self.wdw)
                 file = self.velocity_download(self.download_folder, self.wdw)
                 file_dataframe = pd.read_csv(file, usecols=[' Speed (knots)', 'Date_Time (LST/LDT)'], converters={' Speed (knots)': dash_to_zero, 'Date_Time (LST/LDT)': date_to_index})

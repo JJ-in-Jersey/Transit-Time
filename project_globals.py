@@ -17,6 +17,7 @@ TIME_RESOLUTION = 15  # rounded to minutes
 WINDOW_MARGIN = 10  # minutes
 TIMESTEP_MARGIN = WINDOW_MARGIN * 60 / TIMESTEP  # number of timesteps to add to minimum to find edges of time windows
 FIVE_HOURS_OF_TIMESTEPS = 5*3600 / TIMESTEP  # only consider windows of transit times less than the midline that are at least 5 ours long (6 hour tide change)
+WDW = 5000
 
 boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]  # knots
 # boat_speeds = [v for v in range(-3, -1, 2)]+[v for v in range(3, 4, 2)]  # knots
@@ -93,7 +94,7 @@ class Environment:
         return edge_folder
     def project_folder(self, args=None):
         if args:
-            self.__project_folder = Path(self.__user_profile + '/Downloads/' + args['project_name']+'/')
+            self.__project_folder = Path(self.__user_profile + '/DevCore/' + args['project_name']+'/')
             if args['delete_data']:
                 shutil.rmtree(self.__project_folder, ignore_errors=True)
                 makedirs(self.__project_folder, exist_ok=True)
