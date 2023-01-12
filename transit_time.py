@@ -52,14 +52,14 @@ class TransitTimeMinimaJob:
             minima_table_df = read_df(self.plotting_table)
         else:
             minima_table_df = self.minima_table(transit_timesteps)
-            write_df_csv(minima_table_df, self.plotting_table, True)
+            write_df_csv(minima_table_df, self.plotting_table)
         minima_table_df.drop(['midline', 'plot'], axis=1, inplace=True)
 
         minima_time_table_df = self.start_min_end(minima_table_df)
         minima_time_table_df.drop(['min_index'], axis=1, inplace=True)
 
         final_df = self.trim_to_year(minima_time_table_df)
-        write_df_csv(final_df, self.transit_time, True)
+        write_df_csv(final_df, self.transit_time)
         return tuple([self.speed, minima_time_table_df, init_time])
 
     def execute_callback(self, result):
@@ -80,7 +80,6 @@ class TransitTimeMinimaJob:
         minima_df['end_rounded'] = minima_df['end_index'].apply(rounded_to_minutes).apply(index_to_date)
         minima_df['window_time'] = (minima_df['end_index'] - minima_df['start_index']).apply(hours_mins)
         minima_df['window_rounded'] = (minima_df['end_index'].apply(rounded_to_minutes) - minima_df['start_index'].apply(rounded_to_minutes)).apply(hours_mins)
-        minima_df.reset_index(inplace=True, drop=True)
         return minima_df
 
     def minima_table(self, transit_array):
