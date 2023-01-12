@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup as Soup
 from haversine import haversine as hvs, Unit
-from project_globals import sign, TIMESTEP
+from project_globals import sign
 
 class Node:
 
@@ -33,10 +33,8 @@ class RouteNode(Node):
     def velocity_path(self): return self.__velo_path
     def download_table_path(self): return self.__download_table_path
     def download_folder(self): return self.__download_folder
-    def start_index(self): return self.__start_index
-    def end_index(self): return self.__end_index
 
-    def __init__(self, gpxtag, env, chart_yr):
+    def __init__(self, gpxtag, env):
         super().__init__(gpxtag)
         self.__next_route_edge = None
         self.__url = gpxtag.link.attrs['href']
@@ -116,7 +114,7 @@ class GpxRoute:
         else:
             return self.elapsed_time_dict[key]
 
-    def __init__(self, filepath, env, chart_yr):
+    def __init__(self, filepath, env):
         self.transit_time_dict = {}
         self.elapsed_time_dict = {}
         self.__route_nodes = self.__route_edges = self.__elapsed_times = None
@@ -126,7 +124,7 @@ class GpxRoute:
         tree = Soup(gpxfile, 'xml')
 
         # create graph nodes
-        nodes = [RouteNode(waypoint, env, chart_yr) if waypoint.desc else Node(waypoint) for waypoint in tree.find_all('rtept')]
+        nodes = [RouteNode(waypoint, env) if waypoint.desc else Node(waypoint) for waypoint in tree.find_all('rtept')]
         self.__route_nodes = [node for node in nodes if isinstance(node, RouteNode)]
 
         # create graph edges and segments

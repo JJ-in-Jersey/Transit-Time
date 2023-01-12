@@ -2,10 +2,10 @@ import pandas as pd
 from scipy.signal import savgol_filter
 from time import perf_counter
 
-from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS, seconds, rounded_to_minutes, output_file_exists, hours_min, min_sec
-from project_globals import read_df, read_df_hdf, write_df, write_df_csv, write_df_hdf, shared_columns, read_list, write_list
+from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS, rounded_to_minutes, output_file_exists, hours_mins, mins_secs
+from project_globals import read_df, read_df_hdf, write_df, write_df_csv, write_list, read_arr, index_to_date
 
-df_type = 'csv'
+df_type = 'hdf'
 
 def total_transit_time(init_row, d_frame, cols):
     row = init_row
@@ -20,19 +20,19 @@ class TransitTimeMinimaJob:
 
     def __init__(self, route, speed, env, chart_yr, intro=''):
         self.speed = speed
-        self.date = chart_yr
         self.intro = intro
-        self.first_day = chart_yr.first_day()
-        self.last_day = chart_yr.last_day()
-        self.start = chart_yr.first_day_minus_one()
-        self.end = chart_yr.last_day_plus_one()
+        self.first_day_index = chart_yr.first_day_index()
+        self.last_day_index = chart_yr.last_day_index()
+        self.start_index = chart_yr.transit_start_index()
+        self.end_index = chart_yr.transit_end_index()
         self.elapsed_times_df = route.elapsed_time_lookup(speed)
-        self.no_timesteps = int(seconds(self.start, self.end) / TIMESTEP)
-        self.plotting_table = env.transit_time_folder().joinpath('tt_' + str(speed) + '_plotting_table')
-        self.savgol = env.transit_time_folder().joinpath('tt_' + str(speed) + '_savgol')
-        self.transit_timesteps = env.transit_time_folder().joinpath('tt_' + str(speed) + '_timesteps')
-        self.elapsed_time_table = env.transit_time_folder().joinpath('et_' + str(speed))
-        self.transit_time = env.transit_time_folder().joinpath('transit_time_' + str(speed))
+        self.transit_range = chart_yr.transit_range()
+
+        self.elapsed_time_table = env.transit_time_folder().joinpath('et_' + str(speed))  #  elapsed times in table, sorted by speed
+        self.plotting_table = env.transit_time_folder().joinpath('tt_' + str(speed) + '_plotting_table')  # output of minima_table, npy, can be used for plotting/checking
+        self.savgol = env.transit_time_folder().joinpath('tt_' + str(speed) + '_savgol')  #  savgol column
+        self.transit_timesteps = env.transit_time_folder().joinpath('tt_' + str(speed) + '_timesteps')  # transit times column
+        self.transit_time = env.transit_time_folder().joinpath('transit_time_' + str(speed))  # final results table
 
     def execute(self):
         init_time = perf_counter()
@@ -40,53 +40,60 @@ class TransitTimeMinimaJob:
             print(f'+     {self.intro} Transit time ({self.speed}) reading data file', flush=True)
             tt_minima_df = read_df(self.transit_time)
             return tuple([self.speed, tt_minima_df, init_time])
+
+        print(f'+     {self.intro} Transit time ({self.speed})', flush=True)
+        if output_file_exists(self.transit_timesteps):
+            transit_timesteps = read_arr(self.transit_timesteps)
         else:
-            print(f'+     {self.intro} Transit time ({self.speed})', flush=True)
-            if output_file_exists(self.transit_timesteps):
-                transit_timesteps = read_list(self.transit_timesteps)
-            else:
-                transit_timesteps = [total_transit_time(row, self.elapsed_times_df, self.elapsed_times_df.columns.to_list()) for row in range(0, self.no_timesteps)]  # in timesteps
-                write_list(transit_timesteps, self.transit_timesteps)
+            transit_timesteps = [total_transit_time(row, self.elapsed_times_df, self.elapsed_times_df.columns.to_list()) for row in range(0,len(self.transit_range))]  # in timesteps
+            write_list(transit_timesteps, self.transit_timesteps)
+
+        if output_file_exists(self.plotting_table):
+            minima_table_df = read_df(self.plotting_table)
+        else:
             minima_table_df = self.minima_table(transit_timesteps)
-            write_df_csv(minima_table_df, self.plotting_table)
-            minima_time_table_df = self.start_min_end(minima_table_df)
-            final_df = self.trim_to_year(minima_time_table_df)
-            write_df(final_df, self.transit_time, df_type)
-            return tuple([self.speed, minima_time_table_df, init_time])
+            write_df_csv(minima_table_df, self.plotting_table, True)
+        minima_table_df.drop(['midline', 'plot'], axis=1, inplace=True)
+
+        minima_time_table_df = self.start_min_end(minima_table_df)
+        minima_time_table_df.drop(['min_index'], axis=1, inplace=True)
+
+        final_df = self.trim_to_year(minima_time_table_df)
+        write_df_csv(final_df, self.transit_time, True)
+        return tuple([self.speed, minima_time_table_df, init_time])
 
     def execute_callback(self, result):
-        print(f'-     {self.intro} Transit time ({self.speed}) {min_sec(perf_counter() - result[2])} minutes', flush=True)
+        print(f'-     {self.intro} Transit time ({self.speed}) {mins_secs(perf_counter() - result[2])} minutes', flush=True)
     def error_callback(self, result):
         print(f'!     {self.intro} Transit time ({self.speed}) process has raised an error: {result}', flush=True)
 
+    # noinspection PyMethodMayBeStatic
     def start_min_end(self, minima_df):
-        minima_df = minima_df.dropna()
-        minima_df = minima_df.drop(columns=['midline'])
+        minima_df.dropna(axis=0, inplace=True)
+        minima_df['transit_time'] = (minima_df['tts']*TIMESTEP).apply(lambda x: hours_mins(x))
+        minima_df.drop(['tts'], axis=1, inplace=True)
+        minima_df['start_time'] = minima_df['start_index'].apply(index_to_date)
+        minima_df['min_time'] = minima_df['min_index'].apply(index_to_date)
+        minima_df['end_time'] = minima_df['end_index'].apply(index_to_date)
+        minima_df['start_rounded'] = minima_df['start_index'].apply(rounded_to_minutes).apply(index_to_date)
+        minima_df['min_rounded'] = minima_df['min_index'].apply(rounded_to_minutes).apply(index_to_date)
+        minima_df['end_rounded'] = minima_df['end_index'].apply(rounded_to_minutes).apply(index_to_date)
+        minima_df['window_time'] = (minima_df['end_index'] - minima_df['start_index']).apply(hours_mins)
+        minima_df['window_rounded'] = (minima_df['end_index'].apply(rounded_to_minutes) - minima_df['start_index'].apply(rounded_to_minutes)).apply(hours_mins)
         minima_df.reset_index(inplace=True, drop=True)
-        minima_df = minima_df.assign(start_time = pd.to_timedelta(minima_df['start_index'], unit='seconds') + self.date.index_basis(),
-                                                 min_time = pd.to_timedelta(minima_df['min_index'], unit='seconds') + self.date.index_basis(),
-                                                 end_time = pd.to_timedelta(minima_df['end_index'], unit='seconds') + self.date.index_basis())
-        minima_df = minima_df.assign(start_rounded = minima_df['start_time'].apply(rounded_to_minutes),
-                                                 min_rounded = minima_df['min_time'].apply(rounded_to_minutes),
-                                                 end_rounded = minima_df['end_time'].apply(rounded_to_minutes))
-        minima_df['window_time'] = (minima_df['end_time'] - minima_df['start_time']).apply(hours_min)
-        minima_df['window_rounded'] = (minima_df['end_rounded'] - minima_df['start_rounded']).apply(hours_min)
         return minima_df
 
     def minima_table(self, transit_array):
-        tt_df = pd.DataFrame(columns=shared_columns+['tts', 'ttime', 'midline', 'start_index', 'min_index', 'end_index', 'plot'])
-        tt_df[shared_columns[0]] = self.elapsed_times_df[[shared_columns[0]]]
-        tt_df[shared_columns[1]] = pd.to_datetime(self.elapsed_times_df[shared_columns[1]])
-        tt_df = tt_df[tt_df[shared_columns[1]].lt(self.end)]  # trim to lenth of transit array
+        tt_df = pd.DataFrame(columns=['departure_index', 'tts', 'midline', 'start_index', 'min_index', 'end_index', 'plot'])
+        tt_df['departure_index'] = self.transit_range
+        tt_df['plot'] = 0
         tt_df = tt_df.assign(tts = transit_array)
-        tt_df['ttime'] = (tt_df['tts']*TIMESTEP).apply(lambda x: hours_min(x))
         if output_file_exists(self.savgol):
             tt_df['midline'] = read_df_hdf(self.savgol)
         else:
             tt_df['midline'] = savgol_filter(transit_array, 50000, 1)
-            write_df_hdf(tt_df['midline'], self.savgol)
+            write_df(tt_df['midline'], self.savgol, df_type)
         min_segs = tt_df['tts'].lt(tt_df['midline']).to_list()  # list of True or False the same length as tt_df
-        # self.seg_check(tt_df['min_segments'])
         clump = []
         for row, val in enumerate(min_segs):  # rows in tt_df, not the departure index
             if val:
@@ -111,25 +118,15 @@ class TransitTimeMinimaJob:
                     tt_df.at[tt_df_min_row, 'start_index'] = start_index
                     tt_df.at[tt_df_min_row, 'min_index'] = min_index
                     tt_df.at[tt_df_min_row, 'end_index'] = end_index
-                    tt_df.at[tt_df_start_row, 'plot'] = 'S'
-                    tt_df.at[tt_df_min_row, 'plot'] = 'M'
-                    tt_df.at[tt_df_end_row, 'plot'] = 'E'
+                    tt_df.at[tt_df_start_row, 'plot'] = transit_array.max()
+                    tt_df.at[tt_df_min_row, 'plot'] = transit_array.min()
+                    tt_df.at[tt_df_end_row, 'plot'] = transit_array.max()
                 clump = []
         return tt_df
 
     def trim_to_year(self, final_df):
-        final_df = final_df[final_df['end_rounded'] > self.first_day]
-        final_df = final_df[final_df['start_rounded'] < self.last_day]
+        final_df['departure_time'] = final_df['departure_index'].apply(index_to_date)
+        final_df = final_df[final_df['end_index'].apply(rounded_to_minutes) > self.first_day_index]
+        final_df = final_df[final_df['start_index'].apply(rounded_to_minutes) < self.last_day_index]
+        final_df.drop(['departure_index', 'start_index', 'end_index'], axis=1, inplace=True)
         return final_df
-
-def seg_check(col):
-        segs = col.to_list()
-        checks = []
-        tuples = []
-        for i in range(0,len(segs)-1):
-            if segs[i] != segs[i+1]: checks.append(i)
-        for j in range(0,len(checks)-1):
-            tuples.append(tuple([checks[j], checks[j+1], checks[j+1]-checks[j]]))
-        tuples.sort(key = lambda x: x[2])
-        print(tuples)
-

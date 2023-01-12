@@ -16,7 +16,7 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 from project_globals import dash_to_zero, output_file_exists
-from project_globals import write_df, write_arr, read_arr, min_sec, date_to_index
+from project_globals import write_df, write_arr, read_arr, mins_secs, date_to_index
 
 #  VELOCITIES ARE DOWNLOADED, CALCULATED AND SAVE AS NAUTICAL MILES PER HOUR!
 
@@ -96,7 +96,7 @@ class VelocityJob:
             return tuple([self.id, velo_array, init_time])
 
     def execute_callback(self, result):
-        print(f'-     {self.intro} {self.code} {min_sec(perf_counter() - result[2])} minutes', flush=True)
+        print(f'-     {self.intro} {self.code} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
     def error_callback(self, result):
         print(f'!     {self.intro} {self.code} process has raised an error: {result}', flush=True)
 

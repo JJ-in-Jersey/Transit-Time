@@ -1,7 +1,4 @@
-from os import environ, remove
-from os.path import exists
 from time import sleep
-from pathlib import Path
 from multiprocessing import Pool, Process, cpu_count, JoinableQueue
 from multiprocessing.managers import BaseManager
 
@@ -35,7 +32,7 @@ class JobManager:
                         lookup[result[0]] = result[1]
                         del results[job]
                         q.task_done()
-                sleep(1)
+                sleep(0.1)
         p.close()
 
     def __del__(self): print(f'-     job manager exiting', flush=True)

@@ -31,7 +31,7 @@ if __name__ == '__main__':
     jm.start()
 
     # Assemble route and route objects
-    route = GpxRoute(args['filepath'], mp.environs, mp.chart_yr)
+    route = GpxRoute(args['filepath'], mp.environs)
     print(f'Number of waypoints: {len(route.route_nodes())}')
     print(f'timestep: {TIMESTEP}')
     print(f'boat speeds: {boat_speeds}')
@@ -57,18 +57,17 @@ if __name__ == '__main__':
     # ej.execute()
 
     # combine elapsed times by speed
-    print(f'\nMerging elapsed times into one dataframe', flush=True)
+    print(f'\nSorting elapsed times by speed', flush=True)
     elapsed_time_reduce(route, mp.environs)
-    for speed in boat_speeds:
-        print(route.elapsed_time_lookup(speed))
+    # for speed in boat_speeds: print(route.elapsed_time_lookup(speed))
 
     # calculate the number of timesteps from first node to last node
     print(f'\nCalculating transit times (1st day-1 to last day+1)')
-    for speed in boat_speeds: mp.job_queue.put(TransitTimeMinimaJob(route, speed, mp.environs, mp.chart_yr, mp.pool_notice))
-    mp.job_queue.join()
+    # for speed in boat_speeds: mp.job_queue.put(TransitTimeMinimaJob(route, speed, mp.environs, mp.chart_yr, mp.pool_notice))
+    # mp.job_queue.join()
     # for speed in boat_speeds: route.transit_time_lookup(speed, mp.result_lookup[speed])
-    # tj = TransitTimeMinimaJob(route, -9, mp.environs, mp.chart_yr, mp.pool_notice)
-    # tj.execute()
+    tj = TransitTimeMinimaJob(route, -9, mp.environs, mp.chart_yr, mp.pool_notice)
+    tj.execute()
 
     semaphore_off(mp.job_manager_semaphore)
     mp.som.shutdown()

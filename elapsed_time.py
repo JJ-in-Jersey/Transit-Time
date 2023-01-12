@@ -3,7 +3,7 @@ import pandas as pd
 from time import perf_counter
 
 from project_globals import TIMESTEP, boat_speeds, sign, output_file_exists
-from project_globals import read_df, write_df, min_sec, write_arr
+from project_globals import read_df, write_df, mins_secs, write_arr
 
 #  Elapsed times are reported in number of timesteps
 
@@ -39,7 +39,6 @@ class ElapsedTimeJob:
         self.start_index = chart_yr.edge_start_index()
         self.end_index = chart_yr.edge_end_index()
         self.edge_range = chart_yr.edge_range()
-        self.waypoint_range = chart_yr.waypoint_range()
 
         if output_file_exists(self.elapsed_time_table_path):
             print(f':     {self.name} ({round(self.length, 2)} nm) reading data file', flush=True)
@@ -66,6 +65,6 @@ class ElapsedTimeJob:
         return tuple([self.id, elapsed_times_df, init_time])  # elapsed times are reported in number of timesteps
 
     def execute_callback(self, result):
-        print(f'-     {self.intro} {self.name} ({round(self.length, 2)} nm) {min_sec(perf_counter() - result[2])} minutes', flush=True)
+        print(f'-     {self.intro} {self.name} ({round(self.length, 2)} nm) {mins_secs(perf_counter() - result[2])} minutes', flush=True)
     def error_callback(self, result):
         print(f'!     {self.intro} {self.name} process has raised an error: {result}', flush=True)

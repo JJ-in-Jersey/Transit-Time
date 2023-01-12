@@ -2,11 +2,12 @@ import pandas as pd
 from functools import reduce
 from time import perf_counter
 
-from project_globals import read_df, write_df, min_sec, output_file_exists, shared_columns, boat_speeds
+from project_globals import read_df, write_df, mins_secs, output_file_exists, boat_speeds
 
-df_type = 'csv'
+df_type = 'hdf'
 
 def elapsed_time_reduce(route, env):
+
     init_time = perf_counter()
     elapsed_times_path = env.transit_time_folder().joinpath('elapsed_times')
     if output_file_exists(elapsed_times_path):
@@ -15,13 +16,14 @@ def elapsed_time_reduce(route, env):
     else:
         print(f':     elapsed time reduce', flush=True)
         elapsed_time_tables = [segment.elapsed_time_df() for segment in route.route_segments()]
-        et_reduce_df = reduce(lambda left, right: pd.merge(left, right, on=shared_columns), elapsed_time_tables)
+        et_reduce_df = reduce(lambda left, right: pd.merge(left, right, on='departure_index'), elapsed_time_tables)
         write_df(et_reduce_df, elapsed_times_path, df_type)
 
     for speed in boat_speeds:
         speed_columns = [segment.name() + ' ' + str(speed) for segment in route.route_segments()]
-        speed_df = et_reduce_df[shared_columns + speed_columns]
+        # speed_df = et_reduce_df[['departure_index']+speed_columns]
+        speed_df = et_reduce_df[speed_columns]
         route.elapsed_time_lookup(speed, speed_df)
     del et_reduce_df
 
-    print(f':     elapsed time reduce {min_sec(perf_counter() - init_time)} minutes', flush=True)
+    print(f':     elapsed time reduce {mins_secs(perf_counter() - init_time)} minutes', flush=True)
