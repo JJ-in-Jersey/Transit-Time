@@ -15,14 +15,12 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
-from project_globals import WDW, dash_to_zero, output_file_exists
+from project_globals import WDW, DF_FILE_TYPE, dash_to_zero, output_file_exists
 from project_globals import write_df, write_arr, read_arr, mins_secs, date_to_index
 
 #  VELOCITIES ARE DOWNLOADED, CALCULATED AND SAVE AS NAUTICAL MILES PER HOUR!
 
 logging.getLogger('WDM').setLevel(logging.NOTSET)
-
-df_type = 'csv'
 
 class VelocityJob:
 
@@ -83,7 +81,7 @@ class VelocityJob:
             self.driver.quit()
 
             download_df = download_df[(self.start_index <= download_df['date_index']) & (download_df['date_index'] <= self.end_index)]
-            write_df(download_df, self.download_table_path, df_type)
+            write_df(download_df, self.download_table_path, DF_FILE_TYPE)
             cs = CubicSpline(download_df['date_index'], download_df['velocity'])
             del download_df
 

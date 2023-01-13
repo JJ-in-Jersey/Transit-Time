@@ -2,12 +2,10 @@ import numpy as np
 import pandas as pd
 from time import perf_counter
 
-from project_globals import TIMESTEP, boat_speeds, sign, output_file_exists
+from project_globals import TIMESTEP, DF_FILE_TYPE, boat_speeds, sign, output_file_exists
 from project_globals import read_df, write_df, mins_secs, write_arr
 
 #  Elapsed times are reported in number of timesteps
-
-df_type = 'csv'
 
 def distance(water_vf, water_vi, boat_speed, time): return ((water_vf + water_vi) / 2 + boat_speed)*time  # distance is nm
 
@@ -61,7 +59,7 @@ class ElapsedTimeJob:
                 write_arr(dist, self.distance_array_path(s))
                 elapsed_times_df[col_name] = [elapsed_time(i, dist, sign(s)*self.length) for i in range(0, len(self.edge_range))]
                 elapsed_times_df.fillna(0, inplace=True)
-            write_df(elapsed_times_df, self.elapsed_time_table_path, df_type)
+            write_df(elapsed_times_df, self.elapsed_time_table_path, DF_FILE_TYPE)
         return tuple([self.id, elapsed_times_df, init_time])  # elapsed times are reported in number of timesteps
 
     def execute_callback(self, result):

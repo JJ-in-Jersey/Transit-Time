@@ -2,9 +2,7 @@ import pandas as pd
 from functools import reduce
 from time import perf_counter
 
-from project_globals import read_df, write_df, mins_secs, output_file_exists, boat_speeds
-
-df_type = 'csv'
+from project_globals import DF_FILE_TYPE, read_df, write_df, mins_secs, output_file_exists, boat_speeds
 
 def elapsed_time_reduce(route, env):
 
@@ -17,7 +15,7 @@ def elapsed_time_reduce(route, env):
         print(f':     elapsed time reduce', flush=True)
         elapsed_time_tables = [segment.elapsed_time_df() for segment in route.route_segments()]
         et_reduce_df = reduce(lambda left, right: pd.merge(left, right, on='departure_index'), elapsed_time_tables)
-        write_df(et_reduce_df, elapsed_times_path, df_type)
+        write_df(et_reduce_df, elapsed_times_path, DF_FILE_TYPE)
 
     for speed in boat_speeds:
         speed_columns = [segment.name() + ' ' + str(speed) for segment in route.route_segments()]

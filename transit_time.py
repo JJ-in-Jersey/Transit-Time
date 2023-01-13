@@ -2,10 +2,8 @@ import pandas as pd
 from scipy.signal import savgol_filter
 from time import perf_counter
 
-from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS, rounded_to_minutes, output_file_exists, hours_mins, mins_secs
-from project_globals import read_df, read_df_hdf, write_df, write_df_csv, write_list, read_arr, index_to_date, num_to_name
-
-df_type = 'csv'
+from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS, DF_FILE_TYPE, rounded_to_minutes, output_file_exists, hours_mins, mins_secs
+from project_globals import read_df, write_df, write_df_csv, write_list, read_arr, index_to_date, num_to_name
 
 def total_transit_time(init_row, d_frame, cols):
     row = init_row
@@ -92,7 +90,7 @@ class TransitTimeMinimaJob:
             tt_df['midline'] = read_df(self.savgol)
         else:
             tt_df['midline'] = savgol_filter(transit_array, 50000, 1)
-            write_df(tt_df['midline'], self.savgol, df_type)
+            write_df(tt_df['midline'], self.savgol, DF_FILE_TYPE)
         min_segs = tt_df['tts'].lt(tt_df['midline']).to_list()  # list of True or False the same length as tt_df
         clump = []
         for row, val in enumerate(min_segs):  # rows in tt_df, not the departure index
