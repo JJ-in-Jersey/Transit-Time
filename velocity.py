@@ -22,7 +22,7 @@ from project_globals import write_df, write_arr, read_arr, mins_secs, date_to_in
 
 logging.getLogger('WDM').setLevel(logging.NOTSET)
 
-df_type = 'hdf'
+df_type = 'csv'
 
 class VelocityJob:
 

@@ -7,7 +7,7 @@ from project_globals import read_df, write_df, mins_secs, write_arr
 
 #  Elapsed times are reported in number of timesteps
 
-df_type = 'hdf'
+df_type = 'csv'
 
 def distance(water_vf, water_vi, boat_speed, time): return ((water_vf + water_vi) / 2 + boat_speed)*time  # distance is nm
 

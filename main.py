@@ -65,7 +65,7 @@ if __name__ == '__main__':
     print(f'\nCalculating transit times (1st day-1 to last day+1)')
     for speed in boat_speeds: mp.job_queue.put(TransitTimeMinimaJob(route, speed, mp.environs, mp.chart_yr, mp.pool_notice))
     mp.job_queue.join()
-    for speed in boat_speeds: route.transit_time_lookup(speed, mp.result_lookup[speed])
+    # for speed in boat_speeds: route.transit_time_lookup(speed, mp.result_lookup[speed])
     # tj = TransitTimeMinimaJob(route, -7, mp.environs, mp.chart_yr, mp.pool_notice)
     # tj.execute()
 

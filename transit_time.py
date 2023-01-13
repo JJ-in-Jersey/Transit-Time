@@ -3,9 +3,9 @@ from scipy.signal import savgol_filter
 from time import perf_counter
 
 from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS, rounded_to_minutes, output_file_exists, hours_mins, mins_secs
-from project_globals import read_df, read_df_hdf, write_df, write_df_csv, write_list, read_arr, index_to_date
+from project_globals import read_df, read_df_hdf, write_df, write_df_csv, write_list, read_arr, index_to_date, num_to_name
 
-df_type = 'hdf'
+df_type = 'csv'
 
 def total_transit_time(init_row, d_frame, cols):
     row = init_row
@@ -29,10 +29,11 @@ class TransitTimeMinimaJob:
         self.transit_range = chart_yr.transit_range()
 
         self.elapsed_time_table = env.transit_time_folder().joinpath('et_' + str(speed))  #  elapsed times in table, sorted by speed
-        self.plotting_table = env.transit_time_folder().joinpath('tt_' + str(speed) + '_plotting_table')  # output of minima_table, npy, can be used for plotting/checking
-        self.savgol = env.transit_time_folder().joinpath('tt_' + str(speed) + '_savgol')  #  savgol column
-        self.transit_timesteps = env.transit_time_folder().joinpath('tt_' + str(speed) + '_timesteps')  # transit times column
-        self.transit_time = env.transit_time_folder().joinpath('transit_time_' + str(speed))  # final results table
+        self.__speed_folder = env.create_transit_time_folder(num_to_name(speed))
+        self.plotting_table = self.__speed_folder.joinpath('tt_' + str(speed) + '_plotting_table')  # output of minima_table, npy, can be used for plotting/checking
+        self.savgol = self.__speed_folder.joinpath('tt_' + str(speed) + '_savgol')  #  savgol column
+        self.transit_timesteps = self.__speed_folder.joinpath('tt_' + str(speed) + '_timesteps')  # transit times column
+        self.transit_time = env.transit_time_folder().joinpath('transit_time_' + str(speed))  # final results tabl
 
     def execute(self):
         init_time = perf_counter()
@@ -88,7 +89,7 @@ class TransitTimeMinimaJob:
         tt_df['plot'] = 0
         tt_df = tt_df.assign(tts = transit_array)
         if output_file_exists(self.savgol):
-            tt_df['midline'] = read_df_hdf(self.savgol)
+            tt_df['midline'] = read_df(self.savgol)
         else:
             tt_df['midline'] = savgol_filter(transit_array, 50000, 1)
             write_df(tt_df['midline'], self.savgol, df_type)
@@ -117,9 +118,9 @@ class TransitTimeMinimaJob:
                     tt_df.at[tt_df_min_row, 'start_index'] = start_index
                     tt_df.at[tt_df_min_row, 'min_index'] = min_index
                     tt_df.at[tt_df_min_row, 'end_index'] = end_index
-                    tt_df.at[tt_df_start_row, 'plot'] = transit_array.max()
-                    tt_df.at[tt_df_min_row, 'plot'] = transit_array.min()
-                    tt_df.at[tt_df_end_row, 'plot'] = transit_array.max()
+                    tt_df.at[tt_df_start_row, 'plot'] = max(transit_array)
+                    tt_df.at[tt_df_min_row, 'plot'] = min(transit_array)
+                    tt_df.at[tt_df_end_row, 'plot'] = max(transit_array)
                 clump = []
         return tt_df
 

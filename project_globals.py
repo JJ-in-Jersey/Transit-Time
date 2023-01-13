@@ -9,10 +9,11 @@ from datetime import timedelta as td
 from datetime import datetime as dt
 import warnings
 from pickle import HIGHEST_PROTOCOL
+from num2words import num2words
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
-TIMESTEP = 15  # seconds
+TIMESTEP = 60  # seconds
 TIME_RESOLUTION = 15  # rounded to minutes
 WINDOW_MARGIN = 10  # minutes
 TIMESTEP_MARGIN = WINDOW_MARGIN * 60 / TIMESTEP  # number of timesteps to add to minimum to find edges of time windows
@@ -82,6 +83,12 @@ def output_file_exists(path): return True if path.with_suffix('.csv').exists() o
 def hours_mins(secs): return "%d:%02d" % (secs // 3600, secs % 3600 // 60)
 def mins_secs(secs): return "%d:%02d" % (secs // 60, secs % 60)
 
+def num_to_name(number):
+    prefix = ''
+    if number < 0: prefix = '-'
+    number = abs(number)
+    return prefix+num2words(number)
+
 class Environment:
 
     def create_node_folder(self, name):
@@ -92,6 +99,10 @@ class Environment:
         edge_folder = self.elapsed_time_folder().joinpath(name)
         makedirs(edge_folder, exist_ok=True)
         return edge_folder
+    def create_transit_time_folder(self, name):
+        tt_folder = self.transit_time_folder().joinpath(name)
+        makedirs(tt_folder, exist_ok=True)
+        return tt_folder
     def project_folder(self, args=None):
         if args:
             self.__project_folder = Path(self.__user_profile + '/DevCore/' + args['project_name']+'/')

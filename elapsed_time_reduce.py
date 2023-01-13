@@ -4,7 +4,7 @@ from time import perf_counter
 
 from project_globals import read_df, write_df, mins_secs, output_file_exists, boat_speeds
 
-df_type = 'hdf'
+df_type = 'csv'
 
 def elapsed_time_reduce(route, env):
 
