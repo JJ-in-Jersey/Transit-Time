@@ -40,6 +40,7 @@ class VelocityJob:
         my_options.add_experimental_option('excludeSwitches', ['enable-logging'])
         my_options.add_experimental_option("prefs", {'download.default_directory': str(download_dir)})
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=my_options)
+        driver.implicitly_wait(30)  # seconds
         driver.minimize_window()
         return driver
 
