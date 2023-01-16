@@ -1,14 +1,12 @@
 from pathlib import Path
-from os import environ, makedirs, umask, remove
+from os import environ, makedirs, umask
 import shutil
 import pandas as pd
-import numpy as np
 import time
 import dateparser as dp
 from datetime import timedelta as td
 from datetime import datetime as dt
 import warnings
-from pickle import HIGHEST_PROTOCOL
 from num2words import num2words
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
@@ -25,54 +23,11 @@ boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]  # knot
 # boat_speeds = [v for v in range(-3, -1, 2)]+[v for v in range(3, 4, 2)]  # knots
 # shared_columns = ['departure_index', 'departure_time']
 
-def semaphore_on(name): open(Path(environ['TEMP']).joinpath(name).with_suffix('.tmp'), 'w').close()
-def semaphore_off(name): remove(Path(environ['TEMP']).joinpath(name).with_suffix('.tmp'))
-def is_semaphore_set(name): return True if Path(environ['TEMP']).joinpath(name).with_suffix('.tmp').exists() else False
-
 def sign(value): return value/abs(value)
-# def seconds(start, end): return int((end-start).total_seconds())
-def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 def rounded_to_minutes(index):
     total_minutes = index // 60
     rounded_seconds = round(total_minutes/TIME_RESOLUTION)*TIME_RESOLUTION*60
     return rounded_seconds
-
-def read_df_csv(path): return pd.read_csv(path.with_suffix('.csv'), header='infer')
-def write_df_csv(df, path, include_index=False):
-    df.to_csv(path.with_suffix('.csv'), index=include_index)
-    excel_size = 1000000
-    if len(df) > excel_size:
-        num_of_spreadsheets = len(df)/excel_size
-        whole_spreadsheets = len(df)//excel_size
-        for i in range(0,whole_spreadsheets):
-            temp = df.loc[i*excel_size: i*excel_size+excel_size-1]
-            temp.to_csv(path.parent.joinpath(path.name+'_excel_'+str(i)).with_suffix('.csv'), index=include_index)
-        if num_of_spreadsheets > whole_spreadsheets:
-            temp = df.loc[whole_spreadsheets*excel_size: ]
-            temp.to_csv(path.parent.joinpath(path.name+'_excel_'+str(whole_spreadsheets)).with_suffix('.csv'), index=include_index)
-
-def read_df_pkl(path): return pd.read_pickle(path.with_suffix('.pkl'))
-def write_df_pkl(df, path): df.to_pickle(path.with_suffix('.pkl'), protocol=HIGHEST_PROTOCOL)
-
-def read_df_hdf(path): return pd.read_hdf(path.with_suffix('.hdf'))
-def write_df_hdf(df, path): df.to_hdf(path.with_suffix('.hdf'), key='gonzo', mode='w', index=False)
-
-def read_df(path):
-    if path.with_suffix('.csv').exists(): return read_df_csv(path)
-    elif path.with_suffix('.pkl').exists(): return read_df_pkl(path)
-    elif path.with_suffix('.hdf').exists(): return read_df_hdf(path)
-    else: print('Unrecognizable extension')
-def write_df(df, path, extension):
-    if extension == 'csv': write_df_csv(df, path)
-    elif extension == 'pkl': write_df_pkl(df, path)
-    elif extension == 'hdf': write_df_hdf(df, path)
-    else: print('Unrecognizable extension')
-
-def read_arr(path): return np.load(path.with_suffix('.npy'))
-def write_arr(arr, path): np.save(path.with_suffix('.npy'), arr, allow_pickle=False)
-
-def read_list(path): return list(read_arr(path))
-def write_list(lst, path): write_arr(lst, path)
 
 def date_to_index(date_time):
     if isinstance(date_time, dt): return int(time.mktime(date_time.timetuple()))
@@ -85,10 +40,8 @@ def hours_mins(secs): return "%d:%02d" % (secs // 3600, secs % 3600 // 60)
 def mins_secs(secs): return "%d:%02d" % (secs // 60, secs % 60)
 
 def num_to_name(number):
-    prefix = ''
-    if number < 0: prefix = '-'
-    number = abs(number)
-    return prefix+num2words(number)
+    if number < 0: return '-'+num2words(number)
+    else: return num2words(number)
 
 class Environment:
 
@@ -106,7 +59,7 @@ class Environment:
         return tt_folder
     def project_folder(self, args=None):
         if args:
-            self.__project_folder = Path(self.__user_profile + '/DevCore/' + args['project_name']+'/')
+            self.__project_folder = Path(self.__user_profile + '/Developer Workspace/' + args['project_name']+'/')
             if args['delete_data']:
                 shutil.rmtree(self.__project_folder, ignore_errors=True)
                 makedirs(self.__project_folder, exist_ok=True)
@@ -171,4 +124,3 @@ class ChartYear:
         self.__last_day_plus_one = None
         self.__last_day_plus_two = None
         self.__last_day_plus_three = None
-

@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 from time import perf_counter
 
-from project_globals import TIMESTEP, DF_FILE_TYPE, boat_speeds, sign, output_file_exists
-from project_globals import read_df, write_df, mins_secs, write_arr
+from project_globals import TIMESTEP, DF_FILE_TYPE, boat_speeds, sign, output_file_exists, mins_secs
+from ReadWrite import ReadWrite as rw
 
 #  Elapsed times are reported in number of timesteps
 
@@ -40,7 +40,7 @@ class ElapsedTimeJob:
 
         if output_file_exists(self.elapsed_time_table_path):
             print(f':     {self.name} ({round(self.length, 2)} nm) reading data file', flush=True)
-            edge.elapsed_time_df(read_df(self.elapsed_time_table_path))
+            edge.elapsed_time_df(rw.read_df(self.elapsed_time_table_path))
 
     def execute(self):
         init_time = perf_counter()
@@ -55,11 +55,11 @@ class ElapsedTimeJob:
             for s in boat_speeds:
                 col_name = self.name+' '+str(s)
                 dist = distance(final_velocities[1:], initial_velocities[:-1], s, ts_in_hr)  # distance in nm
-                dist = np.insert(dist,0,0.0)  # because distance uses an offset calculation VIx VFx+1, we need to add a zero to the begining
-                write_arr(dist, self.distance_array_path(s))
+                dist = np.insert(dist, 0, 0.0)  # because distance uses an offset calculation VIx VFx+1, we need to add a zero to the beginning
+                rw.write_arr(dist, self.distance_array_path(s))
                 elapsed_times_df[col_name] = [elapsed_time(i, dist, sign(s)*self.length) for i in range(0, len(self.edge_range))]
                 elapsed_times_df.fillna(0, inplace=True)
-            write_df(elapsed_times_df, self.elapsed_time_table_path, DF_FILE_TYPE)
+            rw.write_df(elapsed_times_df, self.elapsed_time_table_path, DF_FILE_TYPE)
         return tuple([self.id, elapsed_times_df, init_time])  # elapsed times are reported in number of timesteps
 
     def execute_callback(self, result):

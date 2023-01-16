@@ -28,7 +28,7 @@ class RouteNode(Node):
         return self.__next_route_edge
     def url(self): return self.__url
     def velocities(self, velo=None):
-        self.__velocities = velo if velo is not None and self.__velocities is None else self.__velocities  # can be set only onece
+        self.__velocities = velo if velo is not None and self.__velocities is None else self.__velocities  # can be set only once
         return self.__velocities
     def velocity_path(self): return self.__velo_path
     def download_table_path(self): return self.__download_table_path
@@ -144,4 +144,3 @@ class GpxRoute:
         elif (lat_sign > 0 > lon_sign and not lon_dist >= lat_dist) or (lat_sign < 0 and lon_sign < 0 and not lon_dist >= lat_dist): self.__direction = 'NS'
         elif (lat_sign < 0 < lon_sign and lon_dist >= lat_dist) or (lat_sign < 0 and lon_sign < 0 and lon_dist >= lat_dist): self.__direction = 'EW'
         elif (lat_sign > 0 and lon_sign > 0 and lon_dist >= lat_dist) or (lat_sign > 0 > lon_sign and lon_dist >= lat_dist): self.__direction = 'WE'
-

@@ -1,5 +1,6 @@
 from argparse import ArgumentParser as argParser
 from pathlib import Path
+# import site
 from multiprocessing import Manager
 
 import multiprocess as mp
@@ -8,9 +9,16 @@ from velocity import VelocityJob
 from elapsed_time import ElapsedTimeJob
 from elapsed_time_reduce import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
-from project_globals import TIMESTEP, boat_speeds, semaphore_off
+from project_globals import TIMESTEP, boat_speeds
+
+from Semaphore import Simple_Semaphore as Semaphore
+from ChromeDriver import ChromeDriver as cd
 
 if __name__ == '__main__':
+
+    # print(site.USER_SITE)
+
+    cd.update_driver()  # update chrome driver before launching process that use it
 
     mgr = Manager()
     mp.result_lookup = mgr.dict()
@@ -69,5 +77,5 @@ if __name__ == '__main__':
     # tj = TransitTimeMinimaJob(route, -7, mp.environs, mp.chart_yr, mp.pool_notice)
     # tj.execute()
 
-    semaphore_off(mp.job_manager_semaphore)
+    Semaphore.off(mp.job_manager_semaphore)
     mp.som.shutdown()
