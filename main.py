@@ -16,8 +16,6 @@ from ChromeDriver import ChromeDriver as cd
 
 if __name__ == '__main__':
 
-    # print(site.USER_SITE)
-
     cd.update_driver()  # update chrome driver before launching process that use it
 
     mgr = Manager()
