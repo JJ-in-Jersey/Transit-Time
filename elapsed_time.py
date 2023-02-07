@@ -24,7 +24,7 @@ class ElapsedTimeJob:
 
     def distance_array_path(self, speed): return self.edge_folder.joinpath(self.name + '_distance_array_' + str(speed))
 
-    def __init__(self, edge, chart_yr, intro=''):
+    def __init__(self, mpm, intro=''):
         self.intro = intro
         self.length = edge.length()
         self.name = edge.name()

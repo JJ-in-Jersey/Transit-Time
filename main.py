@@ -1,30 +1,27 @@
 from argparse import ArgumentParser as argParser
 from pathlib import Path
-# import site
 from multiprocessing import Manager
 
-import multiprocess as mp
-from route_objects import GpxRoute
+import multiprocess as mpm
+from route_objects import Route
 from velocity import VelocityJob
 from elapsed_time import ElapsedTimeJob
 from elapsed_time_reduce import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
 from project_globals import TIMESTEP, boat_speeds
 
-from Semaphore import Simple_Semaphore as Semaphore
+from Semaphore import SimpleSemaphore as Semaphore
 from ChromeDriver import ChromeDriver as cd
 
 if __name__ == '__main__':
 
-    # print(site.USER_SITE)
-
     cd.update_driver()  # update chrome driver before launching process that use it
 
     mgr = Manager()
-    mp.result_lookup = mgr.dict()
-    mp.som.start(mp.pm_init)
-    mp.chart_yr = mp.som.CY()
-    mp.environs = mp.som.ENV()
+    mpm.result_lookup = mgr.dict()
+    mpm.som.start(mpm.pm_init)
+    mpm.cy = mpm.som.CY()
+    mpm.env = mpm.som.ENV()
 
     ap = argParser()
     ap.add_argument('project_name', type=str, help='name of transit window project')
@@ -33,18 +30,20 @@ if __name__ == '__main__':
     ap.add_argument('-dd', '--delete_data', action='store_true')
     args = vars(ap.parse_args())
 
-    mp.environs.project_folder(args)
-    mp.chart_yr.initialize(args)
-    jm = mp.WaitForProcess(target=mp.JobManager, args=(mp.job_queue, mp.result_lookup))
+    mpm.env.project_folder(args)
+    mpm.cy.initialize(args)
+    jm = mpm.WaitForProcess(target=mpm.JobManager, args=(mpm.job_queue, mpm.result_lookup))
     jm.start()
 
     # Assemble route and route objects
-    route = GpxRoute(args['filepath'], mp.environs)
-    print(f'Number of waypoints: {len(route.route_nodes())}')
+    route = Route(args['filepath'])
+    print(f'Number of waypoints: {len(route._waypoints)}')
+    print(f'Number of velocity waypoints: {len(route._velocity_waypoints)}')
+    print(f'Number of elapsed time segments: {len(route._elapsed_time_segments)}')
     print(f'timestep: {TIMESTEP}')
     print(f'boat speeds: {boat_speeds}')
-    print(f'length {round(route.length(),2)} nm')
-    print(f'direction {route.direction()}')
+    print(f'length {route._path.total_length()} nm')
+    print(f'direction {route._path.direction()}')
 
     # Download noaa data and create velocity arrays for each waypoint (node)
     print(f'\nCalculating currents at waypoints (1st day-1 to last day+3)')

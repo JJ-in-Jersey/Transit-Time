@@ -1,108 +1,129 @@
 from bs4 import BeautifulSoup as Soup
 from haversine import haversine as hvs, Unit
-from project_globals import sign
+from Navigation import Navigation as nav
 
-class Node:
+class Waypoint:
+    # get everything that is available from the tag
+    #
+    # arguments
+    #   gpxtag
+    # data members
+    #   num, name, lat, lon, symbol, code, url, prev_edges, next_edges
+    # methods
+    #   coords, prev_edges, next_edge
 
-    def next_edge(self, edge=None):
-        self.__next_edge = edge if edge and not self.__next_edge else self.__next_edge  # can be set only once
-        return self.__next_edge
-    def coords(self): return self.__coords
-    def name(self): return self.__name
-    def code(self): return self.__code
+    type = {'CurrentStationWP': 'Symbol-Spot-Orange', 'PlaceHolderWP': 'Symbol-Spot-Green', 'InterpolationWP': 'Symbol-Spot-Blue'}
+    ordinal_number = 0
+    number_lookup = {}
+
+    def coords(self): return tuple((self._lat, self._lon))
+    def prev_edge(self, path, edge=None):
+        if edge: self._prev_edges[path] = edge
+        else: return self._prev_edges[path]
+    def next_edge(self, path, edge=None):
+        if edge: self._next_edges[path] = edge
+        else: return self._next_edges[path]
+    def has_velocity(self): return False
 
     def __init__(self, gpxtag):
-        self.__gpxtag = gpxtag
-        self.__name = gpxtag.find('name').text
-        self.__coords = (round(float(gpxtag.attrs['lat']), 4), round(float(gpxtag.attrs['lon']), 4))
-        self.__code = gpxtag.link.attrs['href'].split('=')[1].split('_')[0] if gpxtag.link else '0000'
-        self.__next_edge = None
+        self._number = Waypoint.ordinal_number
+        self._name = gpxtag.find('name').text
+        self._lat = round(float(gpxtag.attrs['lat']), 4)
+        self._lon = round(float(gpxtag.attrs['lon']), 4)
+        self._symbol = gpxtag.sym.text
+        self._noaa_code = gpxtag.link.text.strip('\n') if gpxtag.link else None
+        self._noaa_url = gpxtag.link.attrs['href'] if gpxtag.link else None
+        self._prev_edges = {}
+        self._next_edges = {}
 
-    # def __del__(self):
-    #     print(f'Deleting Node', flush=True)
+        Waypoint.number_lookup[Waypoint.ordinal_number] = self
+        Waypoint.ordinal_number += 1
 
-class RouteNode(Node):
+class PlaceHolderWP(Waypoint):
 
-    def next_route_edge(self, edge=None):
-        self.__next_route_edge = edge if edge and not self.__next_route_edge else self.__next_route_edge  # can be set only once
-        return self.__next_route_edge
-    def url(self): return self.__url
-    def velocities(self, velo=None):
-        self.__velocities = velo if velo is not None and self.__velocities is None else self.__velocities  # can be set only once
-        return self.__velocities
-    def velocity_path(self): return self.__velo_path
-    def download_table_path(self): return self.__download_table_path
-    def download_folder(self): return self.__download_folder
-
-    def __init__(self, gpxtag, env):
+    def __init__(self, gpxtag):
         super().__init__(gpxtag)
-        self.__next_route_edge = None
-        self.__url = gpxtag.link.attrs['href']
-        self.__velocities = None
-        self.__velo_path = env.velocity_folder().joinpath(self.code()+'_table')
-        self.__download_table_path = env.create_node_folder(self.code()).joinpath(self.code()+'_download_table')
-        self.__download_folder = env.create_node_folder(self.code())
-        self.__next_route_edge = None
+
+class InterpolationWP(Waypoint):
+
+    def has_velocity(self): return True
+
+    def __init__(self, gpxtag):
+        super().__init__(gpxtag)
+
+class CurrentStationWP(Waypoint):
+
+    def has_velocity(self): return True
+
+    def __velo_arr(self, velo=None):
+        self.__velo_arr = velo if velo is not None and self.__velo_arr is None else self.__velo_arr
+        return self.__velo_arr
+
+    # def velo_path(self): return self.__velo_path
+    # def chrome_download_path(self): return self.__chrome_download_path
+    # def start_index(self): return self.__calc_start_index
+    # def end_index(self): return self.__calc_end_index
+
+    def __init__(self, gpxtag):
+        super().__init__(gpxtag)
+        self.__velo_arr = None
 
 class Edge:
+    # arguments
+    #   path, start, end
+    # data members
+    #   start waypoint, end waypoint
+    # methods
+    #   name, length
 
-    def start(self): return self.__start
-    def end(self): return self.__end
-    def name(self): return self.__name
-    def length(self): return self.__length
+    def name(self): return '[' + str(self._start._number) + '-' + str(self._end._number) + ']'
+    def length(self): return round(hvs(self._start.coords(), self._end.coords(), unit=Unit.NAUTICAL_MILES),4)
 
-    def __init__(self, start, end):
-        self.__start = start
-        self.__end = end
-        self.__name = start.code()+'-'+end.code()
-        self.__length = hvs(start.coords(), end.coords(), unit=Unit.NAUTICAL_MILES)
-        start.next_edge(self)
+    def __init__(self, path, start, end):
+        self._path = path
+        self._start = start
+        self._end = end
+        start.next_edge(path, self)
+        end.prev_edge(path, self)
 
-    # def __del__(self):
-    #     print(f'Deleting Edge', flush=True)
+class Path:
+    # data members:
+    #   waypoints
+    # methods
+    #   name, length
 
-class RouteSegment:
+    def name(self): return '{' + str(self._waypoints[0]._number) + '-' + str(self._waypoints[-1]._number) + '}'
+    def total_length(self): return round(sum([edge.length() for edge in self._edges]),4)
+    def direction(self): return nav.direction(self._waypoints[0].coords(), self._waypoints[-1].coords())
+    def edges(self): return self._edges
 
-    def elapsed_time_df(self, df=None):
-        if self.__elapsed_time_df is None and df is not None: self.__elapsed_time_df = df
-        return self.__elapsed_time_df
+    def __init__(self, waypoints):
+        self._waypoints = waypoints
+        self._edges = []
+        for i, waypoint in enumerate(self._waypoints[:-1]):
+            self._edges.append(Edge(self, waypoint, self._waypoints[i+1]))
 
-    def start(self): return self.__start
-    def end(self): return self.__end
-    def name(self): return self.__name
-    def length(self): return self.__length
-    def edge_folder(self): return self.__edge_folder
-    def elapsed_time_table_path(self): return self.__elapsed_time_table_path
+    def print_path(self, direction=None):
+        print(self.name(), self.total_length(), self.direction())
+        if direction == -1:
+            for waypoint in reversed(self._waypoints):
+                print(f'({waypoint._number} {type(waypoint).__name__})', end='')
+                print(f' {waypoint.prev_edge(self).name()} {waypoint.prev_edge(self).length()} ', end='')
+        else:
+            for waypoint in self._waypoints:
+                print(f'({waypoint._number} {type(waypoint).__name__})', end='')
+                print(f' {waypoint.next_edge(self).name()} {waypoint.next_edge(self).length()} ', end='')
 
-    @staticmethod
-    def calc_length(start, end):
-        edge_lengths = 0
-        node = start
-        while node != end:
-            edge_lengths += node.next_edge().length()
-            node = node.next_edge().end()
-        return edge_lengths
+    def length(self, start_wp, end_wp):
+        length = 0
+        if start_wp == end_wp: return length
+        wp_range = range(start_wp._number, end_wp._number) if start_wp._number < end_wp._number else range(end_wp._number, start_wp._number)
+        for i in wp_range:
+            length += Waypoint.number_lookup[i].next_edge(self).length()
+        return length
 
-    def __init__(self, start, end, env):
-        self.__start = start
-        self.__end = end
-        self.__name = start.code()+'-'+end.code()
-        self.__length = self.calc_length(start, end)
-        self.__edge_folder = env.create_edge_folder(self.__name)
-        self.__elapsed_time_df = None
-        self.__elapsed_time_table_path = env.elapsed_time_folder().joinpath(self.__name+'_table')
+class Route:
 
-    # def __del__(self):
-    #     print(f'Deleting Route Segment', flush=True)
-
-class GpxRoute:
-
-    directionLookup = {'SN': 'South to North', 'NS': 'North to South', 'EW': 'East to West', 'WE': 'West to East'}
-
-    def route_nodes(self): return self.__route_nodes
-    def route_segments(self): return self.__route_segments
-    def length(self): return self.__length
-    def direction(self): return GpxRoute.directionLookup[self.__direction]
     def transit_time_lookup(self, key, array=None):
         if key not in self.transit_time_dict and array is not None:
             self.transit_time_dict[key] = array
@@ -113,34 +134,31 @@ class GpxRoute:
             self.elapsed_time_dict[key] = array
         else:
             return self.elapsed_time_dict[key]
+    def elapsed_time_segments(self): return self._elapsed_time_segments
 
-    def __init__(self, filepath, env):
-        self.transit_time_dict = {}
-        self.elapsed_time_dict = {}
-        self.__route_nodes = self.__route_edges = self.__elapsed_times = None
-        self.__direction = self.__length = 0
+    def __init__(self, filepath):
+        self._transit_time_dict = {}
+        self._elapsed_time_dict = {}
+        self._waypoints = []
+        self._path = None
+        self._elapsed_time_segments = []
+        self._velocity_waypoints = []
 
         with open(filepath, 'r') as f: gpxfile = f.read()
         tree = Soup(gpxfile, 'xml')
 
-        # create graph nodes
-        nodes = [RouteNode(waypoint, env) if waypoint.desc else Node(waypoint) for waypoint in tree.find_all('rtept')]
-        self.__route_nodes = [node for node in nodes if isinstance(node, RouteNode)]
+        # build ordered list of all waypoints
+        for waypoint in tree.find_all('rtept'):
+            if waypoint.sym.text == Waypoint.type['CurrentStationWP']: self._waypoints.append(CurrentStationWP(waypoint))
+            elif waypoint.sym.text == Waypoint.type['PlaceHolderWP']: self._waypoints.append(PlaceHolderWP(waypoint))
+            elif waypoint.sym.text == Waypoint.type['InterpolationWP']: self._waypoints.append(InterpolationWP(waypoint))
 
-        # create graph edges and segments
-        for i, node in enumerate(nodes[:-1]): Edge(node, nodes[i+1])
-        self.__route_segments = [RouteSegment(node, self.__route_nodes[i+1], env) for i, node in enumerate(self.__route_nodes[:-1])]
+        self._path = Path(self._waypoints)
+        # base_path.print_path()
 
-        # calculate route length
-        self.__length = sum([node.next_edge().length() for node in nodes[:-1]])
+        self._velocity_waypoints = list(filter(lambda wp: wp.has_velocity(), self._waypoints))
+        vwps = self._velocity_waypoints
+        self._elapsed_time_segments = [tuple((wp, vwps[i+1], self._path.length(wp, vwps[i+1]))) for i, wp in enumerate(vwps[:-1])]
 
-        # calculate direction
-        corner = (nodes[-1].coords()[0], nodes[0].coords()[1])
-        lat_sign = sign(nodes[-1].coords()[1]-nodes[0].coords()[1])
-        lon_sign = sign(nodes[-1].coords()[0]-nodes[0].coords()[0])
-        lat_dist = hvs(corner, nodes[0].coords(), unit=Unit.NAUTICAL_MILES)
-        lon_dist = hvs(nodes[-1].coords(), corner, unit=Unit.NAUTICAL_MILES)
-        if (lat_sign > 0 and lon_sign > 0 and not lon_dist >= lat_dist) or (lat_sign < 0 < lon_sign and not lon_dist >= lat_dist): self.__direction = 'SN'
-        elif (lat_sign > 0 > lon_sign and not lon_dist >= lat_dist) or (lat_sign < 0 and lon_sign < 0 and not lon_dist >= lat_dist): self.__direction = 'NS'
-        elif (lat_sign < 0 < lon_sign and lon_dist >= lat_dist) or (lat_sign < 0 and lon_sign < 0 and lon_dist >= lat_dist): self.__direction = 'EW'
-        elif (lat_sign > 0 and lon_sign > 0 and lon_dist >= lat_dist) or (lat_sign > 0 > lon_sign and lon_dist >= lat_dist): self.__direction = 'WE'
+
+

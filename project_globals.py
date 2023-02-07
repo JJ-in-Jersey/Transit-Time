@@ -45,7 +45,7 @@ def num_to_name(number):
 
 class Environment:
 
-    def create_node_folder(self, name):
+    def create_waypoint_folder(self, name):
         node_folder = self.velocity_folder().joinpath(name)
         makedirs(node_folder, exist_ok=True)
         return node_folder
@@ -53,7 +53,7 @@ class Environment:
         edge_folder = self.elapsed_time_folder().joinpath(name)
         makedirs(edge_folder, exist_ok=True)
         return edge_folder
-    def create_transit_time_folder(self, name):
+    def create_transit_time_speed_folder(self, name):
         tt_folder = self.transit_time_folder().joinpath(name)
         makedirs(tt_folder, exist_ok=True)
         return tt_folder
@@ -63,21 +63,20 @@ class Environment:
             if args['delete_data']:
                 shutil.rmtree(self.__project_folder, ignore_errors=True)
                 makedirs(self.__project_folder, exist_ok=True)
-                return self.__project_folder
         return self.__project_folder
     def velocity_folder(self):
-        if not self.__velocity_folder:
-            self.__velocity_folder = self.__project_folder.joinpath('Velocity')
+        if self.__velocity_folder is None and self.project_folder() is not None:
+            self.__velocity_folder = self.project_folder().joinpath('Velocity')
             makedirs(self.__velocity_folder, exist_ok=True)
         return self.__velocity_folder
     def elapsed_time_folder(self):
-        if not self.__elapsed_time_folder:
-            self.__elapsed_time_folder = self.__project_folder.joinpath('Elapsed Time')
+        if self.__elapsed_time_folder is None and self.project_folder() is not None:
+            self.__elapsed_time_folder = self.project_folder().joinpath('Elapsed Time')
             makedirs(self.__elapsed_time_folder, exist_ok=True)
         return self.__elapsed_time_folder
     def transit_time_folder(self):
-        if not self.__transit_time_folder:
-            self.__transit_time_folder = self.__project_folder.joinpath('Transit Time')
+        if self.__transit_time_folder is None and self.project_folder() is not None:
+            self.__transit_time_folder = self.project_folder().joinpath('Transit Time')
             makedirs(self.__transit_time_folder, exist_ok=True)
         return self.__transit_time_folder
     def user_profile(self): return self.__user_profile
