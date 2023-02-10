@@ -24,6 +24,9 @@ class Waypoint:
         if edge: self._next_edges[path] = edge
         else: return self._next_edges[path]
     def has_velocity(self): return False
+    def velo_array(self, v_array=None):
+        if v_array is not None: self._velo_array = v_array
+        else: return self._velo_array
 
     def __init__(self, gpxtag):
         self._number = Waypoint.ordinal_number
@@ -35,6 +38,7 @@ class Waypoint:
         self._noaa_url = gpxtag.link.attrs['href'] if gpxtag.link else None
         self._prev_edges = {}
         self._next_edges = {}
+        self._velo_array = None
 
         Waypoint.number_lookup[Waypoint.ordinal_number] = self
         Waypoint.ordinal_number += 1
