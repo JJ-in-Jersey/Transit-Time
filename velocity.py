@@ -44,52 +44,50 @@ class VelocityJob:
 
     def execute(self):
         init_time = perf_counter()
-        if output_file_exists(self.__velocity_array_file):
-            return tuple([self.__id, None, init_time])
+        if output_file_exists(self._velo_array_pathfile):
+            return tuple([self._result_key, None, init_time])
         else:
-            print(f'+     {self.__intro} {self.__code} {self.__name}', flush=True)
+            print(f'+     {self._code} {self._name}', flush=True)
             download_df = pd.DataFrame()
 
             # download all the noaa files, aggregate them and write the out
-            driver = cd.get_driver(self.__download_folder)
-            for y in range(self.__year - 1, self.__year + 2):  # + 2 because of range behavior
-                driver.get(self.__url)
+            driver = cd.get_driver(self._download_folder)
+            for y in range(self._year - 1, self._year + 2):  # + 2 because of range behavior
+                driver.get(self._url)
                 wdw = WebDriverWait(driver, WDW)
-                VelocityJob.velocity_page(y, self.__code, driver, wdw)
-                downloaded_file = VelocityJob.velocity_download(self.__download_folder, wdw)
+                VelocityJob.velocity_page(y, self._code, driver, wdw)
+                downloaded_file = VelocityJob.velocity_download(self._download_folder, wdw)
                 file_df = pd.read_csv(downloaded_file, usecols=[' Speed (knots)', 'Date_Time (LST/LDT)'], converters={' Speed (knots)': dash_to_zero, 'Date_Time (LST/LDT)': date_to_index})
                 file_df.rename(columns={'Date_Time (LST/LDT)': 'date_index', ' Speed (knots)': 'velocity'}, inplace=True)
                 download_df = pd.concat([download_df, file_df])
             driver.quit()
-            download_df = download_df[(self.__start_index <= download_df['date_index']) & (download_df['date_index'] <= self.__end_index)]
-            rw.write_df(download_df, self.__download_folder.joinpath(self.__code + '_table'), DF_FILE_TYPE)
+            download_df = download_df[(self._start_index <= download_df['date_index']) & (download_df['date_index'] <= self._end_index)]
+            rw.write_df(download_df, self._download_folder.joinpath(self._code + '_table'), DF_FILE_TYPE)
 
             # create cubic spline
             cs = CubicSpline(download_df['date_index'], download_df['velocity'])
 
             output_df = pd.DataFrame()
-            output_df['date_index'] = self.__velo_range
+            output_df['date_index'] = self._velo_range
             output_df['velocity'] = output_df['date_index'].apply(cs)
             velo_array = np.array(output_df['velocity'].to_list(), dtype=np.half)
-            rw.write_arr(velo_array, self.__velocity_array_file)
-            return tuple([self.__id, velo_array, init_time])
+            rw.write_arr(velo_array, self._velo_array_pathfile)
+            return tuple([self._result_key, velo_array, init_time])
 
     def execute_callback(self, result):
-        print(f'-     {self.__intro} {self.__code} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
+        print(f'-     {self._code} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
 
     def error_callback(self, result):
-        print(f'!     {self.__intro} {self.__code} process has raised an error: {result}', flush=True)
+        print(f'!     {self._code} process has raised an error: {result}', flush=True)
 
-    def __init__(self, waypoint, mpm, intro=''):
-        self.__year = mpm.chart_yr.year()
-        self.__start_index = mpm.chart_yr.waypoint_start_index()
-        self.__end_index = mpm.chart_yr.waypoint_end_index()
-        self.__velo_range = mpm.chart_yr.waypoint_range()
-        self.__intro = intro
-        self.__code = waypoint.code()
-        self.__name = waypoint.name()
-        self.__url = waypoint.url()
-        self.__id = id(waypoint)
-        self.__velocity_array_file = mpm.env.velocity_folder().joinpath(self.__code + '_array')
-        self.__download_folder = mpm.env.create_waypoint_folder(waypoint.code)
-        umask(0)
+    def __init__(self, mpm, waypoint):
+        self._year = mpm.cy.year()
+        self._start_index = mpm.cy.waypoint_start_index()
+        self._end_index = mpm.cy.waypoint_end_index()
+        self._velo_range = mpm.cy.waypoint_range()
+        self._code = waypoint._noaa_code
+        self._name = waypoint._name
+        self._url = waypoint._noaa_url
+        self._result_key = id(waypoint)
+        self._velo_array_pathfile = mpm.env.velocity_folder().joinpath(waypoint._noaa_code + '_array')
+        self._download_folder = mpm.env.create_waypoint_folder(waypoint._noaa_code)
