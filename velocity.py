@@ -21,6 +21,8 @@ logging.getLogger('WDM').setLevel(logging.NOTSET)
 
 def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 
+
+# noinspection PyProtectedMember
 class VelocityJob:
 
     @classmethod
@@ -76,13 +78,12 @@ class VelocityJob:
             return tuple([self._result_key, velo_array, init_time])
 
     def execute_callback(self, result):
-        print(f'-     {self._code} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
+        print(f'-     {self._code} {self._name} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
 
     def error_callback(self, result):
-        print(f'!     {self._code} process has raised an error: {result}', flush=True)
+        print(f'!     {self._code} {self._name} process has raised an error: {result}', flush=True)
 
     def __init__(self, mpm, waypoint):
-        umask(0)
         self._year = mpm.cy.year()
         self._start_index = mpm.cy.waypoint_start_index()
         self._end_index = mpm.cy.waypoint_end_index()
@@ -91,5 +92,5 @@ class VelocityJob:
         self._name = waypoint._name
         self._url = waypoint._noaa_url
         self._result_key = id(waypoint)
-        self._velo_array_pathfile = mpm.env.velocity_folder().joinpath(waypoint._noaa_code + '_array')
-        self._download_folder = mpm.env.create_waypoint_folder(waypoint._noaa_code)
+        self._download_folder = mpm.env.waypoint_folder(waypoint._name)
+        self._velo_array_pathfile = mpm.env.velocity_folder().joinpath(waypoint._name + '_array')

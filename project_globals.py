@@ -11,7 +11,7 @@ from num2words import num2words
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
-TIMESTEP = 15  # seconds
+TIMESTEP = 60  # seconds
 TIME_RESOLUTION = 15  # rounded to minutes
 WINDOW_MARGIN = 10  # minutes
 TIMESTEP_MARGIN = WINDOW_MARGIN * 60 / TIMESTEP  # number of timesteps to add to minimum to find edges of time windows
@@ -45,11 +45,11 @@ def num_to_name(number):
 
 class Environment:
 
-    def create_waypoint_folder(self, name):
-        node_folder = self.velocity_folder().joinpath(name)
-        makedirs(node_folder, exist_ok=True)
-        return node_folder
-    def create_edge_folder(self, name):
+    def waypoint_folder(self, name):
+        waypoint_folder = self.velocity_folder().joinpath(name)
+        makedirs(waypoint_folder, exist_ok=True)
+        return waypoint_folder
+    def edge_folder(self, name):
         edge_folder = self.elapsed_time_folder().joinpath(name)
         makedirs(edge_folder, exist_ok=True)
         return edge_folder

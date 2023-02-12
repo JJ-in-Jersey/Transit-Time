@@ -30,12 +30,13 @@ class Waypoint:
 
     def __init__(self, gpxtag):
         self._number = Waypoint.ordinal_number
-        self._name = gpxtag.find('name').text
         self._lat = round(float(gpxtag.attrs['lat']), 4)
         self._lon = round(float(gpxtag.attrs['lon']), 4)
         self._symbol = gpxtag.sym.text
-        self._noaa_code = gpxtag.link.text.strip('\n') if gpxtag.link else None
+        self._noaa_name = gpxtag.find('name').text
         self._noaa_url = gpxtag.link.attrs['href'] if gpxtag.link else None
+        self._noaa_code = gpxtag.link.text.strip('\n') if gpxtag.link else None
+        self._name = str(self._number) + ' ' + self._noaa_name.split(',')[0].split('(')[0].replace('.','').strip()
         self._prev_edges = {}
         self._next_edges = {}
         self._velo_array = None
@@ -90,6 +91,32 @@ class Edge:
         start.next_edge(path, self)
         end.prev_edge(path, self)
 
+class ElapsedTimeSegment:
+    # arguments
+    #   path, start, end
+    # data members
+    #   start velocity, end velocity
+    # methods
+    #   elapsed_times_df
+
+    def elapsed_times_df(self, elapsed_times_df=None):
+        if elapsed_times_df is not None: self._elapsed_times_df = elapsed_times_df
+        else: return self._elapsed_times_df
+
+    def update(self):
+        self._start_velo = self.__start.velo_array()
+        self._end_velo = self.__end.velo_array()
+
+    def __init__(self, path, start, end):
+        self.__start = start
+        self.__end = end
+        self._path = path
+        self._name = '{' + str(start._number) + '-' + str(end._number) + '}'
+        self._start_velo = None
+        self._end_velo = None
+        self._length = path.length(start, end)
+        self._elapsed_times_df = None
+
 class Path:
     # data members:
     #   waypoints
@@ -129,16 +156,16 @@ class Path:
 class Route:
 
     def transit_time_lookup(self, key, array=None):
-        if key not in self.transit_time_dict and array is not None:
-            self.transit_time_dict[key] = array
+        if key not in self._transit_time_dict and array is not None:
+            self._transit_time_dict[key] = array
         else:
-            return self.transit_time_dict[key]
+            return self._transit_time_dict[key]
     def elapsed_time_lookup(self, key, array=None):
-        if key not in self.elapsed_time_dict and array is not None:
-            self.elapsed_time_dict[key] = array
+        if key not in self._elapsed_time_dict and array is not None:
+            self._elapsed_time_dict[key] = array
         else:
-            return self.elapsed_time_dict[key]
-    def elapsed_time_segments(self): return self._elapsed_time_segments
+            return self._elapsed_time_dict[key]
+    # def elapsed_time_segments(self): return self._elapsed_time_segments
 
     def __init__(self, filepath):
         self._transit_time_dict = {}
@@ -162,7 +189,7 @@ class Route:
 
         self._velocity_waypoints = list(filter(lambda wp: wp.has_velocity(), self._waypoints))
         vwps = self._velocity_waypoints
-        self._elapsed_time_segments = [tuple((wp, vwps[i+1], self._path.length(wp, vwps[i+1]))) for i, wp in enumerate(vwps[:-1])]
+        self._elapsed_time_segments = [ElapsedTimeSegment(self._path, wp, vwps[i+1]) for i, wp in enumerate(vwps[:-1])]
 
 
 
