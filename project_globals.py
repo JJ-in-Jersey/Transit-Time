@@ -7,11 +7,10 @@ import dateparser as dp
 from datetime import timedelta as td
 from datetime import datetime as dt
 import warnings
-from num2words import num2words
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
-TIMESTEP = 60  # seconds
+TIMESTEP = 15  # seconds
 TIME_RESOLUTION = 15  # rounded to minutes
 WINDOW_MARGIN = 10  # minutes
 TIMESTEP_MARGIN = WINDOW_MARGIN * 60 / TIMESTEP  # number of timesteps to add to minimum to find edges of time windows
@@ -20,8 +19,6 @@ WDW = 1000
 DF_FILE_TYPE = 'hdf'  # csv, hdf, pkl
 
 boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]  # knots
-# boat_speeds = [v for v in range(-3, -1, 2)]+[v for v in range(3, 4, 2)]  # knots
-# shared_columns = ['departure_index', 'departure_time']
 
 def sign(value): return value/abs(value)
 def rounded_to_minutes(index):
@@ -39,10 +36,6 @@ def output_file_exists(path): return True if path.with_suffix('.csv').exists() o
 def hours_mins(secs): return "%d:%02d" % (secs // 3600, secs % 3600 // 60)
 def mins_secs(secs): return "%d:%02d" % (secs // 60, secs % 60)
 
-def num_to_name(number):
-    if number < 0: return '-'+num2words(number)
-    else: return num2words(number)
-
 class Environment:
 
     def waypoint_folder(self, name):
@@ -53,10 +46,6 @@ class Environment:
         edge_folder = self.elapsed_time_folder().joinpath(name)
         makedirs(edge_folder, exist_ok=True)
         return edge_folder
-    def create_transit_time_speed_folder(self, name):
-        tt_folder = self.transit_time_folder().joinpath(name)
-        makedirs(tt_folder, exist_ok=True)
-        return tt_folder
     def project_folder(self, args=None):
         if args:
             self.__project_folder = Path(self.__user_profile + '/Developer Workspace/' + args['project_name']+'/')
@@ -79,6 +68,10 @@ class Environment:
             self.__transit_time_folder = self.project_folder().joinpath('Transit Time')
             makedirs(self.__transit_time_folder, exist_ok=True)
         return self.__transit_time_folder
+    def speed_folder(self, name):
+        tt_folder = self.transit_time_folder().joinpath(name)
+        makedirs(tt_folder, exist_ok=True)
+        return tt_folder
     def user_profile(self): return self.__user_profile
 
     def __init__(self):

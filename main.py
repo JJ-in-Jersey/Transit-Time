@@ -37,49 +37,57 @@ if __name__ == '__main__':
 
     # Assemble route and route objects
     route = Route(args['filepath'])
+    # noinspection PyProtectedMember
     print(f'Number of waypoints: {len(route._waypoints)}')
+    # noinspection PyProtectedMember
     print(f'Number of velocity waypoints: {len(route._velocity_waypoints)}')
+    # noinspection PyProtectedMember
     print(f'Number of elapsed time segments: {len(route._elapsed_time_segments)}')
     print(f'timestep: {TIMESTEP}')
     print(f'boat speeds: {boat_speeds}')
+    # noinspection PyProtectedMember
     print(f'length {route._path.total_length()} nm')
+    # noinspection PyProtectedMember
     print(f'direction {route._path.direction()}')
 
     # Download noaa data and create velocity arrays for each waypoint (node)
     print(f'\nCalculating currents at waypoints (1st day-1 to last day+3)')
+    # noinspection PyProtectedMember
     for waypoint in route._velocity_waypoints: mpm.job_queue.put(VelocityJob(mpm, waypoint))
     mpm.job_queue.join()
+    # noinspection PyProtectedMember
     for waypoint in route._velocity_waypoints: waypoint.velo_array(mpm.result_lookup[id(waypoint)])
     # waypoint = route._velocity_waypoints[0]
     # vj = VelocityJob(mpm, waypoint)
     # result_tuple = vj.execute()
     # waypoint.velo_array(result_tuple[1])
 
+    # noinspection PyProtectedMember
     for segment in route._elapsed_time_segments: segment.update()
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for segments (1st day-1 to last day+2)')
+    # noinspection PyProtectedMember
     for segment in route._elapsed_time_segments: mpm.job_queue.put(ElapsedTimeJob(mpm, segment))
     mpm.job_queue.join()
+    # noinspection PyProtectedMember
     for segment in route._elapsed_time_segments: segment.elapsed_times_df(mpm.result_lookup[id(segment)])
     # segment = route._elapsed_time_segments[0]
     # ej = ElapsedTimeJob(mpm, segment)
     # ej.execute()
 
-    quit()
-
     # combine elapsed times by speed
     print(f'\nSorting elapsed times by speed', flush=True)
-    elapsed_time_reduce(route, mp.environs)
+    elapsed_time_reduce(mpm, route)
     # for speed in boat_speeds: print(route.elapsed_time_lookup(speed))
 
     # calculate the number of timesteps from first node to last node
     print(f'\nCalculating transit times (1st day-1 to last day+1)')
-    for speed in boat_speeds: mp.job_queue.put(TransitTimeMinimaJob(route, speed, mp.environs, mp.chart_yr, mp.pool_notice))
-    mp.job_queue.join()
+    for speed in boat_speeds: mpm.job_queue.put(TransitTimeMinimaJob(mpm, route, speed))
+    mpm.job_queue.join()
     # for speed in boat_speeds: route.transit_time_lookup(speed, mp.result_lookup[speed])
     # tj = TransitTimeMinimaJob(route, -7, mp.environs, mp.chart_yr, mp.pool_notice)
     # tj.execute()
 
-    Semaphore.off(mp.job_manager_semaphore)
-    mp.som.shutdown()
+    Semaphore.off(mpm.job_manager_semaphore)
+    mpm.som.shutdown()

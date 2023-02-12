@@ -1,5 +1,4 @@
 import logging
-from os import umask
 from time import sleep, perf_counter
 import pandas as pd
 import numpy as np
@@ -20,7 +19,6 @@ from FileUtilities import FileUtilities as fu
 logging.getLogger('WDM').setLevel(logging.NOTSET)
 
 def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
-
 
 # noinspection PyProtectedMember
 class VelocityJob:
@@ -47,6 +45,7 @@ class VelocityJob:
     def execute(self):
         init_time = perf_counter()
         if output_file_exists(self._velo_array_pathfile):
+            print(f'+     {self._code} {self._name}', flush=True)
             velo_array = rw.read_arr(self._velo_array_pathfile)
             return tuple([self._result_key, velo_array, init_time])
         else:

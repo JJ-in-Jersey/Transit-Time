@@ -36,7 +36,7 @@ class Waypoint:
         self._noaa_name = gpxtag.find('name').text
         self._noaa_url = gpxtag.link.attrs['href'] if gpxtag.link else None
         self._noaa_code = gpxtag.link.text.strip('\n') if gpxtag.link else None
-        self._name = str(self._number) + ' ' + self._noaa_name.split(',')[0].split('(')[0].replace('.','').strip()
+        self._name = str(self._number) + ' ' + self._noaa_name.split(',')[0].split('(')[0].replace('.', '').strip()
         self._prev_edges = {}
         self._next_edges = {}
         self._velo_array = None
@@ -73,6 +73,8 @@ class CurrentStationWP(Waypoint):
         super().__init__(gpxtag)
         self.__velo_arr = None
 
+
+# noinspection PyProtectedMember
 class Edge:
     # arguments
     #   path, start, end
@@ -82,7 +84,7 @@ class Edge:
     #   name, length
 
     def name(self): return '[' + str(self._start._number) + '-' + str(self._end._number) + ']'
-    def length(self): return round(hvs(self._start.coords(), self._end.coords(), unit=Unit.NAUTICAL_MILES),4)
+    def length(self): return round(hvs(self._start.coords(), self._end.coords(), unit=Unit.NAUTICAL_MILES), 4)
 
     def __init__(self, path, start, end):
         self._path = path
@@ -107,16 +109,19 @@ class ElapsedTimeSegment:
         self._start_velo = self.__start.velo_array()
         self._end_velo = self.__end.velo_array()
 
+    # noinspection PyProtectedMember
     def __init__(self, path, start, end):
         self.__start = start
         self.__end = end
         self._path = path
-        self._name = '{' + str(start._number) + '-' + str(end._number) + '}'
+        self._name = 'segment ' + str(start._number) + '-' + str(end._number)
         self._start_velo = None
         self._end_velo = None
         self._length = path.length(start, end)
         self._elapsed_times_df = None
 
+
+# noinspection PyProtectedMember
 class Path:
     # data members:
     #   waypoints
@@ -124,7 +129,7 @@ class Path:
     #   name, length
 
     def name(self): return '{' + str(self._waypoints[0]._number) + '-' + str(self._waypoints[-1]._number) + '}'
-    def total_length(self): return round(sum([edge.length() for edge in self._edges]),4)
+    def total_length(self): return round(sum([edge.length() for edge in self._edges]), 4)
     def direction(self): return nav.direction(self._waypoints[0].coords(), self._waypoints[-1].coords())
     def edges(self): return self._edges
 
@@ -165,7 +170,6 @@ class Route:
             self._elapsed_time_dict[key] = array
         else:
             return self._elapsed_time_dict[key]
-    # def elapsed_time_segments(self): return self._elapsed_time_segments
 
     def __init__(self, filepath):
         self._transit_time_dict = {}
@@ -187,9 +191,6 @@ class Route:
         self._path = Path(self._waypoints)
         # base_path.print_path()
 
-        self._velocity_waypoints = list(filter(lambda wp: wp.has_velocity(), self._waypoints))
-        vwps = self._velocity_waypoints
+        vwps = list(filter(lambda wp: wp.has_velocity(), self._waypoints))
         self._elapsed_time_segments = [ElapsedTimeSegment(self._path, wp, vwps[i+1]) for i, wp in enumerate(vwps[:-1])]
-
-
-
+        self._velocity_waypoints = vwps
