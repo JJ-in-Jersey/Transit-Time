@@ -60,5 +60,6 @@ class ElapsedTimeJob:
 
     def execute_callback(self, result):
         print(f'-     {self._name} ({round(self._length, 2)} nm) {mins_secs(perf_counter() - result[2])} minutes', flush=True)
+
     def error_callback(self, result):
         print(f'!     {self._name} process has raised an error: {result}', flush=True)
