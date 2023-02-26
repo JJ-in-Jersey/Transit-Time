@@ -47,7 +47,7 @@ if __name__ == '__main__':
     print(f'timestep: {TIMESTEP}')
     print(f'boat speeds: {boat_speeds}')
     # noinspection PyProtectedMember
-    print(f'length {route._path.total_length()} nm')
+    print(f'length {round(route._path.total_length(),1)} nm')
     # noinspection PyProtectedMember
     print(f'direction {route._path.direction()}')
 
