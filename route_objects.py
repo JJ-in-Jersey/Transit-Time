@@ -174,6 +174,7 @@ class Route:
         self._path = Path(self._waypoints)
         # base_path.print_path()
 
+        # noinspection SpellCheckingInspection
         vwps = list(filter(lambda wp: wp.has_velocity(), self._waypoints))
         self._elapsed_time_segments = [ElapsedTimeSegment(self._path, wp, vwps[i+1]) for i, wp in enumerate(vwps[:-1])]
         self._velocity_waypoints = vwps
