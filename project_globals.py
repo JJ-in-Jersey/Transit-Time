@@ -38,10 +38,6 @@ def mins_secs(secs): return "%d:%02d" % (secs // 60, secs % 60)
 
 class Environment:
 
-    def waypoint_folder(self, name):
-        waypoint_folder = self.velocity_folder().joinpath(name)
-        makedirs(waypoint_folder, exist_ok=True)
-        return waypoint_folder
     def edge_folder(self, name):
         edge_folder = self.elapsed_time_folder().joinpath(name)
         makedirs(edge_folder, exist_ok=True)
@@ -58,6 +54,11 @@ class Environment:
             self.__velocity_folder = self.project_folder().joinpath('Velocity')
             makedirs(self.__velocity_folder, exist_ok=True)
         return self.__velocity_folder
+    def interpolation_folder(self):
+        if self.__interpolation_folder is None and self.project_folder() is not None:
+            self.__interpolation_folder = self.project_folder().joinpath('Interpolation')
+            makedirs(self.__interpolation_folder, exist_ok=True)
+        return self.__interpolation_folder
     def elapsed_time_folder(self):
         if self.__elapsed_time_folder is None and self.project_folder() is not None:
             self.__elapsed_time_folder = self.project_folder().joinpath('Elapsed Time')
@@ -77,6 +78,7 @@ class Environment:
     def __init__(self):
         self.__project_folder = None
         self.__velocity_folder = None
+        self.__interpolation_folder = None
         self.__elapsed_time_folder = None
         self.__transit_time_folder = None
         self.__user_profile = environ['USERPROFILE']

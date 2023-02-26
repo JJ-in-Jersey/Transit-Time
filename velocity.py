@@ -42,6 +42,30 @@ class VelocityJob:
         options = [int(o.text) for o in dropdown.options]
         dropdown.select_by_index(options.index(year))
 
+    @classmethod
+    def velocity_aggregate(cls, folder, year, url, code):
+        download_df = pd.DataFrame()
+        driver = cd.get_driver(folder)
+        for y in range(year - 1, year + 2):  # + 2 because of range behavior
+            driver.get(url)
+            wdw = WebDriverWait(driver, WDW)
+            VelocityJob.velocity_page(y, code, driver, wdw)
+            downloaded_file = VelocityJob.velocity_download(folder, wdw)
+            convert = {' Speed (knots)': dash_to_zero, 'Date_Time (LST/LDT)': date_to_index}
+            file_df = pd.read_csv(downloaded_file, usecols=[' Speed (knots)', 'Date_Time (LST/LDT)'], converters=convert)
+            file_df.rename(columns={'Date_Time (LST/LDT)': 'date_index', ' Speed (knots)': 'velocity'}, inplace=True)
+            download_df = pd.concat([download_df, file_df])
+        driver.quit()
+        return download_df
+
+    def __init__(self, mpm, waypoint):
+        self._year = mpm.cy.year()
+        self._start_index = mpm.cy.waypoint_start_index()
+        self._end_index = mpm.cy.waypoint_end_index()
+        self._velo_range = mpm.cy.waypoint_range()
+
+class CurrentStationJob(VelocityJob):
+
     def execute(self):
         init_time = perf_counter()
         if output_file_exists(self._velo_array_pathfile):
@@ -50,19 +74,49 @@ class VelocityJob:
             return tuple([self._result_key, velo_array, init_time])
         else:
             print(f'+     {self._code} {self._name}', flush=True)
-            download_df = pd.DataFrame()
+            download_df = VelocityJob.velocity_aggregate(self._download_folder, self._year, self._url, self._code)
+            download_df = download_df[(self._start_index <= download_df['date_index']) & (download_df['date_index'] <= self._end_index)]
+            rw.write_df(download_df, self._download_folder.joinpath(self._code + '_table'), DF_FILE_TYPE)
 
-            # download all the noaa files, aggregate them and write the out
-            driver = cd.get_driver(self._download_folder)
-            for y in range(self._year - 1, self._year + 2):  # + 2 because of range behavior
-                driver.get(self._url)
-                wdw = WebDriverWait(driver, WDW)
-                VelocityJob.velocity_page(y, self._code, driver, wdw)
-                downloaded_file = VelocityJob.velocity_download(self._download_folder, wdw)
-                file_df = pd.read_csv(downloaded_file, usecols=[' Speed (knots)', 'Date_Time (LST/LDT)'], converters={' Speed (knots)': dash_to_zero, 'Date_Time (LST/LDT)': date_to_index})
-                file_df.rename(columns={'Date_Time (LST/LDT)': 'date_index', ' Speed (knots)': 'velocity'}, inplace=True)
-                download_df = pd.concat([download_df, file_df])
-            driver.quit()
+            # create cubic spline
+            cs = CubicSpline(download_df['date_index'], download_df['velocity'])
+
+            output_df = pd.DataFrame()
+            output_df['date_index'] = self._velo_range
+            output_df['velocity'] = output_df['date_index'].apply(cs)
+            velo_array = np.array(output_df['velocity'].to_list(), dtype=np.half)
+            rw.write_arr(velo_array, self._velo_array_pathfile)
+            return tuple([self._result_key, velo_array, init_time])
+
+    def execute_callback(self, result):
+        print(f'-     {self._code} {self._name} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
+
+    def error_callback(self, result):
+        print(f'!     {self._code} {self._name} process has raised an error: {result}', flush=True)
+
+    def __init__(self, mpm, waypoint):
+        super().__init__(mpm, waypoint)
+        self._code = waypoint._noaa_code
+        self._name = waypoint._cs_name
+        self._url = waypoint._noaa_url
+        self._result_key = id(waypoint)
+        self._download_folder = mpm.env.velocity_folder().joinpath(waypoint._name)
+        self._velo_array_pathfile = mpm.env.velocity_folder().joinpath(waypoint._name + '_array')
+
+class InterpolationJob(VelocityJob):
+
+    def execute(self):
+        init_time = perf_counter()
+        if output_file_exists(self._velo_array_pathfile):
+            print(f'+     {self._name}', flush=True)
+            velo_array = rw.read_arr(self._velo_array_pathfile)
+            return tuple([self._result_key, velo_array, init_time])
+        else:
+            print(f'+     {self._name}', flush=True)
+            for link in self._links:
+                url = link.attrs['href']
+                code = link.text.strip('\n')
+                download_df = VelocityJob.velocity_aggregate(self._download_folder, self._year, url, code)
             download_df = download_df[(self._start_index <= download_df['date_index']) & (download_df['date_index'] <= self._end_index)]
             rw.write_df(download_df, self._download_folder.joinpath(self._code + '_table'), DF_FILE_TYPE)
 
@@ -87,9 +141,9 @@ class VelocityJob:
         self._start_index = mpm.cy.waypoint_start_index()
         self._end_index = mpm.cy.waypoint_end_index()
         self._velo_range = mpm.cy.waypoint_range()
-        self._code = waypoint._noaa_code
         self._name = waypoint._name
-        self._url = waypoint._noaa_url
+        self._links = waypoint._links
+        self._coords = waypoint.coords()
         self._result_key = id(waypoint)
-        self._download_folder = mpm.env.waypoint_folder(waypoint._name)
-        self._velo_array_pathfile = mpm.env.velocity_folder().joinpath(waypoint._name + '_array')
+        self._download_folder = mpm.env.interpolation_folder().joinpath(waypoint._name)
+        self._velo_array_pathfile = mpm.env.interpolation_folder().joinpath(waypoint._name + '_array')

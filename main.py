@@ -1,10 +1,11 @@
+# C:\Users\jason\PycharmProjects\Transit-Time\venv\Scripts\python.exe C:\Users\jason\PycharmProjects\Transit-Time\main.py ER "C:\users\jason\Developer Workspace\GPX\East River West to East.gpx" 2023 -dd
 from argparse import ArgumentParser as argParser
 from pathlib import Path
 from multiprocessing import Manager
 
 import multiprocess as mpm
-from route_objects import Route
-from velocity import VelocityJob
+from route_objects import Route, CurrentStationWP
+from velocity import CurrentStationJob
 from elapsed_time import ElapsedTimeJob
 from elapsed_time_reduce import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
@@ -53,12 +54,13 @@ if __name__ == '__main__':
     # Download noaa data and create velocity arrays for each waypoint (node)
     print(f'\nCalculating currents at waypoints (1st day-1 to last day+3)')
     # noinspection PyProtectedMember
-    for waypoint in route._velocity_waypoints: mpm.job_queue.put(VelocityJob(mpm, waypoint))
+    current_stations = [wp for wp in route._waypoints if isinstance(wp, CurrentStationWP)]
+    for wp in current_stations: mpm.job_queue.put(CurrentStationJob(mpm, wp))
     mpm.job_queue.join()
-    # noinspection PyProtectedMember
-    for waypoint in route._velocity_waypoints: waypoint.velo_array(mpm.result_lookup[id(waypoint)])
-    # waypoint = route._velocity_waypoints[0]
-    # vj = VelocityJob(mpm, waypoint)
+    # # noinspection PyProtectedMember
+    for wp in current_stations: wp.velo_array(mpm.result_lookup[id(wp)])
+    # waypoint = current_stations[0]
+    # vj = CurrentStationJob(mpm, waypoint)
     # result_tuple = vj.execute()
     # waypoint.velo_array(result_tuple[1])
 

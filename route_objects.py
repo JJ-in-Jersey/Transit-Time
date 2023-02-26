@@ -4,13 +4,6 @@ from Navigation import Navigation as nav
 
 class Waypoint:
     # get everything that is available from the tag
-    #
-    # arguments
-    #   gpxtag
-    # data members
-    #   num, name, lat, lon, symbol, code, url, prev_edges, next_edges
-    # methods
-    #   coords, prev_edges, next_edge
 
     type = {'CurrentStationWP': 'Symbol-Spot-Orange', 'PlaceHolderWP': 'Symbol-Spot-Green', 'InterpolationWP': 'Symbol-Spot-Blue'}
     ordinal_number = 0
@@ -33,10 +26,9 @@ class Waypoint:
         self._lat = round(float(gpxtag.attrs['lat']), 4)
         self._lon = round(float(gpxtag.attrs['lon']), 4)
         self._symbol = gpxtag.sym.text
-        self._noaa_name = gpxtag.find('name').text
-        self._noaa_url = gpxtag.link.attrs['href'] if gpxtag.link else None
-        self._noaa_code = gpxtag.link.text.strip('\n') if gpxtag.link else None
-        self._name = str(self._number) + ' ' + self._noaa_name.split(',')[0].split('(')[0].replace('.', '').strip()
+        self._name = gpxtag.find('name').text
+        self._short_name = self._name.split(',')[0].split('(')[0].replace('.', '').strip()
+        self._links = gpxtag.find_all('link')
         self._prev_edges = {}
         self._next_edges = {}
         self._velo_array = None
@@ -64,24 +56,15 @@ class CurrentStationWP(Waypoint):
         self.__velo_arr = velo if velo is not None and self.__velo_arr is None else self.__velo_arr
         return self.__velo_arr
 
-    # def velo_path(self): return self.__velo_path
-    # def chrome_download_path(self): return self.__chrome_download_path
-    # def start_index(self): return self.__calc_start_index
-    # def end_index(self): return self.__calc_end_index
-
     def __init__(self, gpxtag):
         super().__init__(gpxtag)
+        self._noaa_url = self._links[0].attrs['href'] if gpxtag.link else None
+        self._noaa_code = self._links[0].text.split()[0]
+        self._cs_name = str(self._number) + ' ' + self._short_name
         self.__velo_arr = None
-
 
 # noinspection PyProtectedMember
 class Edge:
-    # arguments
-    #   path, start, end
-    # data members
-    #   start waypoint, end waypoint
-    # methods
-    #   name, length
 
     def name(self): return '[' + str(self._start._number) + '-' + str(self._end._number) + ']'
     def length(self): return round(hvs(self._start.coords(), self._end.coords(), unit=Unit.NAUTICAL_MILES), 4)
