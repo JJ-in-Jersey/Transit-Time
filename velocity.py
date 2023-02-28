@@ -96,8 +96,8 @@ class CurrentStationJob(VelocityJob):
 
     def __init__(self, mpm, waypoint):
         super().__init__(mpm, waypoint)
-        self._code = waypoint._noaa_code
         self._name = waypoint._cs_name
+        self._code = waypoint._noaa_code
         self._url = waypoint._noaa_url
         self._result_key = id(waypoint)
         self._download_folder = mpm.env.velocity_folder().joinpath(waypoint._name)

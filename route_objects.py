@@ -26,9 +26,8 @@ class Waypoint:
         self._lat = round(float(gpxtag.attrs['lat']), 4)
         self._lon = round(float(gpxtag.attrs['lon']), 4)
         self._symbol = gpxtag.sym.text
-        self._name = gpxtag.find('name').text
+        self._name = gpxtag.find('name').text.strip('\n')
         self._short_name = self._name.split(',')[0].split('(')[0].replace('.', '').strip()
-        self._links = gpxtag.find_all('link')
         self._prev_edges = {}
         self._next_edges = {}
         self._velo_array = None
@@ -58,8 +57,8 @@ class CurrentStationWP(Waypoint):
 
     def __init__(self, gpxtag):
         super().__init__(gpxtag)
-        self._noaa_url = self._links[0].attrs['href'] if gpxtag.link else None
-        self._noaa_code = self._links[0].text.split()[0]
+        self._noaa_url = gpxtag.find('link').attrs['href'] if gpxtag.link else None
+        self._noaa_code = gpxtag.find('link').find('text').text
         self._cs_name = str(self._number) + ' ' + self._short_name
         self.__velo_arr = None
 

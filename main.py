@@ -53,11 +53,9 @@ if __name__ == '__main__':
 
     # Download noaa data and create velocity arrays for each waypoint (node)
     print(f'\nCalculating currents at waypoints (1st day-1 to last day+3)')
-    # noinspection PyProtectedMember
     current_stations = [wp for wp in route._waypoints if isinstance(wp, CurrentStationWP)]
     for wp in current_stations: mpm.job_queue.put(CurrentStationJob(mpm, wp))
     mpm.job_queue.join()
-    # # noinspection PyProtectedMember
     for wp in current_stations: wp.velo_array(mpm.result_lookup[id(wp)])
     # waypoint = current_stations[0]
     # vj = CurrentStationJob(mpm, waypoint)
