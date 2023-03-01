@@ -38,17 +38,12 @@ if __name__ == '__main__':
 
     # Assemble route and route objects
     route = Route(args['filepath'])
-    # noinspection PyProtectedMember
     print(f'Number of waypoints: {len(route.waypoints)}')
-    # noinspection PyProtectedMember
     print(f'Number of velocity waypoints: {len(route._velocity_waypoints)}')
-    # noinspection PyProtectedMember
     print(f'Number of elapsed time segments: {len(route._elapsed_time_segments)}')
     print(f'timestep: {TIMESTEP}')
     print(f'boat speeds: {boat_speeds}')
-    # noinspection PyProtectedMember
     print(f'length {round(route._path.total_length(),1)} nm')
-    # noinspection PyProtectedMember
     print(f'direction {route._path.direction()}')
 
     # Download noaa data and create velocity arrays for each waypoint (node)

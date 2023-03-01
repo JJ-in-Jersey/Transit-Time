@@ -1,6 +1,5 @@
 import logging
 from time import sleep, perf_counter
-from os import makedirs
 import pandas as pd
 import numpy as np
 from scipy.interpolate import CubicSpline
@@ -14,6 +13,7 @@ from project_globals import mins_secs, date_to_index
 from ChromeDriver import ChromeDriver as cd
 from ReadWrite import ReadWrite as rw
 from FileUtilities import FileUtilities as fu
+from Navigation import Navigation as nav
 
 #  VELOCITIES ARE DOWNLOADED, CALCULATED AND SAVE AS NAUTICAL MILES PER HOUR!
 
@@ -108,42 +108,37 @@ class InterpolationJob(VelocityJob):
 
     def execute(self):
         init_time = perf_counter()
-        if output_file_exists(self._velo_array_pathfile):
+        if output_file_exists(self.velo_array_pathfile):
             print(f'+     {self._name}', flush=True)
-            velo_array = rw.read_arr(self._velo_array_pathfile)
+            velo_array = rw.read_arr(self.velo_array_pathfile)
             return tuple([self._result_key, velo_array, init_time])
         else:
             print(f'+     {self._name}', flush=True)
-            for link in self._links:
-                url = link.attrs['href']
-                code = link.text.strip('\n')
-                download_df = VelocityJob.velocity_aggregate(self._download_folder, self._year, url, code)
-            download_df = download_df[(self._start_index <= download_df['date_index']) & (download_df['date_index'] <= self._end_index)]
-            rw.write_df(download_df, self._download_folder.joinpath(self._code + '_table'), DF_FILE_TYPE)
+            for point in self.interpolation_points:
+                point.distance_from_waypoint = nav.distance(self.coords, point.coords)
+                download_df = VelocityJob.velocity_aggregate(self.download_folder, self.year, point.url, point.code)
+                download_df = download_df[(self.start_index <= download_df['date_index']) & (download_df['date_index'] <= self.end_index)]
+                rw.write_df(download_df, self.download_folder.joinpath(point.code + '_table'), DF_FILE_TYPE)
+                point.velo_frame = download_df
 
-            # create cubic spline
-            cs = CubicSpline(download_df['date_index'], download_df['velocity'])
+                cs = CubicSpline(download_df['date_index'], download_df['velocity'])
 
-            output_df = pd.DataFrame()
-            output_df['date_index'] = self._velo_range
-            output_df['velocity'] = output_df['date_index'].apply(cs)
-            velo_array = np.array(output_df['velocity'].to_list(), dtype=np.half)
-            rw.write_arr(velo_array, self._velo_array_pathfile)
-            return tuple([self._result_key, velo_array, init_time])
+                output_df = pd.DataFrame()
+                output_df['date_index'] = self.velo_range
+                output_df['velocity'] = output_df['date_index'].apply(cs)
+                point.velo_arr = np.array(output_df['velocity'].to_list(), dtype=np.half)
+                rw.write_arr(point.velo_arr, self.download_folder.joinpath(point.code + '_array'))
 
     def execute_callback(self, result):
-        print(f'-     {self._code} {self._name} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
+        print(f'-     {self.code} {self._name} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
 
     def error_callback(self, result):
-        print(f'!     {self._code} {self._name} process has raised an error: {result}', flush=True)
+        print(f'!     {self.code} {self._name} process has raised an error: {result}', flush=True)
 
     def __init__(self, mpm, waypoint):
-        self._year = mpm.cy.year()
-        self._start_index = mpm.cy.waypoint_start_index()
-        self._end_index = mpm.cy.waypoint_end_index()
-        self._velo_range = mpm.cy.waypoint_range()
-        self._name = waypoint._name
-        self._links = waypoint._links
-        self._coords = waypoint.coords()
+        super().__init__(mpm, waypoint)
+        self._name = waypoint.short_name
+        self.coords = waypoint.coords
+        self.interpolation_points = waypoint.interpolation_points
         self._result_key = id(waypoint)
-        self._velo_array_pathfile = mpm.env.velocity_folder().joinpath(waypoint._name + '_array')
+        self.velo_array_pathfile = self.download_folder.joinpath(waypoint.short_name + '_array')

@@ -1,5 +1,4 @@
 from bs4 import BeautifulSoup as Soup
-from haversine import haversine as hvs, Unit
 from Navigation import Navigation as nav
 
 class Waypoint:
@@ -41,8 +40,10 @@ class PlaceHolderWP(Waypoint):
 class InterpolationPoint():
 
     def __init__(self, link):
+        self.code = link.find('text').text
         self.url = link.attrs['href']
         self.coords = tuple([float(string) for string in link.find('type').contents[0].split()])
+        self.distance_from_waypoint = 0
         self.velo_arr = None
 
 class InterpolationWP(Waypoint):
@@ -67,7 +68,7 @@ class CurrentStationWP(Waypoint):
 class Edge:
 
     def name(self): return '[' + str(self.start.number) + '-' + str(self.end.number) + ']'
-    def length(self): return round(hvs(self.start.coords, self.end.coords, unit=Unit.NAUTICAL_MILES), 4)
+    def length(self): return round(nav.distance(self.start.coords, self.end.coords), 4)
 
     def __init__(self, path, start, end):
         self.path = path
