@@ -38,51 +38,42 @@ def mins_secs(secs): return "%d:%02d" % (secs // 60, secs % 60)
 
 class Environment:
 
+    def __init__(self):
+        self.user_profile = environ['USERPROFILE']
+        self.project_folder = None
+        self.velo_folder = None
+        self.elapsed_time_folder = None
+        self.transit_time_folder = None
+        umask(0)
+
     def edge_folder(self, name):
         edge_folder = self.elapsed_time_folder().joinpath(name)
         makedirs(edge_folder, exist_ok=True)
         return edge_folder
-    def project_folder(self, args=None):
-        if args:
-            self.__project_folder = Path(self.__user_profile + '/Developer Workspace/' + args['project_name']+'/')
-            if args['delete_data']:
-                shutil.rmtree(self.__project_folder, ignore_errors=True)
-                makedirs(self.__project_folder, exist_ok=True)
-        return self.__project_folder
-    def velocity_folder(self):
-        if self.__velocity_folder is None and self.project_folder() is not None:
-            self.__velocity_folder = self.project_folder().joinpath('Velocity')
-            makedirs(self.__velocity_folder, exist_ok=True)
-        return self.__velocity_folder
-    def interpolation_folder(self):
-        if self.__interpolation_folder is None and self.project_folder() is not None:
-            self.__interpolation_folder = self.project_folder().joinpath('Interpolation')
-            makedirs(self.__interpolation_folder, exist_ok=True)
-        return self.__interpolation_folder
-    def elapsed_time_folder(self):
-        if self.__elapsed_time_folder is None and self.project_folder() is not None:
-            self.__elapsed_time_folder = self.project_folder().joinpath('Elapsed Time')
-            makedirs(self.__elapsed_time_folder, exist_ok=True)
-        return self.__elapsed_time_folder
-    def transit_time_folder(self):
-        if self.__transit_time_folder is None and self.project_folder() is not None:
-            self.__transit_time_folder = self.project_folder().joinpath('Transit Time')
-            makedirs(self.__transit_time_folder, exist_ok=True)
-        return self.__transit_time_folder
+
+    def make_folders(self, args):
+        self.project_folder = Path(self.user_profile + '/Developer Workspace/' + args['project_name']+'/')
+        self.velo_folder = self.project_folder.joinpath('Velocity')
+        self.elapsed_time_folder = self.project_folder.joinpath('Elapsed Time')
+        self.transit_time_folder = self.project_folder.joinpath('Transit Time')
+
+        if args['delete_data']: shutil.rmtree(self.project_folder, ignore_errors=True)
+        makedirs(self.project_folder, exist_ok=True)
+        makedirs(self.velo_folder, exist_ok=True)
+        makedirs(self.elapsed_time_folder, exist_ok=True)
+        makedirs(self.transit_time_folder, exist_ok=True)
+
+    def make_folder(self, parent, child):
+        child = parent.joinpath(child)
+        makedirs(child, exist_ok=True)
+        return child
+
     def speed_folder(self, name):
         tt_folder = self.transit_time_folder().joinpath(name)
         makedirs(tt_folder, exist_ok=True)
         return tt_folder
-    def user_profile(self): return self.__user_profile
 
-    def __init__(self):
-        self.__project_folder = None
-        self.__velocity_folder = None
-        self.__interpolation_folder = None
-        self.__elapsed_time_folder = None
-        self.__transit_time_folder = None
-        self.__user_profile = environ['USERPROFILE']
-        umask(0)
+    def velocity_folder(self): return self.velo_folder
 
 class ChartYear:
 

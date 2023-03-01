@@ -4,8 +4,8 @@ from pathlib import Path
 from multiprocessing import Manager
 
 import multiprocess as mpm
-from route_objects import Route, CurrentStationWP
-from velocity import CurrentStationJob
+from route_objects import Route, CurrentStationWP, InterpolationWP
+from velocity import CurrentStationJob, InterpolationJob
 from elapsed_time import ElapsedTimeJob
 from elapsed_time_reduce import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     ap.add_argument('-dd', '--delete_data', action='store_true')
     args = vars(ap.parse_args())
 
-    mpm.env.project_folder(args)
+    mpm.env.make_folders(args)
     mpm.cy.initialize(args)
     jm = mpm.WaitForProcess(target=mpm.JobManager, args=(mpm.job_queue, mpm.result_lookup))
     jm.start()
@@ -39,7 +39,7 @@ if __name__ == '__main__':
     # Assemble route and route objects
     route = Route(args['filepath'])
     # noinspection PyProtectedMember
-    print(f'Number of waypoints: {len(route._waypoints)}')
+    print(f'Number of waypoints: {len(route.waypoints)}')
     # noinspection PyProtectedMember
     print(f'Number of velocity waypoints: {len(route._velocity_waypoints)}')
     # noinspection PyProtectedMember
@@ -53,14 +53,22 @@ if __name__ == '__main__':
 
     # Download noaa data and create velocity arrays for each waypoint (node)
     print(f'\nCalculating currents at waypoints (1st day-1 to last day+3)')
-    current_stations = [wp for wp in route._waypoints if isinstance(wp, CurrentStationWP)]
+    current_stations = [wp for wp in route.waypoints if isinstance(wp, CurrentStationWP)]
     for wp in current_stations: mpm.job_queue.put(CurrentStationJob(mpm, wp))
     mpm.job_queue.join()
-    for wp in current_stations: wp.velo_array(mpm.result_lookup[id(wp)])
+    for wp in current_stations: wp.velo_array = mpm.result_lookup[id(wp)]
     # waypoint = current_stations[0]
     # vj = CurrentStationJob(mpm, waypoint)
     # result_tuple = vj.execute()
-    # waypoint.velo_array(result_tuple[1])
+    # waypoint.velo_array = result_tuple[1]
+
+    interpolations = [wp for wp in route.waypoints if isinstance(wp, InterpolationWP)]
+    # for wp in interpolations: mpm.job_queue.put(InterpolationJob(mpm, wp))
+    # mpm.job_queue.join()
+    # for wp in current_stations: wp.velo_array(mpm.result_lookup[id(wp)])
+    waypoint = interpolations[0]
+    ij = InterpolationJob(mpm, waypoint)
+    result_tuple = ij.execute()
 
     # noinspection PyProtectedMember
     for segment in route._elapsed_time_segments: segment.update()
