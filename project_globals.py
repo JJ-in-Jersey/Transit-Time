@@ -77,35 +77,35 @@ class Environment:
 
 class ChartYear:
 
-    def year(self): return self.__year
-    def waypoint_start_index(self): return date_to_index(self.__first_day_minus_one)
-    def waypoint_end_index(self): return date_to_index(self.__last_day_plus_three)
+    def year(self): return self._year  # underscore _year to differentiate it from the method year()
+    def waypoint_start_index(self): return date_to_index(self.first_day_minus_one)
+    def waypoint_end_index(self): return date_to_index(self.last_day_plus_three)
     def waypoint_range(self): return range(self.waypoint_start_index(), self.waypoint_end_index(), TIMESTEP)
-    def edge_start_index(self): return date_to_index(self.__first_day_minus_one)
-    def edge_end_index(self): return date_to_index(self.__last_day_plus_two)
+    def edge_start_index(self): return date_to_index(self.first_day_minus_one)
+    def edge_end_index(self): return date_to_index(self.last_day_plus_two)
     def edge_range(self): return range(self.edge_start_index(), self.edge_end_index(), TIMESTEP)
-    def transit_start_index(self): return date_to_index(self.__first_day_minus_one)
-    def transit_end_index(self): return date_to_index(self.__last_day_plus_one)
+    def transit_start_index(self): return date_to_index(self.first_day_minus_one)
+    def transit_end_index(self): return date_to_index(self.last_day_plus_one)
     def transit_range(self): return range(self.transit_start_index(), self.transit_end_index(), TIMESTEP)
-    def first_day_index(self): return date_to_index(self.__first_day)
-    def last_day_index(self): return date_to_index(self.__last_day)
+    def first_day_index(self): return date_to_index(self.first_day)
+    def last_day_index(self): return date_to_index(self.last_day)
 
     def initialize(self, args):
-        self.__year = args['year']
-        self.__first_day = dp.parse('1/1/'+str(self.__year))
-        self.__last_day = dp.parse('12/31/' + str(self.__year))
-        self.__first_day_minus_one = self.__first_day - td(days=1)
-        self.__last_day_plus_one = self.__last_day + td(days=1)
-        self.__last_day_plus_two = self.__last_day + td(days=2)
-        self.__last_day_plus_three = self.__last_day + td(days=3)
+        self._year = args['year']  # underscore _year to differentiate it from the method year()
+        self.first_day = dp.parse('1/1/'+str(self._year))
+        self.last_day = dp.parse('12/31/' + str(self._year))
+        self.first_day_minus_one = self.first_day - td(days=1)
+        self.last_day_plus_one = self.last_day + td(days=1)
+        self.last_day_plus_two = self.last_day + td(days=2)
+        self.last_day_plus_three = self.last_day + td(days=3)
 
     def __init__(self):
-        self.__year = None
-        self.__first_date = None
-        self.__last_date = None
-        self.__first_day = None
-        self.__first_day_minus_one = None
-        self.__last_day = None
-        self.__last_day_plus_one = None
-        self.__last_day_plus_two = None
-        self.__last_day_plus_three = None
+        self._year = None  # underscore _year to differentiate it from the method year()
+        self.first_date = None
+        self.last_date = None
+        self.first_day = None
+        self.first_day_minus_one = None
+        self.last_day = None
+        self.last_day_plus_one = None
+        self.last_day_plus_two = None
+        self.last_day_plus_three = None
