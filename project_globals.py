@@ -47,8 +47,9 @@ class Environment:
         umask(0)
 
     def edge_folder(self, name):
-        makedirs(self.elapsed_time_folder.joinpath(name), exist_ok=True)
-        return edge_folder
+        path = self.elapsed_time_folder.joinpath(name)
+        makedirs(path, exist_ok=True)
+        return path
 
     def make_folders(self, args):
         self.project_folder = Path(self.user_profile + '/Developer Workspace/' + args['project_name']+'/')
@@ -63,6 +64,7 @@ class Environment:
         makedirs(self.transit_time_folder, exist_ok=True)
 
     def make_folder(self, parent, child):
+        if isinstance(parent, str): parent = Path(parent)
         path = parent.joinpath(child)
         makedirs(path, exist_ok=True)
         return path

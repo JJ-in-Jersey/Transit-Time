@@ -4,7 +4,7 @@ from pathlib import Path
 from multiprocessing import Manager
 
 import multiprocess as mpm
-from route_objects import Route, CurrentStationWP, InterpolationWP
+from GPX import Route, CurrentStationWP, InterpolationWP
 from velocity import CurrentStationJob, InterpolationJob
 from elapsed_time import ElapsedTimeJob
 from elapsed_time_reduce import elapsed_time_reduce
@@ -13,16 +13,9 @@ from project_globals import TIMESTEP, boat_speeds
 
 from Semaphore import SimpleSemaphore as Semaphore
 from ChromeDriver import ChromeDriver as cd
+from VelocityInterpolation import Interpolator as vi
 
 if __name__ == '__main__':
-
-    cd.update_driver()  # update chrome driver before launching process that use it
-
-    mgr = Manager()
-    mpm.result_lookup = mgr.dict()
-    mpm.som.start(mpm.pm_init)
-    mpm.cy = mpm.som.CY()
-    mpm.env = mpm.som.ENV()
 
     ap = argParser()
     ap.add_argument('project_name', type=str, help='name of transit window project')
@@ -31,20 +24,30 @@ if __name__ == '__main__':
     ap.add_argument('-dd', '--delete_data', action='store_true')
     args = vars(ap.parse_args())
 
+    # Assemble route and route objects
+    route = Route(args['filepath'])
+
+    print(f'\nCalculating route "{route.name}"')
+    print(f'total waypoints:{len(route.waypoints)}')
+    print(f'elapsed time waypoints:{len(route.elapsed_time_waypoints)}')
+    print(f'elapsed time segments: {len(route.elapsed_time_segments)}')
+    print(f'timestep: {TIMESTEP}')
+    print(f'boat speeds: {boat_speeds}')
+    print(f'length {round(route.path.total_length(),1)} nm')
+    print(f'direction {route.path.direction()}')
+
+    mgr = Manager()
+    mpm.result_lookup = mgr.dict()
+    mpm.som.start(mpm.pm_init)
+    mpm.cy = mpm.som.CY()
+    mpm.env = mpm.som.ENV()
+
     mpm.env.make_folders(args)
     mpm.cy.initialize(args)
     jm = mpm.WaitForProcess(target=mpm.JobManager, args=(mpm.job_queue, mpm.result_lookup))
     jm.start()
 
-    # Assemble route and route objects
-    route = Route(args['filepath'])
-    print(f'Number of waypoints: {len(route.waypoints)}')
-    print(f'Number of velocity waypoints: {len(route._velocity_waypoints)}')
-    print(f'Number of elapsed time segments: {len(route._elapsed_time_segments)}')
-    print(f'timestep: {TIMESTEP}')
-    print(f'boat speeds: {boat_speeds}')
-    print(f'length {round(route._path.total_length(),1)} nm')
-    print(f'direction {route._path.direction()}')
+    cd.update_driver()  # update chrome driver before launching process that use it
 
     # Download noaa data and create velocity arrays for each waypoint (node)
     print(f'\nCalculating currents at waypoints (1st day-1 to last day+3)')
@@ -57,25 +60,25 @@ if __name__ == '__main__':
     # result_tuple = vj.execute()
     # waypoint.velo_array = result_tuple[1]
 
-    interpolations = [wp for wp in route.waypoints if isinstance(wp, InterpolationWP)]
-    # for wp in interpolations: mpm.job_queue.put(InterpolationJob(mpm, wp))
-    # mpm.job_queue.join()
-    # for wp in current_stations: wp.velo_array(mpm.result_lookup[id(wp)])
-    waypoint = interpolations[0]
-    ij = InterpolationJob(mpm, waypoint)
-    result_tuple = ij.execute()
+    # interpolations = [wp for wp in route.waypoints if isinstance(wp, InterpolationWP)]
+    # # for wp in interpolations: mpm.job_queue.put(InterpolationJob(mpm, wp))
+    # # mpm.job_queue.join()
+    # # for wp in current_stations: wp.velo_array(mpm.result_lookup[id(wp)])
+    # waypoint = interpolations[0]
+    # ij = InterpolationJob(mpm, waypoint)
+    # result_tuple = ij.execute()
 
-    # noinspection PyProtectedMember
-    for segment in route._elapsed_time_segments: segment.update()
+    for segment in route.elapsed_time_segments:
+        segment.add_endpoint_velocities()  # add velocities to segments
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for segments (1st day-1 to last day+2)')
     # noinspection PyProtectedMember
-    for segment in route._elapsed_time_segments: mpm.job_queue.put(ElapsedTimeJob(mpm, segment))
+    for segment in route.elapsed_time_segments: mpm.job_queue.put(ElapsedTimeJob(mpm, segment))
     mpm.job_queue.join()
     # noinspection PyProtectedMember
-    for segment in route._elapsed_time_segments: segment.elapsed_times_df(mpm.result_lookup[id(segment)])
-    # segment = route._elapsed_time_segments[0]
+    for segment in route.elapsed_time_segments: segment.elapsed_times_df(mpm.result_lookup[id(segment)])
+    # segment = route.elapsed_time_segments[0]
     # ej = ElapsedTimeJob(mpm, segment)
     # ej.execute()
 
