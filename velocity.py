@@ -12,7 +12,7 @@ from project_globals import WDW, DF_FILE_TYPE, output_file_exists
 from project_globals import mins_secs, date_to_index
 from ChromeDriver import ChromeDriver as cd
 from ReadWrite import ReadWrite as rw
-from FileUtilities import FileUtilities as fu
+from FileTools import FileTools as ft
 from Navigation import Navigation as nav
 
 #  VELOCITIES ARE DOWNLOADED, CALCULATED AND SAVE AS NAUTICAL MILES PER HOUR!
@@ -64,7 +64,7 @@ class VelocityJob:
         self.start_index = mpm.cy.waypoint_start_index()
         self.end_index = mpm.cy.waypoint_end_index()
         self.velo_range = mpm.cy.waypoint_range()
-        self.download_folder = fu.make_folder(mpm.env.velocity_folder(), waypoint.short_name)
+        self.download_folder = ft.make_folder(mpm.env.velocity_folder(), waypoint.short_name)
 
 class CurrentStationJob(VelocityJob):
 
