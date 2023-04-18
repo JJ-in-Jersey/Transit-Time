@@ -64,7 +64,7 @@ class VelocityJob:
         self.start_index = mpm.cy.waypoint_start_index()
         self.end_index = mpm.cy.waypoint_end_index()
         self.velo_range = mpm.cy.waypoint_range()
-        self.download_folder = mpm.env.make_folder(mpm.env.velocity_folder(), waypoint.short_name)
+        self.download_folder = fu.make_folder(mpm.env.velocity_folder(), waypoint.short_name)
 
 class CurrentStationJob(VelocityJob):
 

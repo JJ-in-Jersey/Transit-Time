@@ -14,6 +14,7 @@ from project_globals import TIMESTEP, boat_speeds
 from Semaphore import SimpleSemaphore as Semaphore
 from ChromeDriver import ChromeDriver as cd
 from VelocityInterpolation import Interpolator as vi
+from FileUtilities import FileUtilities as fu
 
 if __name__ == '__main__':
 

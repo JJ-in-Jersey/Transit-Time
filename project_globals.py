@@ -63,12 +63,6 @@ class Environment:
         makedirs(self.elapsed_time_folder, exist_ok=True)
         makedirs(self.transit_time_folder, exist_ok=True)
 
-    def make_folder(self, parent, child):
-        if isinstance(parent, str): parent = Path(parent)
-        path = parent.joinpath(child)
-        makedirs(path, exist_ok=True)
-        return path
-
     def speed_folder(self, name):
         tt_folder = self.transit_time_folder.joinpath(name)
         makedirs(tt_folder, exist_ok=True)
