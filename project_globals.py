@@ -47,8 +47,7 @@ class Environment:
         umask(0)
 
     def edge_folder(self, name):
-        edge_folder = self.elapsed_time_folder().joinpath(name)
-        makedirs(edge_folder, exist_ok=True)
+        makedirs(self.elapsed_time_folder.joinpath(name), exist_ok=True)
         return edge_folder
 
     def make_folders(self, args):
@@ -64,12 +63,12 @@ class Environment:
         makedirs(self.transit_time_folder, exist_ok=True)
 
     def make_folder(self, parent, child):
-        child = parent.joinpath(child)
-        makedirs(child, exist_ok=True)
-        return child
+        path = parent.joinpath(child)
+        makedirs(path, exist_ok=True)
+        return path
 
     def speed_folder(self, name):
-        tt_folder = self.transit_time_folder().joinpath(name)
+        tt_folder = self.transit_time_folder.joinpath(name)
         makedirs(tt_folder, exist_ok=True)
         return tt_folder
 
