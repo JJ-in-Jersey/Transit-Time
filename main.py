@@ -14,7 +14,6 @@ from project_globals import TIMESTEP, boat_speeds
 from Semaphore import SimpleSemaphore as Semaphore
 from ChromeDriver import ChromeDriver as cd
 from VelocityInterpolation import Interpolator as vi
-# from FileTools import FileTools as ft
 
 if __name__ == '__main__':
 
@@ -74,11 +73,10 @@ if __name__ == '__main__':
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for segments (1st day-1 to last day+2)')
-    # noinspection PyProtectedMember
     for segment in route.elapsed_time_segments: mpm.job_queue.put(ElapsedTimeJob(mpm, segment))
     mpm.job_queue.join()
-    # noinspection PyProtectedMember
     for segment in route.elapsed_time_segments: segment.elapsed_times_df(mpm.result_lookup[id(segment)])
+
     # segment = route.elapsed_time_segments[0]
     # ej = ElapsedTimeJob(mpm, segment)
     # ej.execute()

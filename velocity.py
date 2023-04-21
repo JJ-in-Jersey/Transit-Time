@@ -26,11 +26,11 @@ class VelocityJob:
 
     @classmethod
     def velocity_download(cls, folder, wdw):
-        newest_before = newest_after = fu.newest_file(folder)
+        newest_before = newest_after = ft.newest_file(folder)
         wdw.until(ec.element_to_be_clickable((By.ID, 'generatePDF'))).click()
         while newest_before == newest_after:
             sleep(0.1)
-            newest_after = fu.newest_file(folder)
+            newest_after = ft.newest_file(folder)
         return newest_after
 
     @classmethod
