@@ -26,6 +26,7 @@ class JobManager:
                 while not q.empty():
                     job = q.get()
                     results[job] = p.apply_async(job.execute, callback=job.execute_callback, error_callback=job.error_callback)
+                    sleep(1)
                 jobs = list(results.keys())
                 for job in jobs:
                     if results[job].ready():

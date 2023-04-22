@@ -18,7 +18,7 @@ FIVE_HOURS_OF_TIMESTEPS = 5*3600 / TIMESTEP  # only consider windows of transit 
 WDW = 10
 DF_FILE_TYPE = 'csv'  # csv, hdf, pkl
 
-boat_speeds = [v for v in range(-9, -1, 2)]+[v for v in range(3, 10, 2)]  # knots
+boat_speeds = [v for v in range(-7, -2, 2)]+[v for v in range(3, 8, 2)]  # knots
 
 def sign(value): return value/abs(value)
 def rounded_to_minutes(index):
@@ -40,7 +40,7 @@ class Environment:
 
     def __init__(self):
         self.user_profile = environ['USERPROFILE']
-        self.project_folder = None
+        # self.project_folder = None
         self.velo_folder = None
         self.elapsed_time_folder = None
         self.transit_time_folder = None
@@ -52,13 +52,13 @@ class Environment:
         return path
 
     def make_folders(self, args):
-        self.project_folder = Path(self.user_profile + '/Developer Workspace/' + args['project_name']+'/')
-        self.velo_folder = self.project_folder.joinpath('Velocity')
-        self.elapsed_time_folder = self.project_folder.joinpath('Elapsed Time')
-        self.transit_time_folder = self.project_folder.joinpath('Transit Time')
+        project_folder = Path(self.user_profile + '/Developer Workspace/' + args['project_name']+'/')
+        self.velo_folder = project_folder.joinpath('Velocity')
+        self.elapsed_time_folder = project_folder.joinpath('Elapsed Time')
+        self.transit_time_folder = project_folder.joinpath('Transit Time')
 
         if args['delete_data']: shutil.rmtree(self.project_folder, ignore_errors=True)
-        makedirs(self.project_folder, exist_ok=True)
+        makedirs(project_folder, exist_ok=True)
         makedirs(self.velo_folder, exist_ok=True)
         makedirs(self.elapsed_time_folder, exist_ok=True)
         makedirs(self.transit_time_folder, exist_ok=True)
@@ -69,6 +69,8 @@ class Environment:
         return tt_folder
 
     def velocity_folder(self): return self.velo_folder
+    def elapsed_time_folder(self): return self.elapsed_time_folder
+    def transit_time_folder(self): return self.transit_time_folder
 
 class ChartYear:
 

@@ -34,7 +34,7 @@ if __name__ == '__main__':
     print(f'timestep: {TIMESTEP}')
     print(f'boat speeds: {boat_speeds}')
     print(f'length {round(route.path.total_length(),1)} nm')
-    print(f'direction {route.path.direction()}')
+    print(f'direction {route.path.direction()}\n')
 
     mgr = Manager()
     mpm.result_lookup = mgr.dict()
@@ -47,7 +47,7 @@ if __name__ == '__main__':
     jm = mpm.WaitForProcess(target=mpm.JobManager, args=(mpm.job_queue, mpm.result_lookup))
     jm.start()
 
-    cd.update_driver()  # update chrome driver before launching process that use it
+    # cd.update_driver()  # update chrome driver before launching process that use it
 
     # Download noaa data and create velocity arrays for each waypoint (node)
     print(f'\nCalculating currents at waypoints (1st day-1 to last day+3)')
@@ -55,18 +55,12 @@ if __name__ == '__main__':
     for wp in current_stations: mpm.job_queue.put(CurrentStationJob(mpm, wp))
     mpm.job_queue.join()
     for wp in current_stations: wp.velo_array = mpm.result_lookup[id(wp)]
-    # waypoint = current_stations[0]
-    # vj = CurrentStationJob(mpm, waypoint)
-    # result_tuple = vj.execute()
-    # waypoint.velo_array = result_tuple[1]
 
+    # print(f'\nCalculating currents at interpolation waypoints (1st day-1 to last day+3)')
     # interpolations = [wp for wp in route.waypoints if isinstance(wp, InterpolationWP)]
-    # # for wp in interpolations: mpm.job_queue.put(InterpolationJob(mpm, wp))
-    # # mpm.job_queue.join()
-    # # for wp in current_stations: wp.velo_array(mpm.result_lookup[id(wp)])
-    # waypoint = interpolations[0]
-    # ij = InterpolationJob(mpm, waypoint)
-    # result_tuple = ij.execute()
+    # for wp in interpolations: mpm.job_queue.put(InterpolationJob(mpm, wp))
+    # mpm.job_queue.join()
+    # for wp in interpolations: wp.velo_array(mpm.result_lookup[id(wp)])
 
     for segment in route.elapsed_time_segments:
         segment.add_endpoint_velocities()  # add velocities to segments
@@ -75,11 +69,12 @@ if __name__ == '__main__':
     print(f'\nCalculating elapsed times for segments (1st day-1 to last day+2)')
     for segment in route.elapsed_time_segments: mpm.job_queue.put(ElapsedTimeJob(mpm, segment))
     mpm.job_queue.join()
-    for segment in route.elapsed_time_segments: segment.elapsed_times_df(mpm.result_lookup[id(segment)])
 
-    # segment = route.elapsed_time_segments[0]
-    # ej = ElapsedTimeJob(mpm, segment)
-    # ej.execute()
+    # for segment in route.elapsed_time_segments:
+    #     ej = ElapsedTimeJob(mpm, segment)
+    #     # mytuple = ej.execute()
+    #     mpm.job_queue.put(ej)
+    #     # mpm.job_queue.join()
 
     # combine elapsed times by speed
     print(f'\nSorting elapsed times by speed', flush=True)
