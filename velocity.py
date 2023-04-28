@@ -10,6 +10,7 @@ from selenium.webdriver.common.by import By
 
 from project_globals import WDW, DF_FILE_TYPE, output_file_exists
 from project_globals import mins_secs, date_to_index
+import multiprocess as mpm
 from ChromeDriver import ChromeDriver as cd
 from ReadWrite import ReadWrite as rw
 from FileTools import FileTools as ft
@@ -59,12 +60,12 @@ class VelocityJob:
         driver.quit()
         return download_df
 
-    def __init__(self, mpm, waypoint):
-        self.year = mpm.cy.year()
-        self.start_index = mpm.cy.waypoint_start_index()
-        self.end_index = mpm.cy.waypoint_end_index()
-        self.velo_range = mpm.cy.waypoint_range()
-        self.download_folder = ft.make_folder(mpm.env.velocity_folder(), waypoint.short_name)
+    def __init__(self, env, cy, waypoint):
+        self.year = cy.year()
+        self.start_index = cy.waypoint_start_index()
+        self.end_index = cy.waypoint_end_index()
+        self.velo_range = cy.waypoint_range()
+        self.download_folder = ft.make_folder(env.velocity_folder(), waypoint.short_name)
 
 class CurrentStationJob(VelocityJob):
 
@@ -96,8 +97,8 @@ class CurrentStationJob(VelocityJob):
     def error_callback(self, result):
         print(f'!     {self.code} {self.name} process has raised an error: {result}', flush=True)
 
-    def __init__(self, mpm, waypoint):
-        super().__init__(mpm, waypoint)
+    def __init__(self, env, cy, waypoint):
+        super().__init__(env, cy, waypoint)
         self.name = waypoint.short_name
         self.code = waypoint.noaa_code
         self.url = waypoint.noaa_url
@@ -135,8 +136,8 @@ class InterpolationJob(VelocityJob):
     def error_callback(self, result):
         print(f'!     {self.code} {self._name} process has raised an error: {result}', flush=True)
 
-    def __init__(self, mpm, waypoint):
-        super().__init__(mpm, waypoint)
+    def __init__(self, env, cy, waypoint):
+        super().__init__(env, cy, waypoint)
         self._name = waypoint.short_name
         self.coords = waypoint.coords
         self.interpolation_points = waypoint.interpolation_points

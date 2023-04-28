@@ -2,6 +2,8 @@
 from argparse import ArgumentParser as argParser
 from pathlib import Path
 from multiprocessing import Manager
+from numpy import ndarray as array
+from pandas import DataFrame as dataframe
 
 import multiprocess as mpm
 from GPX import Route, CurrentStationWP, InterpolationWP
@@ -14,6 +16,8 @@ from project_globals import TIMESTEP, boat_speeds, Environment, ChartYear
 from Semaphore import SimpleSemaphore as Semaphore
 from ChromeDriver import ChromeDriver as cd
 from VelocityInterpolation import Interpolator as vi
+
+checkmark = u'\N{check mark}'
 
 if __name__ == '__main__':
 
@@ -36,19 +40,11 @@ if __name__ == '__main__':
     print(f'length {round(route.path.total_length(),1)} nm')
     print(f'direction {route.path.direction()}\n')
 
-    envr = Environment()
-    cyr = ChartYear()
-    envr.make_folders(args)
-    cyr.initialize(args)
+    envr = Environment(args)
+    cyr = ChartYear(args)
 
     mgr = Manager()
     mpm.result_lookup = mgr.dict()
-    mpm.som.start(mpm.pm_init)
-    mpm.cy = mpm.som.CY()
-    mpm.env = mpm.som.ENV()
-
-    mpm.env.make_folders(args)
-    mpm.cy.initialize(args)
     jm = mpm.WaitForProcess(target=mpm.JobManager, args=(mpm.job_queue, mpm.result_lookup))
     jm.start()
 
@@ -57,48 +53,36 @@ if __name__ == '__main__':
     # Download noaa data and create velocity arrays for each waypoint (node)
     print(f'\nCalculating currents at waypoints (1st day-1 to last day+3)')
     current_stations = [wp for wp in route.waypoints if isinstance(wp, CurrentStationWP)]
-    for wp in current_stations: mpm.job_queue.put(CurrentStationJob(mpm, wp))
+    for wp in current_stations: mpm.job_queue.put(CurrentStationJob(envr, cyr, wp))
     mpm.job_queue.join()
+
     print(f'\nAdding results to waypoints')
     for wp in current_stations:
         wp.velo_array = mpm.result_lookup[id(wp)]
-        if not wp.velo_array == None: print( u'\N{check mark}', wp.short_name )
-
-
-    # print(f'\nCalculating currents at interpolation waypoints (1st day-1 to last day+3)')
-    # interpolations = [wp for wp in route.waypoints if isinstance(wp, InterpolationWP)]
-    # for wp in interpolations: mpm.job_queue.put(InterpolationJob(mpm, wp))
-    # mpm.job_queue.join()
-    # for wp in interpolations: wp.velo_array(mpm.result_lookup[id(wp)])
+        if isinstance(wp.velo_array, array): print(f'{checkmark}     {wp.short_name}', flush=True)
+        else: print(f'X     {wp.short_name}', flush=True)
 
     for segment in route.elapsed_time_segments:
         segment.add_endpoint_velocities()  # add velocities to segments
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for segments (1st day-1 to last day+2)')
-    for segment in route.elapsed_time_segments: mpm.job_queue.put(ElapsedTimeJob(mpm, segment))
+    for segment in route.elapsed_time_segments: mpm.job_queue.put(ElapsedTimeJob(envr, cyr, segment))
     mpm.job_queue.join()
-    for segment in route.elapsed_time_segments: segment.elapsed_times_df = mpm.result_lookup[id(segment)]
 
-    # for segment in route.elapsed_time_segments:
-    #     ej = ElapsedTimeJob(mpm, segment)
-    #     ej.execute()
-    #     mpm.job_queue.put(ej)
-    #     mpm.job_queue.join()
-    #     print(segment.elapsed_times_df)
+    print(f'\nAdding results to segments')
+    for segment in route.elapsed_time_segments:
+        segment.elapsed_times_df = mpm.result_lookup[id(segment)]
+        if isinstance(segment.elapsed_times_df, dataframe): print(f'{checkmark}     {segment.name}', flush=True)
+        else: print(f'X     {segment.name}', flush=True)
 
     # combine elapsed times by speed
     print(f'\nSorting elapsed times by speed', flush=True)
-    elapsed_time_reduce(mpm, route)
-    # for speed in boat_speeds: print(route.elapsed_time_lookup(speed))
+    elapsed_time_reduce(envr, route)
 
     # calculate the number of timesteps from first node to last node
     print(f'\nCalculating transit times (1st day-1 to last day+1)')
-    for speed in boat_speeds: mpm.job_queue.put(TransitTimeMinimaJob(mpm, route, speed))
+    for speed in boat_speeds: mpm.job_queue.put(TransitTimeMinimaJob(envr, cyr, route, speed))
     mpm.job_queue.join()
-    # for speed in boat_speeds: route.transit_time_lookup(speed, mp.result_lookup[speed])
-    # tj = TransitTimeMinimaJob(route, -7, mp.environs, mp.chart_yr, mp.pool_notice)
-    # tj.execute()
 
     Semaphore.off(mpm.job_manager_semaphore)
-    mpm.som.shutdown()

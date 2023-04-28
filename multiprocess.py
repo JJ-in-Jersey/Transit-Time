@@ -47,8 +47,3 @@ class WaitForProcess(Process):
         super().start(**kwargs)
         while not semaphore.is_on(job_manager_semaphore):
             sleep(0.1)
-
-class SharedObjectManager(BaseManager): pass
-SharedObjectManager.register('ENV', Environment)
-SharedObjectManager.register('CY', ChartYear)
-som = SharedObjectManager()

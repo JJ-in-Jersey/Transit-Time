@@ -18,30 +18,29 @@ def total_transit_time(init_row, d_frame, cols):
 
 class TransitTimeMinimaJob:
 
-    def __init__(self, mpm, route, speed):
-        self._speed = speed
-        self._first_day_index = mpm.cy.first_day_index()
-        self._last_day_index = mpm.cy.last_day_index()
-        self._start_index = mpm.cy.transit_start_index()
-        self._end_index = mpm.cy.transit_end_index()
-        self._transit_range = mpm.cy.transit_range()
+    def __init__(self, env, cy, route, speed):
+        self.speed = speed
+        self._first_day_index = cy.first_day_index()
+        self._last_day_index = cy.last_day_index()
+        self._start_index = cy.transit_start_index()
+        self._end_index = cy.transit_end_index()
+        self._transit_range = cy.transit_range()
         self._elapsed_times_df = route.elapsed_time_lookup(speed)
-
-        self._elapsed_time_table = mpm.env.transit_time_folder().joinpath('et_' + str(speed))  # elapsed times in table, sorted by speed
-        self._speed_folder = mpm.env.speed_folder(num2words(speed))
-        self._plotting_table = self._speed_folder.joinpath('tt_' + str(speed) + '_plotting_table')  # output of minima_table, npy, can be used for plotting/checking
-        self._savgol = self._speed_folder.joinpath('tt_' + str(speed) + '_savgol')  # savgol column
-        self._transit_timesteps = self._speed_folder.joinpath('tt_' + str(speed) + '_timesteps')  # transit times column
-        self._transit_time = mpm.env.transit_time_folder().joinpath('transit_time_' + str(speed))  # final results tabl
+        self._elapsed_time_table = env.transit_time_folder().joinpath('et_' + str(speed))  # elapsed times in table, sorted by speed
+        self.speed_folder = env.speed_folder(num2words(speed))
+        self._plotting_table = self.speed_folder.joinpath('tt_' + str(speed) + '_plotting_table')  # output of minima_table, npy, can be used for plotting/checking
+        self.savgol = self.speed_folder.joinpath('tt_' + str(speed) + 'savgol')  # savgol column
+        self._transit_timesteps = self.speed_folder.joinpath('tt_' + str(speed) + '_timesteps')  # transit times column
+        self._transit_time = env.transit_time_folder().joinpath('transit_time_' + str(speed))  # final results tabl
 
     def execute(self):
         init_time = perf_counter()
         if output_file_exists(self._transit_time):
-            print(f'+     Transit time ({self._speed}) reading data file', flush=True)
+            print(f'+     Transit time ({self.speed}) reading data file', flush=True)
             tt_minima_df = rw.read_df(self._transit_time)
-            return tuple([self._speed, tt_minima_df, init_time])
+            return tuple([self.speed, tt_minima_df, init_time])
 
-        print(f'+     Transit time ({self._speed})', flush=True)
+        print(f'+     Transit time ({self.speed})', flush=True)
         if output_file_exists(self._transit_timesteps):
             transit_timesteps = rw.read_arr(self._transit_timesteps)
         else:
@@ -60,12 +59,12 @@ class TransitTimeMinimaJob:
 
         final_df = self.trim_to_year(minima_time_table_df)
         rw.write_df_csv(final_df, self._transit_time)
-        return tuple([self._speed, minima_time_table_df, init_time])
+        return tuple([self.speed, minima_time_table_df, init_time])
 
     def execute_callback(self, result):
-        print(f'-     Transit time ({self._speed}) {mins_secs(perf_counter() - result[2])} minutes', flush=True)
+        print(f'-     Transit time ({self.speed}) {mins_secs(perf_counter() - result[2])} minutes', flush=True)
     def error_callback(self, result):
-        print(f'!     Transit time ({self._speed}) process has raised an error: {result}', flush=True)
+        print(f'!     Transit time ({self.speed}) process has raised an error: {result}', flush=True)
 
     # noinspection PyMethodMayBeStatic
     def start_min_end(self, minima_df):
@@ -87,11 +86,11 @@ class TransitTimeMinimaJob:
         tt_df['departure_index'] = self._transit_range
         tt_df['plot'] = 0
         tt_df = tt_df.assign(tts=transit_array)
-        if output_file_exists(self._savgol):
-            tt_df['midline'] = rw.read_df(self._savgol)
+        if output_file_exists(self.savgol):
+            tt_df['midline'] = rw.read_df(self.savgol)
         else:
             tt_df['midline'] = savgol_filter(transit_array, 50000, 1)
-            rw.write_df(tt_df['midline'], self._savgol, DF_FILE_TYPE)
+            rw.write_df(tt_df['midline'], self.savgol, DF_FILE_TYPE)
         min_segs = tt_df['tts'].lt(tt_df['midline']).to_list()  # list of True or False the same length as tt_df
         clump = []
         for row, val in enumerate(min_segs):  # rows in tt_df, not the departure index

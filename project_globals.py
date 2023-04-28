@@ -16,7 +16,7 @@ WINDOW_MARGIN = 10  # minutes
 TIMESTEP_MARGIN = WINDOW_MARGIN * 60 / TIMESTEP  # number of timesteps to add to minimum to find edges of time windows
 FIVE_HOURS_OF_TIMESTEPS = 5*3600 / TIMESTEP  # only consider windows of transit times less than the midline that are at least 5 ours long (6 hour tide change)
 WDW = 10
-DF_FILE_TYPE = 'csv'  # csv, hdf, pkl
+DF_FILE_TYPE = 'hdf'  # csv, hdf, pkl
 
 boat_speeds = [v for v in range(-7, -2, 2)]+[v for v in range(3, 8, 2)]  # knots
 
@@ -38,12 +38,13 @@ def mins_secs(secs): return "%d:%02d" % (secs // 60, secs % 60)
 
 class Environment:
 
-    def __init__(self):
+    def __init__(self, args):
         self.user_profile = environ['USERPROFILE']
         self.velo_folder = None
         self.elapsed_folder = None
         self.transit_folder = None
         umask(0)
+        self.make_folders(args)
 
     def velocity_folder(self): return self.velo_folder
     def elapsed_time_folder(self): return self.elapsed_folder
@@ -67,7 +68,7 @@ class Environment:
         makedirs(self.transit_folder, exist_ok=True)
 
     def speed_folder(self, name):
-        tt_folder = self.transit_time_folder.joinpath(name)
+        tt_folder = self.transit_folder.joinpath(name)
         makedirs(tt_folder, exist_ok=True)
         return tt_folder
 
@@ -86,22 +87,13 @@ class ChartYear:
     def first_day_index(self): return date_to_index(self.first_day)
     def last_day_index(self): return date_to_index(self.last_day)
 
-    def initialize(self, args):
+    def __init__(self, args):
         self._year = args['year']  # underscore _year to differentiate it from the method year()
         self.first_day = dp.parse('1/1/'+str(self._year))
-        self.last_day = dp.parse('12/31/' + str(self._year))
         self.first_day_minus_one = self.first_day - td(days=1)
+        self.last_day = dp.parse('12/31/' + str(self._year))
         self.last_day_plus_one = self.last_day + td(days=1)
         self.last_day_plus_two = self.last_day + td(days=2)
         self.last_day_plus_three = self.last_day + td(days=3)
-
-    def __init__(self):
-        self._year = None  # underscore _year to differentiate it from the method year()
         self.first_date = None
         self.last_date = None
-        self.first_day = None
-        self.first_day_minus_one = None
-        self.last_day = None
-        self.last_day_plus_one = None
-        self.last_day_plus_two = None
-        self.last_day_plus_three = None
