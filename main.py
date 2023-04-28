@@ -9,7 +9,7 @@ from velocity import CurrentStationJob, InterpolationJob
 from elapsed_time import ElapsedTimeJob
 from elapsed_time_reduce import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
-from project_globals import TIMESTEP, boat_speeds
+from project_globals import TIMESTEP, boat_speeds, Environment, ChartYear
 
 from Semaphore import SimpleSemaphore as Semaphore
 from ChromeDriver import ChromeDriver as cd
@@ -36,6 +36,11 @@ if __name__ == '__main__':
     print(f'length {round(route.path.total_length(),1)} nm')
     print(f'direction {route.path.direction()}\n')
 
+    envr = Environment()
+    cyr = ChartYear()
+    envr.make_folders(args)
+    cyr.initialize(args)
+
     mgr = Manager()
     mpm.result_lookup = mgr.dict()
     mpm.som.start(mpm.pm_init)
@@ -54,7 +59,11 @@ if __name__ == '__main__':
     current_stations = [wp for wp in route.waypoints if isinstance(wp, CurrentStationWP)]
     for wp in current_stations: mpm.job_queue.put(CurrentStationJob(mpm, wp))
     mpm.job_queue.join()
-    for wp in current_stations: wp.velo_array = mpm.result_lookup[id(wp)]
+    print(f'\nAdding results to waypoints')
+    for wp in current_stations:
+        wp.velo_array = mpm.result_lookup[id(wp)]
+        if not wp.velo_array == None: print( u'\N{check mark}', wp.short_name )
+
 
     # print(f'\nCalculating currents at interpolation waypoints (1st day-1 to last day+3)')
     # interpolations = [wp for wp in route.waypoints if isinstance(wp, InterpolationWP)]
@@ -69,12 +78,14 @@ if __name__ == '__main__':
     print(f'\nCalculating elapsed times for segments (1st day-1 to last day+2)')
     for segment in route.elapsed_time_segments: mpm.job_queue.put(ElapsedTimeJob(mpm, segment))
     mpm.job_queue.join()
+    for segment in route.elapsed_time_segments: segment.elapsed_times_df = mpm.result_lookup[id(segment)]
 
     # for segment in route.elapsed_time_segments:
     #     ej = ElapsedTimeJob(mpm, segment)
-    #     # mytuple = ej.execute()
+    #     ej.execute()
     #     mpm.job_queue.put(ej)
-    #     # mpm.job_queue.join()
+    #     mpm.job_queue.join()
+    #     print(segment.elapsed_times_df)
 
     # combine elapsed times by speed
     print(f'\nSorting elapsed times by speed', flush=True)
