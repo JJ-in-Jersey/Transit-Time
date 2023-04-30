@@ -15,7 +15,7 @@ def elapsed_time_reduce(env, route):
         print(f':     elapsed time reduce ({mins_secs(perf_counter() - init_time)} minutes)', flush=True)
     else:
         print(f':     elapsed time reduce - reducing elapsed times', flush=True)
-        elapsed_time_tables = [segment.elapsed_times_df for segment in route.elapsed_time_segments]
+        elapsed_time_tables = [edge.dataframe for edge in route.velo_path.edges]
         et_reduce_df = reduce(lambda left, right: pd.merge(left, right, on='departure_index'), elapsed_time_tables)
         rw.write_df(et_reduce_df, elapsed_times_path, DF_FILE_TYPE)
         print(f':     elapsed time reduce ({mins_secs(perf_counter() - init_time)} minutes)', flush=True)
@@ -23,7 +23,7 @@ def elapsed_time_reduce(env, route):
     for speed in boat_speeds:
         print(f':     elapsed time reduce - processing speed {speed}', flush=True)
         speed_path = env.elapsed_time_folder().joinpath('speed' + str(speed))
-        speed_columns = [str(speed) + ' ' + segment.name for segment in route.elapsed_time_segments]
+        speed_columns = [str(speed) + ' ' + edge.name for edge in route.velo_path.edges]
         speed_df = et_reduce_df[speed_columns]
         rw.write_df(speed_df, speed_path, DF_FILE_TYPE)
         route.elapsed_time_lookup(speed, speed_df)
