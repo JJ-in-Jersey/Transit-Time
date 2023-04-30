@@ -140,6 +140,7 @@ class InterpolationJob(VelocityJob):
         super().__init__(env, cy, waypoint)
         self._name = waypoint.short_name
         self.coords = waypoint.coords
-        self.interpolation_points = waypoint.interpolation_points
         self._result_key = id(waypoint)
         self.velo_array_pathfile = self.download_folder.joinpath(waypoint.short_name + '_array')
+
+        next_waypoint = waypoint.next_edge.start

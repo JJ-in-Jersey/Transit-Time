@@ -32,13 +32,12 @@ if __name__ == '__main__':
     route = Route(args['filepath'])
 
     print(f'\nCalculating route "{route.name}"')
-    print(f'total waypoints:{len(route.waypoints)}')
-    print(f'elapsed time waypoints:{len(route.elapsed_time_waypoints)}')
-    print(f'elapsed time segments: {len(route.elapsed_time_segments)}')
+    print(f'total waypoints: {len(route.whole_path.edges)+1}')
+    print(f'elapsed time waypoints: {len(route.velo_path.edges)+1}')
     print(f'timestep: {TIMESTEP}')
     print(f'boat speeds: {boat_speeds}')
-    print(f'length {round(route.path.total_length(),1)} nm')
-    print(f'direction {route.path.direction()}\n')
+    print(f'length {round(route.velo_path.length,1)} nm')
+    print(f'direction {route.velo_path.direction}\n')
 
     envr = Environment(args)
     cyr = ChartYear(args)
@@ -48,33 +47,29 @@ if __name__ == '__main__':
     jm = mpm.WaitForProcess(target=mpm.JobManager, args=(mpm.job_queue, mpm.result_lookup))
     jm.start()
 
-    # cd.update_driver()  # update chrome driver before launching process that use it
+    cd.update_driver()  # update chrome driver before launching process that use it
 
     # Download noaa data and create velocity arrays for each waypoint (node)
     print(f'\nCalculating currents at waypoints (1st day-1 to last day+3)')
-    current_stations = [wp for wp in route.waypoints if isinstance(wp, CurrentStationWP)]
-    for wp in current_stations: mpm.job_queue.put(CurrentStationJob(envr, cyr, wp))
+    for wp in route.current_stations: mpm.job_queue.put(CurrentStationJob(envr, cyr, wp))
     mpm.job_queue.join()
 
     print(f'\nAdding results to waypoints')
-    for wp in current_stations:
-        wp.velo_array = mpm.result_lookup[id(wp)]
-        if isinstance(wp.velo_array, array): print(f'{checkmark}     {wp.short_name}', flush=True)
+    for wp in route.current_stations:
+        wp.velo_arr = mpm.result_lookup[id(wp)]
+        if isinstance(wp.velo_arr, array): print(f'{checkmark}     {wp.short_name}', flush=True)
         else: print(f'X     {wp.short_name}', flush=True)
-
-    for segment in route.elapsed_time_segments:
-        segment.add_endpoint_velocities()  # add velocities to segments
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for segments (1st day-1 to last day+2)')
-    for segment in route.elapsed_time_segments: mpm.job_queue.put(ElapsedTimeJob(envr, cyr, segment))
+    for edge in route.velo_path.edges: mpm.job_queue.put(ElapsedTimeJob(envr, cyr, edge))
     mpm.job_queue.join()
 
-    print(f'\nAdding results to segments')
-    for segment in route.elapsed_time_segments:
-        segment.elapsed_times_df = mpm.result_lookup[id(segment)]
-        if isinstance(segment.elapsed_times_df, dataframe): print(f'{checkmark}     {segment.name}', flush=True)
-        else: print(f'X     {segment.name}', flush=True)
+    print(f'\nAdding results to edges')
+    for edge in route.velo_path.edges:
+        edge.dataframe = mpm.result_lookup[id(edge)]
+        if isinstance(edge.dataframe, dataframe): print(f'{checkmark}     {edge.name}', flush=True)
+        else: print(f'X     {edge.name}', flush=True)
 
     # combine elapsed times by speed
     print(f'\nSorting elapsed times by speed', flush=True)

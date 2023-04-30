@@ -28,12 +28,12 @@ class ElapsedTimeJob:
     @staticmethod
     def distance(water_vf, water_vi, boat_speed, ts_in_hr): return ((water_vf + water_vi) / 2 + boat_speed) * ts_in_hr  # distance is nm
 
-    def __init__(self, env, cy, segment):
-        self.result_key = id(segment)
-        self.length = segment.length
-        self.init_velo = segment.start_velo
-        self.final_velo = segment.end_velo
-        self.name = segment.name
+    def __init__(self, env, cy, edge):
+        self.result_key = id(edge)
+        self.length = edge.length
+        self.init_velo = edge.start.velo_arr
+        self.final_velo = edge.end.velo_arr
+        self.name = edge.name
 
         self.edge_folder = env.edge_folder(self.name)
         self.table_pathfile = self.edge_folder.joinpath(self.name + '_table')
