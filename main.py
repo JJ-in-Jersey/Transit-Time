@@ -6,7 +6,7 @@ from numpy import ndarray as array
 from pandas import DataFrame as dataframe
 
 import multiprocess as mpm
-from GPX import Route, CurrentStationWP, InterpolationWP
+from GPX import Route, CurrentStationWP, InterpolationWP, InterpolationDataWP
 from velocity import CurrentStationJob, InterpolationJob
 from elapsed_time import ElapsedTimeJob
 from elapsed_time_reduce import elapsed_time_reduce
@@ -15,7 +15,6 @@ from project_globals import TIMESTEP, boat_speeds, Environment, ChartYear
 
 from Semaphore import SimpleSemaphore as Semaphore
 from ChromeDriver import ChromeDriver as cd
-from VelocityInterpolation import Interpolator as vi
 
 checkmark = u'\N{check mark}'
 
@@ -49,7 +48,7 @@ if __name__ == '__main__':
 
     cd.update_driver()  # update chrome driver before launching process that use it
 
-    # Download noaa data and create velocity arrays for each waypoint (node)
+    # Download noaa data and create velocity arrays for each CURRENT waypoint
     print(f'\nCalculating currents at waypoints (1st day-1 to last day+3)')
     for wp in route.current_stations: mpm.job_queue.put(CurrentStationJob(envr, cyr, wp))
     mpm.job_queue.join()
@@ -60,8 +59,22 @@ if __name__ == '__main__':
         if isinstance(wp.velo_arr, array): print(f'{checkmark}     {wp.short_name}', flush=True)
         else: print(f'X     {wp.short_name}', flush=True)
 
+    # Download noaa data and create velocity arrays for each INTERPOLATION waypoint
+    print(f'\nCalculating currents at interpolation waypoints (1st day-1 to last day+3)')
+    for group in route.interpolation_groups:
+        for wp in group[1:]: mpm.job_queue.put(CurrentStationJob(envr, cyr, wp))  # first waypoint is not a data waypoint
+        mpm.job_queue.join()
+
+        print(f'\nAdding results to waypoints')
+        for wp in group[1:]:
+            wp.velo_arr = mpm.result_lookup[id(wp)]
+            if isinstance(wp.velo_arr, array): print(f'{checkmark}     {wp.short_name}', flush=True)
+            else: print(f'X     {wp.short_name}', flush=True)
+
+        ij = InterpolationJob(group)
+
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
-    print(f'\nCalculating elapsed times for segments (1st day-1 to last day+2)')
+    print(f'\nCalculating elapsed times for edges (1st day-1 to last day+2)')
     for edge in route.velo_path.edges: mpm.job_queue.put(ElapsedTimeJob(envr, cyr, edge))
     mpm.job_queue.join()
 
