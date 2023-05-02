@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from scipy.interpolate import CubicSpline
 from sympy import Point
+from pathlib import Path
 
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as ec
@@ -121,8 +122,18 @@ class InterpolationJob:
         interpolation_point = Point(waypoints[0].lat, waypoints[0].lon, 0)
         for i in range(0, InterpolationJob.table_integrity(waypoints[1:])):
             surface_points = [Point(wp.lat, wp.lon, wp.velo_arr[i]) for wp in waypoints[1:]]
-            print(interpolation_point)
-            print(surface_points)
+            # f = open(Path("C:\\users\\jason\\desktop\\test"), mode='w')
+            # print(str(interpolation_point.x.evalf()))
+            # f.write(str(interpolation_point.evalf()))
+            # for p in surface_points:
+            #     f.write(str(p.evalf()))
+            #     print(p.evalf(),' ',end='')
+            # f.close()
             interpolator = vi(surface_points)
-            interpolator.get_velocity(interpolation_point)
-            interpolator.show_plot()
+            interpolator.show_axes()
+            interpolator.set_interpolation_point(interpolation_point)
+            interpolator.show_interpolation_point()
+            output = interpolator.get_interpolated_point()
+            pass
+
+

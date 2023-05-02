@@ -46,7 +46,7 @@ if __name__ == '__main__':
     jm = mpm.WaitForProcess(target=mpm.JobManager, args=(mpm.job_queue, mpm.result_lookup))
     jm.start()
 
-    cd.update_driver()  # update chrome driver before launching process that use it
+    # cd.update_driver()  # update chrome driver before launching process that use it
 
     # Download noaa data and create velocity arrays for each CURRENT waypoint
     print(f'\nCalculating currents at waypoints (1st day-1 to last day+3)')
@@ -70,7 +70,6 @@ if __name__ == '__main__':
             wp.velo_arr = mpm.result_lookup[id(wp)]
             if isinstance(wp.velo_arr, array): print(f'{checkmark}     {wp.short_name}', flush=True)
             else: print(f'X     {wp.short_name}', flush=True)
-
         ij = InterpolationJob(group)
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
