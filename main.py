@@ -7,7 +7,7 @@ from pandas import DataFrame as dataframe
 
 import multiprocess as mpm
 from GPX import Route, CurrentStationWP, InterpolationWP, InterpolationDataWP
-from velocity import CurrentStationJob, InterpolationJob
+from velocity import CurrentStationJob, InterpolationJob, InterpolationDataJob, InterpolationGroup
 from elapsed_time import ElapsedTimeJob
 from elapsed_time_reduce import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     # cd.update_driver()  # update chrome driver before launching process that use it
 
     # Download noaa data and create velocity arrays for each CURRENT waypoint
-    print(f'\nCalculating currents at waypoints (1st day-1 to last day+3)')
+    print(f'\nCalculating currents at current station waypoints (1st day-1 to last day+3)')
     for wp in route.current_stations: mpm.job_queue.put(CurrentStationJob(envr, cyr, wp))
     mpm.job_queue.join()
 
@@ -62,15 +62,19 @@ if __name__ == '__main__':
     # Download noaa data and create velocity arrays for each INTERPOLATION waypoint
     print(f'\nCalculating currents at interpolation waypoints (1st day-1 to last day+3)')
     for group in route.interpolation_groups:
-        for wp in group[1:]: mpm.job_queue.put(CurrentStationJob(envr, cyr, wp))  # first waypoint is not a data waypoint
+        for wp in group[1:]: mpm.job_queue.put(InterpolationDataJob(envr, cyr, wp))  # first waypoint is not a data waypoint
         mpm.job_queue.join()
 
         print(f'\nAdding results to waypoints')
         for wp in group[1:]:
-            wp.velo_arr = mpm.result_lookup[id(wp)]
-            if isinstance(wp.velo_arr, array): print(f'{checkmark}     {wp.short_name}', flush=True)
+            wp.download_velo_arr = mpm.result_lookup[id(wp)]
+            if isinstance(wp.download_velo_arr, array): print(f'{checkmark}     {wp.short_name}', flush=True)
             else: print(f'X     {wp.short_name}', flush=True)
-        ij = InterpolationJob(group)
+
+        interpolation_group = InterpolationGroup(group)
+        # for i in range(0, interpolation_group.table_integrity()):
+
+
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for edges (1st day-1 to last day+2)')
