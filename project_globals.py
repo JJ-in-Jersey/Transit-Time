@@ -15,7 +15,7 @@ TIME_RESOLUTION = 15  # rounded to minutes
 WINDOW_MARGIN = 10  # minutes
 TIMESTEP_MARGIN = WINDOW_MARGIN * 60 / TIMESTEP  # number of timesteps to add to minimum to find edges of time windows
 FIVE_HOURS_OF_TIMESTEPS = 5*3600 / TIMESTEP  # only consider windows of transit times less than the midline that are at least 5 ours long (6 hour tide change)
-WDW = 10
+WDW = 5
 DF_FILE_TYPE = 'hdf'  # csv, hdf, pkl
 
 boat_speeds = [v for v in range(-7, -2, 2)]+[v for v in range(3, 8, 2)]  # knots
@@ -40,11 +40,17 @@ class Environment:
 
     def __init__(self, args):
         self.user_profile = environ['USERPROFILE']
-        self.velo_folder = None
-        self.elapsed_folder = None
-        self.transit_folder = None
-        umask(0)
-        self.make_folders(args)
+        project_folder = Path(self.user_profile + '/Developer Workspace/' + args['project_name']+'/')
+        self.velo_folder = project_folder.joinpath('Velocity')
+        self.elapsed_folder = project_folder.joinpath('Elapsed Time')
+        self.transit_folder = project_folder.joinpath('Transit Time')
+
+        if args['delete_data']: shutil.rmtree(project_folder, ignore_errors=True)
+
+        makedirs(project_folder, exist_ok=True)
+        makedirs(self.velo_folder, exist_ok=True)
+        makedirs(self.elapsed_folder, exist_ok=True)
+        makedirs(self.transit_folder, exist_ok=True)
 
     def velocity_folder(self): return self.velo_folder
     def elapsed_time_folder(self): return self.elapsed_folder
@@ -54,18 +60,6 @@ class Environment:
         path = self.elapsed_folder.joinpath(name)
         makedirs(path, exist_ok=True)
         return path
-
-    def make_folders(self, args):
-        project_folder = Path(self.user_profile + '/Developer Workspace/' + args['project_name']+'/')
-        self.velo_folder = project_folder.joinpath('Velocity')
-        self.elapsed_folder = project_folder.joinpath('Elapsed Time')
-        self.transit_folder = project_folder.joinpath('Transit Time')
-
-        if args['delete_data']: shutil.rmtree(self.project_folder, ignore_errors=True)
-        makedirs(project_folder, exist_ok=True)
-        makedirs(self.velo_folder, exist_ok=True)
-        makedirs(self.elapsed_folder, exist_ok=True)
-        makedirs(self.transit_folder, exist_ok=True)
 
     def speed_folder(self, name):
         tt_folder = self.transit_folder.joinpath(name)

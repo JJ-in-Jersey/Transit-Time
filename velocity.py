@@ -17,7 +17,7 @@ from ChromeDriver import ChromeDriver as cd
 from ReadWrite import ReadWrite as rw
 from FileTools import FileTools as ft
 from Navigation import Navigation as nav
-from VelocityInterpolation import Interpolator as vi
+from VelocityInterpolation import Interpolator as VI
 
 #  VELOCITIES ARE DOWNLOADED, CALCULATED AND SAVE AS NAUTICAL MILES PER HOUR!
 
@@ -63,26 +63,26 @@ class VelocityJob:
         driver.quit()
         return download_df
 
-    def __init__(self, env, cy, waypoint):
+    def __init__(self, cy, waypoint):
+        self.wp = waypoint
         self.year = cy.year()
         self.start_index = cy.waypoint_start_index()
         self.end_index = cy.waypoint_end_index()
         self.velo_range = cy.waypoint_range()
-        self.download_folder = ft.make_folder(env.velocity_folder(), waypoint.short_name)
 
 class CurrentStationJob(VelocityJob):
 
     def execute(self):
         init_time = perf_counter()
-        if output_file_exists(self.velo_array_pathfile):
+        if output_file_exists(self.wp.file):
             print(f'+     {self.code} {self.name}', flush=True)
-            velo_array = rw.read_arr(self.velo_array_pathfile)
+            velo_array = rw.read_arr(self.wp.file)
             return tuple([self.result_key, velo_array, init_time])
         else:
             print(f'+     {self.code} {self.name}', flush=True)
-            download_df = VelocityJob.velocity_aggregate(self.download_folder, self.year, self.url, self.code)
+            download_df = VelocityJob.velocity_aggregate(self.wp.folder, self.year, self.url, self.code)
             download_df = download_df[(self.start_index <= download_df['date_index']) & (download_df['date_index'] <= self.end_index)]
-            rw.write_df(download_df, self.download_folder.joinpath(self.code + '_table'), DF_FILE_TYPE)
+            rw.write_df(download_df, self.wp.folder.joinpath(self.code + '_table'), DF_FILE_TYPE)
 
             # create cubic spline
             cs = CubicSpline(download_df['date_index'], download_df['velocity'])
@@ -91,7 +91,7 @@ class CurrentStationJob(VelocityJob):
             output_df['date_index'] = self.velo_range
             output_df['velocity'] = output_df['date_index'].apply(cs)
             velo_array = np.array(output_df['velocity'].to_list(), dtype=np.half)
-            rw.write_arr(velo_array, self.velo_array_pathfile)
+            rw.write_arr(velo_array, self.wp.file)
             return tuple([self.result_key, velo_array, init_time])
 
     def execute_callback(self, result):
@@ -100,34 +100,76 @@ class CurrentStationJob(VelocityJob):
     def error_callback(self, result):
         print(f'!     {self.code} {self.name} process has raised an error: {result}', flush=True)
 
-    def __init__(self, env, cy, waypoint):
-        super().__init__(env, cy, waypoint)
+    def __init__(self, cy, waypoint):
+        super().__init__(cy, waypoint)
         self.name = waypoint.short_name
         self.code = waypoint.noaa_code
         self.url = waypoint.noaa_url
         self.result_key = id(waypoint)
-        self.velo_array_pathfile = self.download_folder.joinpath(waypoint.short_name + '_array')
+
+class InterpolationDataJob(VelocityJob):
+
+    def execute(self):
+        init_time = perf_counter()
+        if output_file_exists(self.wp.file):
+            print(f'+     {self.code} {self.name}', flush=True)
+            # download_velo_arr = rw.read_arr(self.file)
+            return tuple([self.result_key, rw.read_arr(self.wp.file), init_time])
+        else:
+            print(f'+     {self.code} {self.name}', flush=True)
+            download_df = VelocityJob.velocity_aggregate(self.wp.folder, self.year, self.url, self.code)
+            download_df = download_df[(self.start_index <= download_df['date_index']) & (download_df['date_index'] <= self.end_index)]
+            download_velo_arr = np.array(download_df['velocity'].tolist()).astype(float)
+            rw.write_arr(download_velo_arr, self.wp.file)
+            return tuple([self.result_key, download_velo_arr, init_time])
+
+    def execute_callback(self, result):
+        print(f'-     {self.code} {self.name} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
+
+    def error_callback(self, result):
+        print(f'!     {self.code} {self.name} process has raised an error: {result}', flush=True)
+
+    def __init__(self, cy, waypoint):
+        super().__init__(cy, waypoint)
+        self.name = waypoint.short_name
+        self.code = waypoint.noaa_code
+        self.url = waypoint.noaa_url
+        self.result_key = id(waypoint)
 
 class InterpolationJob:
 
-    @staticmethod
-    def table_integrity(waypoints):
-        for i, wp in enumerate(waypoints[:-1]):
-            if not len(wp.velo_arr) == len(waypoints[i+1].velo_arr):
-                raise IndexError
-        return len(wp.velo_arr)
-
-    def __init__(self, *waypoints):
-        waypoints = [*waypoints][0]
-        interpolation_point = Point(waypoints[0].lat, waypoints[0].lon, 0)
-        for i in range(0, InterpolationJob.table_integrity(waypoints[1:])):
-            surface_points = [Point(wp.lat, wp.lon, wp.velo_arr[i]) for wp in waypoints[1:]]
-            interpolator = vi(surface_points)
-            interpolator.show_axes()
-            interpolator.set_interpolation_point(interpolation_point)
-            interpolator.show_interpolation_point()
+    def execute(self):
+        init_time = perf_counter()
+        if output_file_exists(self.wp.file):
+            print(f'+     {self.name}', flush=True)
+            # download_velo_arr = rw.read_df(self.file)
+            return tuple([self.result_key, rw.read_df(self.file), init_time])
+        else:
+            print(f'+     {self.name}', flush=True)
+            interpolator = VI(self.surface_points)
+            interpolator.set_interpolation_point(self.wp)
             output = interpolator.get_interpolated_point()
-            interpolator.show_interpolated_point()
-            pass
+            if self.display:
+                interpolator.show_axes()
+                interpolator.set_interpolation_point(interpolation_pt)
+                interpolator.show_interpolation_point()
+                interpolator.show_interpolated_point()
+            return tuple([self.result_key, output, init_time])
 
+    def execute_callback(self, result):
+        print(f'-     {self.code} {self.name} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
 
+    def error_callback(self, result):
+        print(f'!     {self.code} {self.name} process has raised an error: {result}', flush=True)
+
+    def __init__(self, waypoints, index: int, display: bool):
+        self.display = display
+        interpolation_point = waypoints[0]
+        self.wp = interpolation_point
+        print(self.wp, type(self.wp))
+        self.result_key = str(id(interpolation_point))+'_'+str(index)
+        self.input_point = Point(interpolation_point.lat, interpolation_point.lon, 0)
+        self.surface_points = [Point(wp.lat, wp.lon, wp.download_velo_arr[index]) for wp in waypoints[1:]]
+        self.name = interpolation_point.short_name
+        interpolation_point.file = interpolation_point.folder.joinpath(interpolation_point.short_name + '_array')
+        # FT.make_folder(env.velocity_folder(), waypoint.short_name)
