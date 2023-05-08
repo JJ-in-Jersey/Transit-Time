@@ -1,4 +1,4 @@
-# C:\Users\jason\PycharmProjects\Transit-Time\venv\Scripts\python.exe C:\Users\jason\PycharmProjects\Transit-Time\main.py ER "C:\users\jason\Developer Workspace\GPX\East River West to East.gpx" 2023 -dd
+# C:\Users\jason\PycharmProjects\Transit-Time\venv\Scripts\python.exe C:\Users\jason\PycharmProjects\Transit-Time\main.py "East River" "C:\users\jason\Developer Workspace\GPX\East River West to East.gpx" 2023 -dd
 from argparse import ArgumentParser as argParser
 from pathlib import Path
 from multiprocessing import Manager
@@ -8,7 +8,7 @@ from sympy import Point
 
 import multiprocess as mpm
 from GPX import Route, Waypoint, Edge, CurrentStationWP, InterpolationWP, DataWP
-from velocity import CurrentStationJob, InterpolationJob, InterpolationDataJob
+from velocity import CurrentStationJob, InterpolationJob, InterpolationDataJob, VelocityJob
 from elapsed_time import ElapsedTimeJob
 from elapsed_time_reduce import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
@@ -54,34 +54,22 @@ if __name__ == '__main__':
     cd.update_driver()  # update chrome driver before launching process that use it
 
     # Download noaa data and create velocity arrays for each CURRENT waypoint
-    print(f'\nCalculating currents at current station waypoints (1st day-1 to last day+3)')
-    current_stations = [ wp for wp in route.waypoints if isinstance(wp, CurrentStationWP)]
-    for wp in current_stations: mpm.job_queue.put(CurrentStationJob(cyr, wp))
+    print(f'\nDownloading and processing currents at CURRENT and INTERPOLATION DATA waypoints (1st day-1 to last day+3)', flush=True)
+    for wp in route.waypoints:
+        if isinstance(wp, CurrentStationWP):
+            mpm.job_queue.put(CurrentStationJob(cyr, wp))
+        elif isinstance(wp, DataWP):
+            mpm.job_queue.put(InterpolationDataJob(cyr, wp))
     mpm.job_queue.join()
 
-    print(f'\nAdding results to waypoints')
-    for wp in current_stations:
-        wp.data = mpm.result_lookup[id(wp)]
-        if isinstance(wp.data, array): print(f'{checkmark}     {wp.short_name}', flush=True)
-        else: print(f'X     {wp.short_name}', flush=True)
-
-    # Download noaa data and create velocity arrays for each INTERPOLATION waypoint
-    print(f'\nCalculating currents at interpolation waypoints (1st day-1 to last day+3)')
-    for group in route.interpolation_groups:
-        for wp in group[1:]: mpm.job_queue.put(InterpolationDataJob(cyr, wp))  # first waypoint is not a data waypoint
-        mpm.job_queue.join()
-
-        print(f'\nAdding results to waypoints')
-        for wp in group[1:]:
-            wp.download_velo_arr = mpm.result_lookup[id(wp)]
-            if isinstance(wp.download_velo_arr, array): print(f'{checkmark}     {wp.short_name}', flush=True)
-            else: print(f'X     {wp.short_name}', flush=True)
-
-        for i in range(0,len(wp.download_velo_arr)):
-            ij = InterpolationJob(group, i, True)
-            ij.execute()
-
-
+    print(f'\nAdding results to waypoints', flush=True)
+    for wp in route.waypoints:
+        if isinstance(wp, CurrentStationWP) or isinstance(wp, DataWP):
+            wp.data = mpm.result_lookup[id(wp)]
+            if isinstance(wp.data, array):
+                print(f'{checkmark}     {wp.short_name}', flush=True)
+            else:
+                print(f'X     {wp.short_name}', flush=True)
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for edges (1st day-1 to last day+2)')
