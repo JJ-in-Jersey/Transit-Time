@@ -71,6 +71,11 @@ if __name__ == '__main__':
             else:
                 print(f'X     {wp.short_name}', flush=True)
 
+    # Calculate the aproximation of the velocity at interpolation points
+    print(f'\nAproximating the velocity at INTERPOLATION waypoints (1st day-1 to last day+3)', flush=True)
+    for group in route.interpolation_groups:
+
+
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for edges (1st day-1 to last day+2)')
     for edge in route.velo_path.edges: mpm.job_queue.put(ElapsedTimeJob(envr, cyr, edge))
