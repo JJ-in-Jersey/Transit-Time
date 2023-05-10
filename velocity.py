@@ -134,7 +134,7 @@ class InterpolationJob:
             return tuple([self.result_key, output, init_time])
 
     def execute_callback(self, result):
-        print(f'-     {self.wp.short_name} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
+        print(f'-     {self.wp.short_name} {self.index} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
 
     def error_callback(self, result):
         print(f'!     {self.wp.short_name} process has raised an error: {result}', flush=True)
