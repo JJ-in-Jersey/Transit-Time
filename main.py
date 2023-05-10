@@ -81,7 +81,8 @@ if __name__ == '__main__':
         wp_data = []
         for i in range(0, len(group[1].data)):
             result = mpm.result_lookup[str(id(interpolation_pt)) + '_' + str(i)]
-            print(type(result), result[2])
+            wp_data.append(result[2].evalf())
+            print(type(result), result[2].evalf())
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for edges (1st day-1 to last day+2)')

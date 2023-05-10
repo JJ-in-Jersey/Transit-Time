@@ -2,14 +2,14 @@ import pandas as pd
 from functools import reduce
 from time import perf_counter
 
-from project_globals import DF_FILE_TYPE, mins_secs, output_file_exists, boat_speeds
+from project_globals import DF_FILE_TYPE, mins_secs, file_exists, boat_speeds
 from ReadWrite import ReadWrite as rw
 
 def elapsed_time_reduce(env, route):
 
     init_time = perf_counter()
     elapsed_times_path = env.elapsed_time_folder().joinpath('elapsed_times')
-    if output_file_exists(elapsed_times_path):
+    if file_exists(elapsed_times_path):
         print(f':     elapsed time reduce - reading data file', flush=True)
         et_reduce_df = rw.read_df(elapsed_times_path)
         print(f':     elapsed time reduce ({mins_secs(perf_counter() - init_time)} minutes)', flush=True)

@@ -31,7 +31,7 @@ def date_to_index(date_time):
     elif isinstance(date_time, str): return int(time.mktime(dp.parse(date_time).timetuple()))
 def index_to_date(index): return time.strftime("%a %d %b %Y %H:%M", time.localtime(index))
 
-def output_file_exists(path): return True if path.with_suffix('.csv').exists() or path.with_suffix('.pkl').exists() or path.with_suffix('.hdf').exists() or path.with_suffix('.npy').exists() else False
+def file_exists(path): return True if path.with_suffix('.csv').exists() or path.with_suffix('.pkl').exists() or path.with_suffix('.hdf').exists() or path.with_suffix('.npy').exists() else False
 
 def hours_mins(secs): return "%d:%02d" % (secs // 3600, secs % 3600 // 60)
 def mins_secs(secs): return "%d:%02d" % (secs // 60, secs % 60)

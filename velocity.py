@@ -1,3 +1,5 @@
+# C:\Users\jason\PycharmProjects\Transit-Time\venv\Scripts\python.exe C:\Users\jason\PycharmProjects\Transit-Time\main.py "East River" "C:\users\jason\Developer Workspace\GPX\East River West to East.gpx" 2023
+
 import logging
 from time import sleep, perf_counter
 import pandas as pd
@@ -10,7 +12,7 @@ from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.by import By
 
-from project_globals import WDW, DF_FILE_TYPE, output_file_exists
+from project_globals import WDW, DF_FILE_TYPE, file_exists
 from project_globals import mins_secs, date_to_index, index_to_date
 import multiprocess as mpm
 from ChromeDriver import ChromeDriver as cd
@@ -73,7 +75,7 @@ class CurrentStationJob(VelocityJob):
 
     def execute(self):
         init_time = perf_counter()
-        if output_file_exists(self.wp.file):
+        if file_exists(self.wp.file):
             print(f'+     {self.code} {self.name}', flush=True)
             return tuple([self.result_key, rw.read_arr(self.wp.file), init_time])
         else:
@@ -103,7 +105,7 @@ class CurrentStationJob(VelocityJob):
     def __init__(self, cy, waypoint, timestep):
         super().__init__(cy, waypoint)
         self.name = waypoint.short_name
-        self.code = waypoint.noaa_code
+        self.code = waypoint.code
         self.url = waypoint.noaa_url
         self.result_key = id(waypoint)
         self.range = range(self.start_index, self.end_index, timestep)
@@ -118,7 +120,7 @@ class InterpolationJob:
 
     def execute(self):
         init_time = perf_counter()
-        if output_file_exists(self.wp.file):
+        if file_exists(self.wp.file):
             print(f'+     {self.wp.short_name} {self.index}', flush=True)
             print(f'{index} {self.input_point}')
             print(f'{self.surface_points}')
@@ -139,7 +141,7 @@ class InterpolationJob:
     def error_callback(self, result):
         print(f'!     {self.wp.short_name} process has raised an error: {result}', flush=True)
 
-    def __init__(self, waypoints, index: int, display = False):
+    def __init__(self, waypoints, index: int, display=False):
         self.display = display
         interpolation_point = waypoints[0]
         self.wp = interpolation_point

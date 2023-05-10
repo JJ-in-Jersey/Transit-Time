@@ -3,7 +3,7 @@ from scipy.signal import savgol_filter
 from time import perf_counter
 from num2words import num2words
 
-from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS, DF_FILE_TYPE, rounded_to_minutes, output_file_exists, hours_mins, mins_secs
+from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS, DF_FILE_TYPE, rounded_to_minutes, file_exists, hours_mins, mins_secs
 from project_globals import index_to_date
 from ReadWrite import ReadWrite as rw
 
@@ -35,19 +35,19 @@ class TransitTimeMinimaJob:
 
     def execute(self):
         init_time = perf_counter()
-        if output_file_exists(self._transit_time):
+        if file_exists(self._transit_time):
             print(f'+     Transit time ({self.speed}) reading data file', flush=True)
             tt_minima_df = rw.read_df(self._transit_time)
             return tuple([self.speed, tt_minima_df, init_time])
 
         print(f'+     Transit time ({self.speed})', flush=True)
-        if output_file_exists(self._transit_timesteps):
+        if file_exists(self._transit_timesteps):
             transit_timesteps = rw.read_arr(self._transit_timesteps)
         else:
             transit_timesteps = [total_transit_time(row, self._elapsed_times_df, self._elapsed_times_df.columns.to_list()) for row in range(0, len(self._transit_range))]  # in timesteps
             rw.write_list(transit_timesteps, self._transit_timesteps)
 
-        if output_file_exists(self._plotting_table):
+        if file_exists(self._plotting_table):
             minima_table_df = rw.read_df(self._plotting_table)
         else:
             minima_table_df = self.minima_table(transit_timesteps)
@@ -86,7 +86,7 @@ class TransitTimeMinimaJob:
         tt_df['departure_index'] = self._transit_range
         tt_df['plot'] = 0
         tt_df = tt_df.assign(tts=transit_array)
-        if output_file_exists(self.savgol):
+        if file_exists(self.savgol):
             tt_df['midline'] = rw.read_df(self.savgol)
         else:
             tt_df['midline'] = savgol_filter(transit_array, 50000, 1)

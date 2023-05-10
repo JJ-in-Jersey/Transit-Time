@@ -4,7 +4,7 @@ from pathlib import Path
 from time import perf_counter
 from GPX import Edge
 
-from project_globals import TIMESTEP, DF_FILE_TYPE, boat_speeds, sign, output_file_exists, mins_secs
+from project_globals import TIMESTEP, DF_FILE_TYPE, boat_speeds, sign, file_exists, mins_secs
 from ReadWrite import ReadWrite as rw
 
 #  Elapsed times are reported in number of timesteps
@@ -42,7 +42,7 @@ class ElapsedTimeJob:
 
     def execute(self):
         init_time = perf_counter()
-        if output_file_exists(self.edge.et_file):
+        if file_exists(self.edge.et_file):
             print(f'+     {self.name} ({round(self.length, 2)} nm)', flush=True)
             elapsed_times_df = rw.read_df(self.edge.et_file)
             return tuple([self.result_key, elapsed_times_df, init_time])
