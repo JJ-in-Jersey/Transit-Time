@@ -71,7 +71,7 @@ class ChartYear:
     def year(self): return self._year  # underscore _year to differentiate it from the method year()
     def waypoint_start_index(self): return date_to_index(self.first_day_minus_one)
     def waypoint_end_index(self): return date_to_index(self.last_day_plus_three)
-    def waypoint_range(self): return range(self.waypoint_start_index(), self.waypoint_end_index(), TIMESTEP)
+    # def waypoint_range(self): return range(self.waypoint_start_index(), self.waypoint_end_index(), TIMESTEP)
     def edge_start_index(self): return date_to_index(self.first_day_minus_one)
     def edge_end_index(self): return date_to_index(self.last_day_plus_two)
     def edge_range(self): return range(self.edge_start_index(), self.edge_end_index(), TIMESTEP)

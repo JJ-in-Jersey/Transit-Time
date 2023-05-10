@@ -56,10 +56,10 @@ if __name__ == '__main__':
     # Download noaa data and create velocity arrays for each CURRENT waypoint
     print(f'\nDownloading and processing currents at CURRENT and INTERPOLATION DATA waypoints (1st day-1 to last day+3)', flush=True)
     for wp in route.waypoints:
-        if isinstance(wp, CurrentStationWP):
-            mpm.job_queue.put(CurrentStationJob(cyr, wp))
-        elif isinstance(wp, DataWP):
+        if isinstance(wp, DataWP):  # DataWP must come before CurrentStationWP because DataWP IS A CurrentStationWP
             mpm.job_queue.put(InterpolationDataJob(cyr, wp))
+        elif isinstance(wp, CurrentStationWP):
+            mpm.job_queue.put(CurrentStationJob(cyr, wp, TIMESTEP))
     mpm.job_queue.join()
 
     print(f'\nAdding results to waypoints', flush=True)
@@ -71,10 +71,17 @@ if __name__ == '__main__':
             else:
                 print(f'X     {wp.short_name}', flush=True)
 
-    # Calculate the aproximation of the velocity at interpolation points
-    print(f'\nAproximating the velocity at INTERPOLATION waypoints (1st day-1 to last day+3)', flush=True)
+    # Calculate the approximation of the velocity at interpolation points
+    print(f'\nApproximating the velocity at INTERPOLATION waypoints (1st day-1 to last day+3)', flush=True)
     for group in route.interpolation_groups:
+        interpolation_pt = group[0]
+        for i in range(0, len(group[1].data)): mpm.job_queue.put(InterpolationJob(group, i))  # (group, i, True) to display results
+        mpm.job_queue.join()
 
+        wp_data = []
+        for i in range(0, len(group[1].data)):
+            result = mpm.result_lookup[str(id(interpolation_pt)) + '_' + str(index)]
+            print(type(result), result[2])
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for edges (1st day-1 to last day+2)')

@@ -68,7 +68,6 @@ class VelocityJob:
         self.year = cy.year()
         self.start_index = cy.waypoint_start_index()
         self.end_index = cy.waypoint_end_index()
-        self.range = cy.waypoint_range()
 
 class CurrentStationJob(VelocityJob):
 
@@ -101,47 +100,19 @@ class CurrentStationJob(VelocityJob):
     def error_callback(self, result):
         print(f'!     {self.code} {self.name} process has raised an error: {result}', flush=True)
 
-    def __init__(self, cy, waypoint):
+    def __init__(self, cy, waypoint, timestep):
         super().__init__(cy, waypoint)
         self.name = waypoint.short_name
         self.code = waypoint.noaa_code
         self.url = waypoint.noaa_url
         self.result_key = id(waypoint)
+        self.range = range(self.start_index, self.end_index, timestep)
+
 
 class InterpolationDataJob(CurrentStationJob):
 
     def __init__(self, cy, waypoint):
-        super().__init__(cy, waypoint)
-        self.range = range(self.start_index, self.end_index, 10800)  # three hour time step
-
-# class InterpolationDataJob(VelocityJob):
-#
-#     def execute(self):
-#         init_time = perf_counter()
-#         if output_file_exists(self.wp.file):
-#             print(f'+     {self.code} {self.name}', flush=True)
-#             return tuple([self.result_key, rw.read_arr(self.wp.file), init_time])
-#         else:
-#             print(f'+     {self.code} {self.name}', flush=True)
-#             download_df = VelocityJob.velocity_aggregate(self.wp.folder, self.year, self.url, self.code)
-#             download_df = download_df[(self.start_index <= download_df['date_index']) & (download_df['date_index'] <= self.end_index)]
-#             rw.write_df_csv(download_df, self.wp.folder.joinpath(self.wp.short_name + '_downloaded_table'))
-#             download_velo_arr = np.array(download_df['velocity'].tolist()).astype(float)
-#             rw.write_arr(download_velo_arr, self.wp.file)
-#             return tuple([self.result_key, download_velo_arr, init_time])
-#
-#     def execute_callback(self, result):
-#         print(f'-     {self.code} {self.name} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
-#
-#     def error_callback(self, result):
-#         print(f'!     {self.code} {self.name} process has raised an error: {result}', flush=True)
-#
-#     def __init__(self, cy, waypoint):
-#         super().__init__(cy, waypoint)
-#         self.name = waypoint.short_name
-#         self.code = waypoint.noaa_code
-#         self.url = waypoint.noaa_url
-#         self.result_key = id(waypoint)
+        super().__init__(cy, waypoint, 10800)  # three hour time step
 
 class InterpolationJob:
 
@@ -158,24 +129,22 @@ class InterpolationJob:
             interpolator.set_interpolation_point(self.input_point)
             output = interpolator.get_interpolated_point()
             if self.display:
-                interpolator.show_axes()
                 interpolator.set_interpolation_point(self.input_point)
-                interpolator.show_interpolation_point()
-                interpolator.show_interpolated_point()
+                interpolator.show_axes()
             return tuple([self.result_key, output, init_time])
 
     def execute_callback(self, result):
-        print(f'-     {self.code} {self.name} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
+        print(f'-     {self.wp.short_name} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
 
     def error_callback(self, result):
-        print(f'!     {self.code} {self.name} process has raised an error: {result}', flush=True)
+        print(f'!     {self.wp.short_name} process has raised an error: {result}', flush=True)
 
-    def __init__(self, waypoints, index: int, display: bool):
+    def __init__(self, waypoints, index: int, display = False):
         self.display = display
         interpolation_point = waypoints[0]
         self.wp = interpolation_point
         self.index = index
         self.input_point = Point(interpolation_point.lat, interpolation_point.lon, 0)
         self.result_key = str(id(interpolation_point))+'_'+str(index)
-        self.surface_points = [Point(wp.lat, wp.lon, wp.download_velo_arr[index]) for wp in waypoints[1:]]
+        self.surface_points = [Point(wp.lat, wp.lon, wp.data[index]) for wp in waypoints[1:]]
         interpolation_point.file = interpolation_point.folder.joinpath(interpolation_point.short_name + '_array')
