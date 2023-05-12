@@ -75,14 +75,17 @@ class CurrentStationJob(VelocityJob):
 
     def execute(self):
         init_time = perf_counter()
-        if file_exists(self.wp.file):
-            print(f'+     {self.code} {self.name}', flush=True)
-            return tuple([self.result_key, rw.read_arr(self.wp.file), init_time])
+        print(f'+     {self.code} {self.name}', flush=True)
+
+        if file_exists(self.wp.output_data_file):
+            return tuple([self.result_key, rw.read_arr(self.wp.output_data_file), init_time])
         else:
-            print(f'+     {self.code} {self.name}', flush=True)
-            download_df = VelocityJob.velocity_aggregate(self.wp.folder, self.year, self.url, self.code)
-            download_df = download_df[(self.start_index <= download_df['date_index']) & (download_df['date_index'] <= self.end_index)]
-            rw.write_df_csv(download_df, self.wp.folder.joinpath(self.code + '_downloaded_table'))
+            if file_exists(self.wp.interpolation_data_file):
+                download_df = rw.read_df_csv(self.wp.interpolation_data_file)
+            else:
+                download_df = VelocityJob.velocity_aggregate(self.wp.folder, self.year, self.url, self.code)
+                download_df = download_df[(self.start_index <= download_df['date_index']) & (download_df['date_index'] <= self.end_index)]
+                rw.write_df_csv(download_df, self.wp.interpolation_data_file)
 
             # create cubic spline
             cs = CubicSpline(download_df['date_index'], download_df['velocity'])
@@ -93,7 +96,7 @@ class CurrentStationJob(VelocityJob):
             output_df['velocity'] = output_df['date_index'].apply(cs)
             rw.write_df_csv(output_df, self.wp.folder.joinpath(self.code + '_output_table'))
             velo_array = np.array(output_df['velocity'].to_list(), dtype=np.half)
-            rw.write_arr(velo_array, self.wp.file)
+            rw.write_arr(velo_array, self.wp.output_data_file)
             return tuple([self.result_key, velo_array, init_time])
 
     def execute_callback(self, result):
@@ -120,13 +123,10 @@ class InterpolationJob:
 
     def execute(self):
         init_time = perf_counter()
-        if file_exists(self.wp.file):
-            print(f'+     {self.wp.short_name} {self.index}', flush=True)
-            print(f'{index} {self.input_point}')
-            print(f'{self.surface_points}')
-            return tuple([self.result_key, rw.read_df(self.file), init_time])
+        print(f'+     {self.wp.short_name} {self.index}', flush=True)
+        if file_exists(self.wp.output_data_file):
+            return tuple([self.result_key, rw.read_df(self.output_data_file), init_time])
         else:
-            print(f'+     {self.wp.short_name} {self.index}', flush=True)
             interpolator = VI(self.surface_points)
             interpolator.set_interpolation_point(self.input_point)
             output = interpolator.get_interpolated_point()
@@ -148,5 +148,4 @@ class InterpolationJob:
         self.index = index
         self.input_point = Point(interpolation_point.lat, interpolation_point.lon, 0)
         self.result_key = str(id(interpolation_point))+'_'+str(index)
-        self.surface_points = [Point(wp.lat, wp.lon, wp.data[index]) for wp in waypoints[1:]]
-        interpolation_point.file = interpolation_point.folder.joinpath(interpolation_point.short_name + '_array')
+        self.surface_points = [Point(wp.lat, wp.lon, wp.output_data[index]) for wp in waypoints[1:]]

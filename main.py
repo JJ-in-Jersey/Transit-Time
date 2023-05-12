@@ -65,8 +65,8 @@ if __name__ == '__main__':
     print(f'\nAdding results to waypoints', flush=True)
     for wp in route.waypoints:
         if isinstance(wp, CurrentStationWP) or isinstance(wp, DataWP):
-            wp.data = mpm.result_lookup[id(wp)]
-            if isinstance(wp.data, array):
+            wp.output_data = mpm.result_lookup[id(wp)]
+            if isinstance(wp.output_data, array):
                 print(f'{checkmark}     {wp.short_name}', flush=True)
             else:
                 print(f'X     {wp.short_name}', flush=True)
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     print(f'\nApproximating the velocity at INTERPOLATION waypoints (1st day-1 to last day+3)', flush=True)
     for group in route.interpolation_groups:
         interpolation_pt = group[0]
-        for i in range(0, len(group[1].data)): mpm.job_queue.put(InterpolationJob(group, i))  # (group, i, True) to display results
+        for i in range(0, len(group[1].output_data)): mpm.job_queue.put(InterpolationJob(group, i))  # (group, i, True) to display results
         mpm.job_queue.join()
 
         wp_data = []
