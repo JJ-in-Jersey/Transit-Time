@@ -1,5 +1,3 @@
-# C:\Users\jason\PycharmProjects\Transit-Time\venv\Scripts\python.exe C:\Users\jason\PycharmProjects\Transit-Time\main.py "East River" "C:\users\jason\Developer Workspace\GPX\East River West to East.gpx" 2023
-
 import logging
 from time import sleep, perf_counter
 import pandas as pd
@@ -20,6 +18,7 @@ from ReadWrite import ReadWrite as rw
 from Navigation import Navigation as nav
 from VelocityInterpolation import Interpolator as VI
 from FileTools import FileTools as FT
+from GPX import Waypoint
 
 #  VELOCITIES ARE DOWNLOADED, CALCULATED AND SAVE AS NAUTICAL MILES PER HOUR!
 
@@ -64,11 +63,9 @@ class VelocityJob:
         download_df['velocity'] = download_df[' Speed (knots)'].apply(dash_to_zero)
         return download_df
 
-    def __init__(self, year, start_index, end_index, waypoint):
+    def __init__(self, year, waypoint):
         self.wp = waypoint
-        self.year = year.value
-        self.start = start_index.value
-        self.end = end_index.value
+        self.year = year
 
 class CurrentStationJob(VelocityJob):
 
@@ -83,7 +80,7 @@ class CurrentStationJob(VelocityJob):
                 download_df = rw.read_df_csv(self.wp.interpolation_data_file)
             else:
                 download_df = self.velocity_aggregate()
-                download_df = download_df[(self.start <= download_df['date_index']) & (download_df['date_index'] <= self.end)]
+                download_df = download_df[(self.wp.start_index <= download_df['date_index']) & (download_df['date_index'] <= self.wp.end_index)]
                 rw.write_df_csv(download_df, self.wp.interpolation_data_file)
 
             # create cubic spline
@@ -105,25 +102,25 @@ class CurrentStationJob(VelocityJob):
     def error_callback(self, result):
         print(f'!     {self.wp.unique_name} process has raised an error: {result}', flush=True)
 
-    def __init__(self, year, start_index, end_index, waypoint, timestep):
-        super().__init__(year, start_index, end_index, waypoint)
+    def __init__(self, year, waypoint, timestep):
+        super().__init__(year, waypoint)
         self.result_key = id(waypoint)
-        self.v_range = range(waypoint.start, waypoint.end, timestep)
+        self.v_range = range(waypoint.start_index, waypoint.end_index, timestep)
 
 class InterpolationDataJob(CurrentStationJob):
 
-    # interpolation_timestep = 10800  # three hour timestep
-    interpolation_timestep = 600000  # three hour timestep
+    interpolation_timestep = 10800  # three hour timestep
+    # interpolation_timestep = 600000  # three hour timestep
 
-    def __init__(self, year, start_index, end_index, waypoint):
-        super().__init__(year, start_index, end_index, waypoint, InterpolationDataJob.interpolation_timestep)
+    def __init__(self, year, waypoint):
+        super().__init__(year, waypoint, InterpolationDataJob.interpolation_timestep)
 
 class InterpolationJob:
 
     @staticmethod
     def write_dataframe(wp, velocities):
         download_df = pd.DataFrame()
-        download_df['date_index'] = range(wp.start, wp.end, InterpolationDataJob.interpolation_timestep)
+        download_df['date_index'] = range(wp.start_index, wp.end_index, InterpolationDataJob.interpolation_timestep)
         download_df['date_time'] = pd.to_datetime(download_df['date_index'], unit='s')
         download_df['velocity'] = velocities
         rw.write_df_csv(download_df, wp.interpolation_data_file)

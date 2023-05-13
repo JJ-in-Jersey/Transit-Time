@@ -21,14 +21,6 @@ DF_FILE_TYPE = 'csv'  # csv, hdf, pkl
 boat_speeds = [v for v in range(-7, -2, 2)]+[v for v in range(3, 8, 2)]  # knots
 
 def sign(value): return value/abs(value)
-def rounded_to_minutes(index):
-    total_minutes = index // 60
-    rounded_seconds = round(total_minutes/TIME_RESOLUTION)*TIME_RESOLUTION*60
-    return rounded_seconds
-
-def date_to_index(date_time):
-    return int(time.mktime(date_time.timetuple()))
-def index_to_date(index): return time.strftime("%a %d %b %Y %H:%M", time.localtime(index))
 
 def file_exists(path): return True if path.with_suffix('.csv').exists() or path.with_suffix('.pkl').exists() or path.with_suffix('.hdf').exists() or path.with_suffix('.npy').exists() else False
 
@@ -68,17 +60,20 @@ class Environment:
 class ChartYear:
 
     def year(self): return self._year  # underscore _year to differentiate it from the method year()
-    def waypoint_start_index(self): return date_to_index(self.first_day_minus_one)
-    def waypoint_end_index(self): return date_to_index(self.last_day_plus_three)
-    # def waypoint_range(self): return range(self.waypoint_start_index(), self.waypoint_end_index(), TIMESTEP)
-    def edge_start_index(self): return date_to_index(self.first_day_minus_one)
-    def edge_end_index(self): return date_to_index(self.last_day_plus_two)
-    def edge_range(self): return range(self.edge_start_index(), self.edge_end_index(), TIMESTEP)
-    def transit_start_index(self): return date_to_index(self.first_day_minus_one)
-    def transit_end_index(self): return date_to_index(self.last_day_plus_one)
-    def transit_range(self): return range(self.transit_start_index(), self.transit_end_index(), TIMESTEP)
-    def first_day_index(self): return date_to_index(self.first_day)
-    def last_day_index(self): return date_to_index(self.last_day)
+
+    def waypoint_start_index(self): return int(pd.Timestamp(self.first_day_minus_one).timestamp())
+    def waypoint_end_index(self): return int(pd.Timestamp(self.last_day_plus_three).timestamp())
+
+    def edge_start_index(self): return pd.Timestamp(self.first_day_minus_one).timestamp()
+    def edge_end_index(self): return pd.Timestamp(self.last_day_plus_two).timestamp()
+    def edge_range(self): return range(int(self.edge_start_index()), int(self.edge_end_index()), TIMESTEP)
+
+    def transit_start_index(self): return pd.Timestamp(self.first_day_minus_one).timestamp()
+    def transit_end_index(self): return pd.Timestamp(self.last_day_plus_one).timestamp()
+    def transit_range(self): return range(int(self.transit_start_index()), int(self.transit_end_index()), TIMESTEP)
+
+    def first_day_index(self): return pd.Timestamp(self.first_day, unit='s').timestamp()
+    def last_day_index(self): return pd.Timestamp(self.last_day, unit='s').timestamp()
 
     def __init__(self, args):
         self._year = args['year']  # underscore _year to differentiate it from the method year()

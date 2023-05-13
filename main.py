@@ -37,26 +37,21 @@ if __name__ == '__main__':
     ap.add_argument('-dd', '--delete_data', action='store_true')
     args = vars(ap.parse_args())
     envr = Environment(args)
-    cyr = ChartYear(args)
+    cy = ChartYear(args)
 
     Waypoint.velocity_folder = envr.velocity_folder()
-    Waypoint.start = cyr.waypoint_start_index()
-    Waypoint.end = cyr.waypoint_end_index()
     Edge.elapsed_time_folder = envr.elapsed_time_folder()
-    mp_year = Value('i', cyr.year())
-    mp_wp_si = Value('f', cyr.waypoint_start_index())
-    mp_wp_ei = Value('f', cyr.waypoint_end_index())
 
     # Assemble route and route objects
-    route = Route(args['filepath'])
+    route = Route(args['filepath'], cy.waypoint_start_index(), cy.waypoint_end_index(), cy.edge_range())
 
     print(f'\nCalculating route "{route.name}"')
     print(f'total waypoints: {len(route.whole_path.edges)+1}')
-    print(f'elapsed time waypoints: {len(route.velo_path.edges)+1}')
+    print(f'elapsed time waypoints: {len(route.elapsed_time_path.edges)+1}')
     print(f'timestep: {TIMESTEP}')
     print(f'boat speeds: {boat_speeds}')
-    print(f'length {round(route.velo_path.length,1)} nm')
-    print(f'direction {route.velo_path.direction}\n')
+    print(f'length {round(route.elapsed_time_path.length,1)} nm')
+    print(f'direction {route.elapsed_time_path.direction}\n')
 
     mgr = Manager()
     mpm.result_lookup = mgr.dict()
@@ -69,9 +64,15 @@ if __name__ == '__main__':
     print(f'\nDownloading and processing currents at CURRENT and INTERPOLATION DATA waypoints (1st day-1 to last day+3)', flush=True)
     for wp in route.waypoints:
         if isinstance(wp, DataWP):  # DataWP must come before CurrentStationWP because DataWP IS A CurrentStationWP
-            mpm.job_queue.put(InterpolationDataJob(mp_year, mp_wp_si, mp_wp_ei, wp))
+            mpm.job_queue.put(InterpolationDataJob(args['year'], wp))
+            # idj = InterpolationDataJob(args['year'], wp)
+            # idj.execute()
+            # pass
         elif isinstance(wp, CurrentStationWP):
-            mpm.job_queue.put(CurrentStationJob(mp_year, mp_wp_si, mp_wp_ei, wp, TIMESTEP))
+            mpm.job_queue.put(CurrentStationJob(args['year'], wp, TIMESTEP))
+            # csj = CurrentStationJob(args['year'], wp, TIMESTEP)
+            # csj.execute()
+            # pass
     mpm.job_queue.join()
 
     print(f'\nAdding results to waypoints', flush=True)
@@ -92,7 +93,7 @@ if __name__ == '__main__':
             wp_data = [mpm.result_lookup[str(id(interpolation_pt)) + '_' + str(i)][2].evalf() for i in group_range]
             InterpolationJob.write_dataframe(interpolation_pt, wp_data)
 
-        mpm.job_queue.put(CurrentStationJob(mp_year, mp_wp_si, mp_wp_ei, interpolation_pt, TIMESTEP))
+        mpm.job_queue.put(CurrentStationJob(args['year'], interpolation_pt, TIMESTEP))
         mpm.job_queue.join()
 
         if isinstance(interpolation_pt, InterpolationWP):
@@ -100,11 +101,11 @@ if __name__ == '__main__':
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for edges (1st day-1 to last day+2)')
-    for edge in route.velo_path.edges: mpm.job_queue.put(ElapsedTimeJob(envr, cyr, edge))
+    for edge in route.elapsed_time_path.edges: mpm.job_queue.put(ElapsedTimeJob(edge))
     mpm.job_queue.join()
 
     print(f'\nAdding results to edges')
-    for edge in route.velo_path.edges:
+    for edge in route.elapsed_time_path.edges:
         edge.dataframe = mpm.result_lookup[id(edge)]
         if isinstance(edge.dataframe, dataframe): print(f'{checkmark}     {edge.name}', flush=True)
         else: print(f'X     {edge.name}', flush=True)

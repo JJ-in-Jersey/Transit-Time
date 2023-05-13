@@ -3,8 +3,7 @@ from scipy.signal import savgol_filter
 from time import perf_counter
 from num2words import num2words
 
-from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS, DF_FILE_TYPE, rounded_to_minutes, file_exists, hours_mins, mins_secs
-from project_globals import index_to_date
+from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS, DF_FILE_TYPE, file_exists, hours_mins, mins_secs
 from ReadWrite import ReadWrite as rw
 
 def total_transit_time(init_row, d_frame, cols):
@@ -71,12 +70,12 @@ class TransitTimeMinimaJob:
         minima_df.dropna(axis=0, inplace=True)
         minima_df['transit_time'] = (minima_df['tts']*TIMESTEP).apply(lambda x: hours_mins(x))
         minima_df.drop(['tts'], axis=1, inplace=True)
-        minima_df['start_time'] = minima_df['start_index'].apply(index_to_date)
-        minima_df['min_time'] = minima_df['min_index'].apply(index_to_date)
-        minima_df['end_time'] = minima_df['end_index'].apply(index_to_date)
-        minima_df['start_rounded'] = minima_df['start_index'].apply(rounded_to_minutes).apply(index_to_date)
-        minima_df['min_rounded'] = minima_df['min_index'].apply(rounded_to_minutes).apply(index_to_date)
-        minima_df['end_rounded'] = minima_df['end_index'].apply(rounded_to_minutes).apply(index_to_date)
+        minima_df['start_time'] = pd.to_datetime(minima_df['start_index'], unit='s')
+        minima_df['min_time'] = pd.to_datetime(minima_df['min_index'], unit='s')
+        minima_df['end_time'] = pd.to_datetime(minima_df['end_index'], unit='s')
+        minima_df['start_rounded'] = pd.to_datetime(minima_df['start_index'], unit='s').round('min')
+        minima_df['min_rounded'] = pd.to_datetime(minima_df['min_index'], unit='s').round('min')
+        minima_df['end_rounded'] = pd.to_datetime(minima_df['end_index'], unit='s').round('min')
         minima_df['window_time'] = (minima_df['end_index'] - minima_df['start_index']).apply(hours_mins)
         minima_df['window_rounded'] = (minima_df['end_index'].apply(rounded_to_minutes) - minima_df['start_index'].apply(rounded_to_minutes)).apply(hours_mins)
         return minima_df

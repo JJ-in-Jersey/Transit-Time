@@ -28,17 +28,13 @@ class ElapsedTimeJob:
     @staticmethod
     def distance(water_vf, water_vi, boat_speed, ts_in_hr): return ((water_vf + water_vi) / 2 + boat_speed) * ts_in_hr  # distance is nm
 
-    def __init__(self, cy, edge: Edge):
+    def __init__(self, edge: Edge):
         self.edge = edge
         self.result_key = id(edge)
         self.length = edge.length
-        self.init_velo = edge.start.velo_arr
-        self.final_velo = edge.end.velo_arr
+        self.init_velo = edge.start.output_data
+        self.final_velo = edge.end.output_data
         self.name = edge.name
-
-        self.start_index = cy.edge_start_index()
-        self.end_index = cy.edge_end_index()
-        self.edge_range = cy.edge_range()
 
     def execute(self):
         init_time = perf_counter()
