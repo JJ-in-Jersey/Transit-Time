@@ -1,7 +1,7 @@
 # C:\Users\jason\PycharmProjects\Transit-Time\venv\Scripts\python.exe C:\Users\jason\PycharmProjects\Transit-Time\main.py "East River" "C:\users\jason\Developer Workspace\GPX\East River West to East.gpx" 2023 -dd
 from argparse import ArgumentParser as argParser
 from pathlib import Path
-from multiprocessing import Manager
+from multiprocessing import Manager, Value
 from numpy import ndarray as array
 from pandas import DataFrame as dataframe
 from sympy import Point
@@ -34,6 +34,9 @@ if __name__ == '__main__':
 
     Waypoint.velocity_folder = envr.velocity_folder()
     Edge.elapsed_time_folder = envr.elapsed_time_folder()
+    mp_year = Value('i', cyr.year())
+    mp_wp_si = Value('i', cyr.waypoint_start_index())
+    mp_wp_ei = Value('i', cyr.waypoint_end_index())
 
     # Assemble route and route objects
     route = Route(args['filepath'])
@@ -57,9 +60,14 @@ if __name__ == '__main__':
     print(f'\nDownloading and processing currents at CURRENT and INTERPOLATION DATA waypoints (1st day-1 to last day+3)', flush=True)
     for wp in route.waypoints:
         if isinstance(wp, DataWP):  # DataWP must come before CurrentStationWP because DataWP IS A CurrentStationWP
-            mpm.job_queue.put(InterpolationDataJob(cyr, wp))
+            mpm.job_queue.put(InterpolationDataJob(mp_year, mp_wp_si, mp_wp_ei, wp))
+            # idj = InterpolationDataJob(mp_year, mp_wp_si, mp_wp_ei, wp)
+            # idj.execute()
         elif isinstance(wp, CurrentStationWP):
-            mpm.job_queue.put(CurrentStationJob(cyr, wp, TIMESTEP))
+            # print(f'{wp.unique_name}')
+            # idj = CurrentStationJob(mp_year, mp_wp_si, mp_wp_ei, wp, TIMESTEP)
+            # result = idj.execute()
+            mpm.job_queue.put(CurrentStationJob(mp_year, mp_wp_si, mp_wp_ei, wp, TIMESTEP))
     mpm.job_queue.join()
 
     print(f'\nAdding results to waypoints', flush=True)
@@ -67,22 +75,31 @@ if __name__ == '__main__':
         if isinstance(wp, CurrentStationWP) or isinstance(wp, DataWP):
             wp.output_data = mpm.result_lookup[id(wp)]
             if isinstance(wp.output_data, array):
-                print(f'{checkmark}     {wp.short_name}', flush=True)
+                print(f'{checkmark}     {wp.unique_name}', flush=True)
             else:
-                print(f'X     {wp.short_name}', flush=True)
+                print(f'X     {wp.unique_name}', flush=True)
 
     # Calculate the approximation of the velocity at interpolation points
     print(f'\nApproximating the velocity at INTERPOLATION waypoints (1st day-1 to last day+3)', flush=True)
     for group in route.interpolation_groups:
         interpolation_pt = group[0]
-        for i in range(0, len(group[1].output_data)): mpm.job_queue.put(InterpolationJob(group, i))  # (group, i, True) to display results
+        group_range = range(len(group[1].output_data))
+        for i in group_range: mpm.job_queue.put(InterpolationJob(group, i))  # (group, i, True) to display results
         mpm.job_queue.join()
 
         wp_data = []
-        for i in range(0, len(group[1].data)):
+        for i in group_range:
             result = mpm.result_lookup[str(id(interpolation_pt)) + '_' + str(i)]
             wp_data.append(result[2].evalf())
-            print(type(result), result[2].evalf())
+        InterpolationDataJob.dataframe(wp_data)
+        mpm.job_queue.put(CurrentStationJob(mp_year, mp_wp_si, mp_wp_ei, interpolation_pt, TIMESTEP))
+        mpm.job_queue.join()
+        if isinstance(interpolation_pt, InterpolationWP):
+            wp.output_data = mpm.result_lookup[id(wp)]
+            if isinstance(wp.output_data, array):
+                print(f'{checkmark}     {wp.unique_name}', flush=True)
+            else:
+                print(f'X     {wp.unique_name}', flush=True)
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for edges (1st day-1 to last day+2)')

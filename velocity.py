@@ -30,8 +30,8 @@ def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 # noinspection PyProtectedMember
 class VelocityJob:
 
-    @classmethod
-    def velocity_download(cls, folder, wdw):
+    @staticmethod
+    def velocity_download(folder, wdw):
         newest_before = newest_after = FT.newest_file(folder)
         wdw.until(ec.element_to_be_clickable((By.ID, 'generatePDF'))).click()
         while newest_before == newest_after:
@@ -39,43 +39,41 @@ class VelocityJob:
             newest_after = FT.newest_file(folder)
         return newest_after
 
-    @classmethod
-    def velocity_page(cls, year, code, driver, wdw):
-        code_string = 'Annual?id=' + code
+    def velocity_page(self, y, driver, wdw):
+        code_string = 'Annual?id=' + self.wp.code
         wdw.until(ec.element_to_be_clickable((By.CSS_SELECTOR, "a[href*='" + code_string + "']"))).click()
         Select(driver.find_element(By.ID, 'fmt')).select_by_index(3)  # select format
         Select(driver.find_element(By.ID, 'timeunits')).select_by_index(1)  # select 24 hour time
         dropdown = Select(driver.find_element(By.ID, 'year'))
         options = [int(o.text) for o in dropdown.options]
-        dropdown.select_by_index(options.index(year))
+        dropdown.select_by_index(options.index(y))
 
-    @classmethod
-    def velocity_aggregate(cls, folder, year, url, code):
+    def velocity_aggregate(self):
         download_df = pd.DataFrame()
-        driver = cd.get_driver(folder)
-        for y in range(year - 1, year + 2):  # + 2 because of range behavior
-            driver.get(url)
+        driver = cd.get_driver(self.wp.folder)
+        for y in range(self.year - 1, self.year + 2):  # + 2 because of range behavior
+            driver.get(self.wp.noaa_url)
             wdw = WebDriverWait(driver, WDW)
-            VelocityJob.velocity_page(y, code, driver, wdw)
-            downloaded_file = VelocityJob.velocity_download(folder, wdw)
-            file_df = pd.read_csv(downloaded_file)
-            file_df['date_index'] = pd.to_numeric(file_df['Date_Time (LST/LDT)'].apply(date_to_index))
-            file_df['velocity'] = file_df[' Speed (knots)'].apply(dash_to_zero)
+            self.velocity_page(y, driver, wdw)
+            downloaded_file = VelocityJob.velocity_download(self.wp.folder, wdw)
+            file_df = pd.read_csv(downloaded_file, parse_dates=['Date_Time (LST/LDT)'])
             download_df = pd.concat([download_df, file_df])
+        download_df['date_index'] = pd.to_numeric(download_df['Date_Time (LST/LDT)'].apply(date_to_index))
+        download_df['velocity'] = download_df[' Speed (knots)'].apply(dash_to_zero)
         driver.quit()
         return download_df
 
-    def __init__(self, cy, waypoint):
+    def __init__(self, year, start_index, end_index, waypoint):
         self.wp = waypoint
-        self.year = cy.year()
-        self.start_index = cy.waypoint_start_index()
-        self.end_index = cy.waypoint_end_index()
+        self.year = year.value
+        self.start = start_index.value
+        self.end = end_index.value
 
 class CurrentStationJob(VelocityJob):
 
     def execute(self):
         init_time = perf_counter()
-        print(f'+     {self.code} {self.name}', flush=True)
+        print(f'+     {self.wp.unique_name}', flush=True)
 
         if file_exists(self.wp.output_data_file):
             return tuple([self.result_key, rw.read_arr(self.wp.output_data_file), init_time])
@@ -83,47 +81,57 @@ class CurrentStationJob(VelocityJob):
             if file_exists(self.wp.interpolation_data_file):
                 download_df = rw.read_df_csv(self.wp.interpolation_data_file)
             else:
-                download_df = VelocityJob.velocity_aggregate(self.wp.folder, self.year, self.url, self.code)
-                download_df = download_df[(self.start_index <= download_df['date_index']) & (download_df['date_index'] <= self.end_index)]
+                download_df = self.velocity_aggregate()
+                download_df = download_df[(self.start <= download_df['date_index']) & (download_df['date_index'] <= self.end)]
                 rw.write_df_csv(download_df, self.wp.interpolation_data_file)
+
+            temp = list(download_df['date_index'])
+            for i, value in enumerate(temp[:-1]):
+                if value > temp[i+1]:
+                    print(self.wp.unique_name, i, value)
 
             # create cubic spline
             cs = CubicSpline(download_df['date_index'], download_df['velocity'])
 
             output_df = pd.DataFrame()
-            output_df['date_index'] = self.range
+            output_df['date_index'] = self.v_range
             output_df['date_time'] = output_df['date_index'].apply(index_to_date)
             output_df['velocity'] = output_df['date_index'].apply(cs)
-            rw.write_df_csv(output_df, self.wp.folder.joinpath(self.code + '_output_table'))
+            rw.write_df_csv(output_df, self.wp.folder.joinpath(self.wp.unique_name + '_output_as_csv'))
+
             velo_array = np.array(output_df['velocity'].to_list(), dtype=np.half)
             rw.write_arr(velo_array, self.wp.output_data_file)
             return tuple([self.result_key, velo_array, init_time])
 
     def execute_callback(self, result):
-        print(f'-     {self.code} {self.name} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
+        print(f'-     {self.wp.unique_name} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
 
     def error_callback(self, result):
-        print(f'!     {self.code} {self.name} process has raised an error: {result}', flush=True)
+        print(f'!     {self.wp.unique_name} process has raised an error: {result}', flush=True)
 
-    def __init__(self, cy, waypoint, timestep):
-        super().__init__(cy, waypoint)
-        self.name = waypoint.short_name
-        self.code = waypoint.code
-        self.url = waypoint.noaa_url
+    def __init__(self, year, start_index, end_index, waypoint, timestep):
+        super().__init__(year, start_index, end_index, waypoint)
         self.result_key = id(waypoint)
-        self.range = range(self.start_index, self.end_index, timestep)
-
+        self.v_range = range(self.start, self.end, timestep)
 
 class InterpolationDataJob(CurrentStationJob):
 
-    def __init__(self, cy, waypoint):
-        super().__init__(cy, waypoint, 10800)  # three hour time step
+    range_value = 10800  # three hour timestep
+
+    def dataframe(self, velocities):
+        download_df = pd.DataFrame()
+        download_df['date_index'] = VelocityJob.velocity_range(InterpolationDataJob.range_value)
+        download_df['velocity'] = velocities
+        rw.write_df_csv(download_df, self.wp.interpolation_data_file)
+
+    def __init__(self, year, start_index, end_index, waypoint):
+        super().__init__(year, start_index, end_index, waypoint, InterpolationDataJob.range_value)
 
 class InterpolationJob:
 
     def execute(self):
         init_time = perf_counter()
-        print(f'+     {self.wp.short_name} {self.index}', flush=True)
+        print(f'+     {self.wp.unique_name} {self.index}', flush=True)
         if file_exists(self.wp.output_data_file):
             return tuple([self.result_key, rw.read_df(self.output_data_file), init_time])
         else:
@@ -136,10 +144,10 @@ class InterpolationJob:
             return tuple([self.result_key, output, init_time])
 
     def execute_callback(self, result):
-        print(f'-     {self.wp.short_name} {self.index} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
+        print(f'-     {self.wp.unique_name} {self.index} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
 
     def error_callback(self, result):
-        print(f'!     {self.wp.short_name} process has raised an error: {result}', flush=True)
+        print(f'!     {self.wp.unique_name} process has raised an error: {result}', flush=True)
 
     def __init__(self, waypoints, index: int, display=False):
         self.display = display

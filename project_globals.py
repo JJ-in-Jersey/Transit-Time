@@ -27,8 +27,7 @@ def rounded_to_minutes(index):
     return rounded_seconds
 
 def date_to_index(date_time):
-    if isinstance(date_time, dt): return int(time.mktime(date_time.timetuple()))
-    elif isinstance(date_time, str): return int(time.mktime(dp.parse(date_time).timetuple()))
+    return int(time.mktime(date_time.timetuple()))
 def index_to_date(index): return time.strftime("%a %d %b %Y %H:%M", time.localtime(index))
 
 def file_exists(path): return True if path.with_suffix('.csv').exists() or path.with_suffix('.pkl').exists() or path.with_suffix('.hdf').exists() or path.with_suffix('.npy').exists() else False
