@@ -13,7 +13,7 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.by import By
 
 from project_globals import WDW, DF_FILE_TYPE, file_exists
-from project_globals import mins_secs, date_to_index, index_to_date
+from project_globals import mins_secs
 import multiprocess as mpm
 from ChromeDriver import ChromeDriver as cd
 from ReadWrite import ReadWrite as rw
@@ -58,9 +58,10 @@ class VelocityJob:
             downloaded_file = VelocityJob.velocity_download(self.wp.folder, wdw)
             file_df = pd.read_csv(downloaded_file, parse_dates=['Date_Time (LST/LDT)'])
             download_df = pd.concat([download_df, file_df])
-        download_df['date_index'] = pd.to_numeric(download_df['Date_Time (LST/LDT)'].apply(date_to_index))
-        download_df['velocity'] = download_df[' Speed (knots)'].apply(dash_to_zero)
         driver.quit()
+        download_df.rename(columns={'Date_Time (LST/LDT)': 'date_time'}, inplace=True)
+        download_df['date_index'] = download_df['date_time'].apply(lambda x: pd.Timestamp(x).timestamp())
+        download_df['velocity'] = download_df[' Speed (knots)'].apply(dash_to_zero)
         return download_df
 
     def __init__(self, year, start_index, end_index, waypoint):
@@ -85,19 +86,14 @@ class CurrentStationJob(VelocityJob):
                 download_df = download_df[(self.start <= download_df['date_index']) & (download_df['date_index'] <= self.end)]
                 rw.write_df_csv(download_df, self.wp.interpolation_data_file)
 
-            temp = list(download_df['date_index'])
-            for i, value in enumerate(temp[:-1]):
-                if value > temp[i+1]:
-                    print(self.wp.unique_name, i, value)
-
             # create cubic spline
             cs = CubicSpline(download_df['date_index'], download_df['velocity'])
 
             output_df = pd.DataFrame()
             output_df['date_index'] = self.v_range
-            output_df['date_time'] = output_df['date_index'].apply(index_to_date)
+            output_df['date_time'] = pd.to_datetime(output_df['date_index'], unit='s')
             output_df['velocity'] = output_df['date_index'].apply(cs)
-            rw.write_df_csv(output_df, self.wp.folder.joinpath(self.wp.unique_name + '_output_as_csv'))
+            rw.write_df_csv(output_df, self.wp.folder.joinpath(self.wp.unique_name + '_output'))
 
             velo_array = np.array(output_df['velocity'].to_list(), dtype=np.half)
             rw.write_arr(velo_array, self.wp.output_data_file)
@@ -112,36 +108,36 @@ class CurrentStationJob(VelocityJob):
     def __init__(self, year, start_index, end_index, waypoint, timestep):
         super().__init__(year, start_index, end_index, waypoint)
         self.result_key = id(waypoint)
-        self.v_range = range(self.start, self.end, timestep)
+        self.v_range = range(waypoint.start, waypoint.end, timestep)
 
 class InterpolationDataJob(CurrentStationJob):
 
-    range_value = 10800  # three hour timestep
-
-    def dataframe(self, velocities):
-        download_df = pd.DataFrame()
-        download_df['date_index'] = VelocityJob.velocity_range(InterpolationDataJob.range_value)
-        download_df['velocity'] = velocities
-        rw.write_df_csv(download_df, self.wp.interpolation_data_file)
+    # interpolation_timestep = 10800  # three hour timestep
+    interpolation_timestep = 600000  # three hour timestep
 
     def __init__(self, year, start_index, end_index, waypoint):
-        super().__init__(year, start_index, end_index, waypoint, InterpolationDataJob.range_value)
+        super().__init__(year, start_index, end_index, waypoint, InterpolationDataJob.interpolation_timestep)
 
 class InterpolationJob:
 
+    @staticmethod
+    def write_dataframe(wp, velocities):
+        download_df = pd.DataFrame()
+        download_df['date_index'] = range(wp.start, wp.end, InterpolationDataJob.interpolation_timestep)
+        download_df['date_time'] = pd.to_datetime(download_df['date_index'], unit='s')
+        download_df['velocity'] = velocities
+        rw.write_df_csv(download_df, wp.interpolation_data_file)
+
     def execute(self):
         init_time = perf_counter()
-        print(f'+     {self.wp.unique_name} {self.index}', flush=True)
-        if file_exists(self.wp.output_data_file):
-            return tuple([self.result_key, rw.read_df(self.output_data_file), init_time])
-        else:
-            interpolator = VI(self.surface_points)
+        print(f'+     {self.wp.unique_name} {self.index} of {self.size}', flush=True)
+        interpolator = VI(self.surface_points)
+        interpolator.set_interpolation_point(self.input_point)
+        output = interpolator.get_interpolated_point()
+        if self.display:
             interpolator.set_interpolation_point(self.input_point)
-            output = interpolator.get_interpolated_point()
-            if self.display:
-                interpolator.set_interpolation_point(self.input_point)
-                interpolator.show_axes()
-            return tuple([self.result_key, output, init_time])
+            interpolator.show_axes()
+        return tuple([self.result_key, output, init_time])
 
     def execute_callback(self, result):
         print(f'-     {self.wp.unique_name} {self.index} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
@@ -152,6 +148,7 @@ class InterpolationJob:
     def __init__(self, waypoints, index: int, display=False):
         self.display = display
         interpolation_point = waypoints[0]
+        self.size = len(waypoints[1].output_data)
         self.wp = interpolation_point
         self.index = index
         self.input_point = Point(interpolation_point.lat, interpolation_point.lon, 0)
