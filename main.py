@@ -12,7 +12,7 @@ from velocity import CurrentStationJob, InterpolationJob, InterpolationDataJob, 
 from elapsed_time import ElapsedTimeJob
 from elapsed_time_reduce import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
-from project_globals import TIMESTEP, boat_speeds, Environment, ChartYear
+from project_globals import TIMESTEP, boat_speeds, Environment, ChartYear, file_exists
 
 from Semaphore import SimpleSemaphore as Semaphore
 from ChromeDriver import ChromeDriver as cd
@@ -20,6 +20,13 @@ from ChromeDriver import ChromeDriver as cd
 from VelocityInterpolation import Interpolator as vi
 
 checkmark = u'\N{check mark}'
+
+def assign_verify_output_data(wp):
+    wp.output_data = mpm.result_lookup[id(wp)]
+    if isinstance(wp.output_data, array):
+        print(f'{checkmark}     {wp.unique_name}', flush=True)
+    else:
+        print(f'X     {wp.unique_name}', flush=True)
 
 if __name__ == '__main__':
 
@@ -33,10 +40,12 @@ if __name__ == '__main__':
     cyr = ChartYear(args)
 
     Waypoint.velocity_folder = envr.velocity_folder()
+    Waypoint.start = cyr.waypoint_start_index()
+    Waypoint.end = cyr.waypoint_end_index()
     Edge.elapsed_time_folder = envr.elapsed_time_folder()
     mp_year = Value('i', cyr.year())
-    mp_wp_si = Value('i', cyr.waypoint_start_index())
-    mp_wp_ei = Value('i', cyr.waypoint_end_index())
+    mp_wp_si = Value('f', cyr.waypoint_start_index())
+    mp_wp_ei = Value('f', cyr.waypoint_end_index())
 
     # Assemble route and route objects
     route = Route(args['filepath'])
@@ -61,45 +70,33 @@ if __name__ == '__main__':
     for wp in route.waypoints:
         if isinstance(wp, DataWP):  # DataWP must come before CurrentStationWP because DataWP IS A CurrentStationWP
             mpm.job_queue.put(InterpolationDataJob(mp_year, mp_wp_si, mp_wp_ei, wp))
-            # idj = InterpolationDataJob(mp_year, mp_wp_si, mp_wp_ei, wp)
-            # idj.execute()
         elif isinstance(wp, CurrentStationWP):
-            # print(f'{wp.unique_name}')
-            # idj = CurrentStationJob(mp_year, mp_wp_si, mp_wp_ei, wp, TIMESTEP)
-            # result = idj.execute()
             mpm.job_queue.put(CurrentStationJob(mp_year, mp_wp_si, mp_wp_ei, wp, TIMESTEP))
     mpm.job_queue.join()
 
     print(f'\nAdding results to waypoints', flush=True)
     for wp in route.waypoints:
         if isinstance(wp, CurrentStationWP) or isinstance(wp, DataWP):
-            wp.output_data = mpm.result_lookup[id(wp)]
-            if isinstance(wp.output_data, array):
-                print(f'{checkmark}     {wp.unique_name}', flush=True)
-            else:
-                print(f'X     {wp.unique_name}', flush=True)
+            assign_verify_output_data(wp)
 
     # Calculate the approximation of the velocity at interpolation points
     print(f'\nApproximating the velocity at INTERPOLATION waypoints (1st day-1 to last day+3)', flush=True)
     for group in route.interpolation_groups:
         interpolation_pt = group[0]
-        group_range = range(len(group[1].output_data))
-        for i in group_range: mpm.job_queue.put(InterpolationJob(group, i))  # (group, i, True) to display results
-        mpm.job_queue.join()
 
-        wp_data = []
-        for i in group_range:
-            result = mpm.result_lookup[str(id(interpolation_pt)) + '_' + str(i)]
-            wp_data.append(result[2].evalf())
-        InterpolationDataJob.dataframe(wp_data)
+        if not file_exists(interpolation_pt.interpolation_data_file):
+            group_range = range(len(group[1].output_data))
+            for i in group_range: mpm.job_queue.put(InterpolationJob(group, i))  # (group, i, True) to display results
+            mpm.job_queue.join()
+
+            wp_data = [mpm.result_lookup[str(id(interpolation_pt)) + '_' + str(i)][2].evalf() for i in group_range]
+            InterpolationJob.write_dataframe(interpolation_pt, wp_data)
+
         mpm.job_queue.put(CurrentStationJob(mp_year, mp_wp_si, mp_wp_ei, interpolation_pt, TIMESTEP))
         mpm.job_queue.join()
+
         if isinstance(interpolation_pt, InterpolationWP):
-            wp.output_data = mpm.result_lookup[id(wp)]
-            if isinstance(wp.output_data, array):
-                print(f'{checkmark}     {wp.unique_name}', flush=True)
-            else:
-                print(f'X     {wp.unique_name}', flush=True)
+            assign_verify_output_data(interpolation_pt)
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for edges (1st day-1 to last day+2)')
