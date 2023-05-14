@@ -40,9 +40,7 @@ class ElapsedTimeJob:
         init_time = perf_counter()
         if file_exists(self.edge.output_data_file):
             print(f'+     {self.unique_name} ({round(self.length, 2)} nm)', flush=True)
-            elapsed_times_df = pd.read_csv(self.edge.output_data_file.with_suffix('.csv'), header='infer').astype(np.int32)
-            # elapsed_times_df = elapsed_times_df.convert_dtypes()
-            # print(elapsed_times_df.memory_usage())
+            elapsed_times_df = rw.read_df(self.edge.output_data_file)
             return tuple([self.result_key, elapsed_times_df, init_time])
         else:
             print(f'+     {self.unique_name} ({round(self.length, 2)} nm)', flush=True)

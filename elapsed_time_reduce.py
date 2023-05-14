@@ -13,7 +13,7 @@ def elapsed_time_reduce(env, route):
     elapsed_times_file = env.elapsed_time_folder().joinpath('elapsed_times')
     if file_exists(elapsed_times_file):
         print(f':     elapsed time reduce - reading data file', flush=True)
-        et_reduce_df = pd.read_csv(elapsed_times_file.with_suffix('.csv'), header='infer').astype(np.int32)
+        et_reduce_df = rw.read_df(elapsed_times_file)
         print(f':     elapsed time reduce ({mins_secs(perf_counter() - init_time)} minutes)', flush=True)
     else:
         print(f':     elapsed time reduce - reducing elapsed times', flush=True)

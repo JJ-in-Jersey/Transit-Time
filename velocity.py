@@ -57,10 +57,15 @@ class VelocityJob:
             file_df = pd.read_csv(downloaded_file, parse_dates=['Date_Time (LST/LDT)'])
             download_df = pd.concat([download_df, file_df])
         driver.quit()
+        for col in download_df:
+            if df[col].dtype == np.int64: df[col] = df[col].astype(np.int32)
+            elif df[col].dtype == np.float64: df[col] = df[col].astype(np.half)
         download_df.rename(columns={'Date_Time (LST/LDT)': 'date_time'}, inplace=True)
         download_df['date_index'] = download_df['date_time'].apply(lambda x: pd.Timestamp(x).timestamp())
-        download_df['date_index'] = download_df['date_index'].astype(np.int32)
         download_df['velocity'] = download_df[' Speed (knots)'].apply(dash_to_zero)
+        for col in download_df:
+            if download_df[col].dtype == np.int64: download_df[col] = df[col].astype(np.int32)
+            elif download_df[col].dtype == np.float64: download_df[col] = download_df[col].astype(np.half)
         return download_df
 
     def __init__(self, year, waypoint):
@@ -77,7 +82,7 @@ class CurrentStationJob(VelocityJob):
             return tuple([self.result_key, rw.read_arr(self.wp.output_data_file), init_time])
         else:
             if file_exists(self.wp.interpolation_data_file):
-                download_df = rw.read_df_csv(self.wp.interpolation_data_file)
+                download_df = rw.read_df(self.wp.interpolation_data_file)
             else:
                 download_df = self.velocity_aggregate()
                 download_df = download_df[(self.wp.start_index <= download_df['date_index']) & (download_df['date_index'] <= self.wp.end_index)]
