@@ -6,6 +6,7 @@ from GPX import Edge
 
 from project_globals import TIMESTEP, DF_FILE_TYPE, boat_speeds, sign, file_exists, mins_secs
 from ReadWrite import ReadWrite as rw
+from MemoryHelper import MemoryHelper as mh
 
 #  Elapsed times are reported in number of timesteps
 
@@ -52,7 +53,8 @@ class ElapsedTimeJob:
                 dist = np.insert(dist, 0, 0.0)  # because distance uses an offset calculation VIx VFx+1, we need to add a zero to the beginning
                 elapsed_times_df[col_name] = [elapsed_time(i, dist, sign(s)*self.length) for i in range(len(self.edge.edge_range))]
             elapsed_times_df.fillna(0, inplace=True)
-            elapsed_times_df.to_csv(self.edge.output_data_file.with_suffix('.csv'), index=include_index)
+            elapsed_times_df = mh.shrink_dataframe(elapsed_times_df)
+            elapsed_times_df.to_csv(self.edge.output_data_file.with_suffix('.csv'), index=include)
 
         return tuple([self.result_key, elapsed_times_df, init_time])  # elapsed times are reported in number of timesteps
 

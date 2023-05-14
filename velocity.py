@@ -18,6 +18,7 @@ from Navigation import Navigation as nav
 from VelocityInterpolation import Interpolator as VI
 from FileTools import FileTools as FT
 from GPX import Waypoint
+from MemoryHelper import MemoryHelper as mh
 
 #  VELOCITIES ARE DOWNLOADED, CALCULATED AND SAVE AS NAUTICAL MILES PER HOUR!
 
@@ -57,15 +58,10 @@ class VelocityJob:
             file_df = pd.read_csv(downloaded_file, parse_dates=['Date_Time (LST/LDT)'])
             download_df = pd.concat([download_df, file_df])
         driver.quit()
-        for col in download_df:
-            if df[col].dtype == np.int64: df[col] = df[col].astype(np.int32)
-            elif df[col].dtype == np.float64: df[col] = df[col].astype(np.half)
         download_df.rename(columns={'Date_Time (LST/LDT)': 'date_time'}, inplace=True)
         download_df['date_index'] = download_df['date_time'].apply(lambda x: pd.Timestamp(x).timestamp())
         download_df['velocity'] = download_df[' Speed (knots)'].apply(dash_to_zero)
-        for col in download_df:
-            if download_df[col].dtype == np.int64: download_df[col] = df[col].astype(np.int32)
-            elif download_df[col].dtype == np.float64: download_df[col] = download_df[col].astype(np.half)
+        download_df = mh.shrink_dataframe(download_df)
         return download_df
 
     def __init__(self, year, waypoint):
@@ -95,7 +91,7 @@ class CurrentStationJob(VelocityJob):
             output_df['date_index'] = self.v_range
             output_df['date_time'] = pd.to_datetime(output_df['date_index'], unit='s')
             output_df['velocity'] = output_df['date_index'].apply(cs)
-            rw.write_df_csv(output_df, self.wp.folder.joinpath(self.wp.unique_name + '_output'))
+            rw.write_df(output_df, self.wp.folder.joinpath(self.wp.unique_name + '_output'))
 
             velo_array = np.array(output_df['velocity'].to_list(), dtype=np.half)
             rw.write_arr(velo_array, self.wp.output_data_file)
@@ -126,7 +122,7 @@ class InterpolationJob:
     def write_dataframe(wp, velocities):
         download_df = pd.DataFrame(data={'date_index': range(wp.start_index, wp.end_index, InterpolationDataJob.interpolation_timestep), 'velocity': velocities})
         download_df['date_time'] = pd.to_datetime(download_df['date_index'], unit='s')
-        rw.write_df_csv(download_df, wp.interpolation_data_file)
+        rw.write_df(download_df, wp.interpolation_data_file)
 
     def execute(self):
         init_time = perf_counter()
