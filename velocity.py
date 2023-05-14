@@ -10,7 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.by import By
 
-from project_globals import mins_secs, WDW, DF_FILE_TYPE, file_exists
+from project_globals import mins_secs, WDW, DF_FILE_TYPE, file_exists, int_timestamp
 import multiprocess as mpm
 from ChromeDriver import ChromeDriver as cd
 from ReadWrite import ReadWrite as rw
@@ -59,7 +59,7 @@ class VelocityJob:
             download_df = pd.concat([download_df, file_df])
         driver.quit()
         download_df.rename(columns={'Date_Time (LST/LDT)': 'date_time'}, inplace=True)
-        download_df['date_index'] = download_df['date_time'].apply(lambda x: pd.Timestamp(x).timestamp())
+        download_df['date_index'] = download_df['date_time'].apply(lambda x: int_timestamp(x))
         download_df['velocity'] = download_df[' Speed (knots)'].apply(dash_to_zero)
         download_df = mh.shrink_dataframe(download_df)
         return download_df
@@ -82,7 +82,7 @@ class CurrentStationJob(VelocityJob):
             else:
                 download_df = self.velocity_aggregate()
                 download_df = download_df[(self.wp.start_index <= download_df['date_index']) & (download_df['date_index'] <= self.wp.end_index)]
-                rw.write_df_csv(download_df, self.wp.interpolation_data_file)
+                rw.write_df(download_df, self.wp.interpolation_data_file)
 
             # create cubic spline
             cs = CubicSpline(download_df['date_index'], download_df['velocity'])

@@ -54,7 +54,7 @@ class ElapsedTimeJob:
                 elapsed_times_df[col_name] = [elapsed_time(i, dist, sign(s)*self.length) for i in range(len(self.edge.edge_range))]
             elapsed_times_df.fillna(0, inplace=True)
             elapsed_times_df = mh.shrink_dataframe(elapsed_times_df)
-            elapsed_times_df.to_csv(self.edge.output_data_file.with_suffix('.csv'), index=include)
+            rw.write_df(elapsed_times_df, self.edge.output_data_file)
 
         return tuple([self.result_key, elapsed_times_df, init_time])  # elapsed times are reported in number of timesteps
 

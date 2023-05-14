@@ -1,7 +1,7 @@
 # C:\Users\jason\PycharmProjects\Transit-Time\venv\Scripts\python.exe C:\Users\jason\PycharmProjects\Transit-Time\main.py "East River" "C:\users\jason\Developer Workspace\GPX\East River West to East.gpx" 2023 -dd
 from argparse import ArgumentParser as argParser
 from pathlib import Path
-from multiprocessing import Manager, Value
+from multiprocessing import Manager
 from numpy import ndarray as array
 from pandas import DataFrame as dataframe
 from sympy import Point
@@ -34,11 +34,11 @@ if __name__ == '__main__':
     ap.add_argument('year', type=int, help='calendar year for analysis')
     ap.add_argument('-dd', '--delete_data', action='store_true')
     args = vars(ap.parse_args())
-    envr = Environment(args)
+    env = Environment(args)
     cy = ChartYear(args)
 
-    Waypoint.velocity_folder = envr.velocity_folder()
-    Edge.elapsed_time_folder = envr.elapsed_time_folder()
+    Waypoint.velocity_folder = env.velocity_folder()
+    Edge.elapsed_time_folder = env.elapsed_time_folder()
 
     # Assemble route and route objects
     route = Route(args['filepath'], cy.waypoint_start_index(), cy.waypoint_end_index(), cy.edge_range())
@@ -111,11 +111,11 @@ if __name__ == '__main__':
 
     # combine elapsed times by speed
     print(f'\nSorting elapsed times by speed', flush=True)
-    elapsed_time_reduce(envr, route)
+    elapsed_time_reduce(env.elapsed_time_folder(), route)
 
     # calculate the number of timesteps from first node to last node
     print(f'\nCalculating transit times (1st day-1 to last day+1)')
-    for speed in boat_speeds: mpm.job_queue.put(TransitTimeMinimaJob(envr, cyr, route, speed))
+    for speed in boat_speeds: mpm.job_queue.put(TransitTimeMinimaJob(env, cyr, route, speed))
     mpm.job_queue.join()
 
     Semaphore.off(mpm.job_manager_semaphore)
