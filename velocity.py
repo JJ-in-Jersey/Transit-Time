@@ -61,7 +61,6 @@ class VelocityJob:
         download_df['date_index'] = download_df['date_time'].apply(lambda x: pd.Timestamp(x).timestamp())
         download_df['date_index'] = download_df['date_index'].astype(np.int32)
         download_df['velocity'] = download_df[' Speed (knots)'].apply(dash_to_zero)
-        download_df['velocity'] = download_df['velocity'].astype(np.float8)
         return download_df
 
     def __init__(self, year, waypoint):
