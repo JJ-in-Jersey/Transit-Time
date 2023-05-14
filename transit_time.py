@@ -43,7 +43,7 @@ class TransitTimeMinimaJob:
         if file_exists(self._transit_timesteps):
             transit_timesteps = rw.read_arr(self._transit_timesteps)
         else:
-            transit_timesteps = [total_transit_time(row, self._elapsed_times_df, self._elapsed_times_df.columns.to_list()) for row in range(0, len(self._transit_range))]  # in timesteps
+            transit_timesteps = [total_transit_time(row, self._elapsed_times_df, self._elapsed_times_df.columns.to_list()) for row in range(len(self._transit_range))]  # in timesteps
             rw.write_list(transit_timesteps, self._transit_timesteps)
 
         if file_exists(self._plotting_table):

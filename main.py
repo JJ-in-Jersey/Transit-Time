@@ -21,12 +21,10 @@ from VelocityInterpolation import Interpolator as vi
 
 checkmark = u'\N{check mark}'
 
-def assign_verify_output_data(wp):
-    wp.output_data = mpm.result_lookup[id(wp)]
-    if isinstance(wp.output_data, array):
-        print(f'{checkmark}     {wp.unique_name}', flush=True)
-    else:
-        print(f'X     {wp.unique_name}', flush=True)
+def assign_verify_output_data(entity, type):
+    entity.output_data = mpm.result_lookup[id(entity)]
+    if isinstance(entity.output_data, type): print(f'{checkmark}     {entity.unique_name}', flush=True)
+    else: print(f'X     {entity.unique_name}', flush=True)
 
 if __name__ == '__main__':
 
@@ -78,7 +76,7 @@ if __name__ == '__main__':
     print(f'\nAdding results to waypoints', flush=True)
     for wp in route.waypoints:
         if isinstance(wp, CurrentStationWP) or isinstance(wp, DataWP):
-            assign_verify_output_data(wp)
+            assign_verify_output_data(wp, array)
 
     # Calculate the approximation of the velocity at interpolation points
     print(f'\nApproximating the velocity at INTERPOLATION waypoints (1st day-1 to last day+3)', flush=True)
@@ -97,18 +95,19 @@ if __name__ == '__main__':
         mpm.job_queue.join()
 
         if isinstance(interpolation_pt, InterpolationWP):
-            assign_verify_output_data(interpolation_pt)
+            assign_verify_output_data(interpolation_pt, array)
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for edges (1st day-1 to last day+2)')
-    for edge in route.elapsed_time_path.edges: mpm.job_queue.put(ElapsedTimeJob(edge))
+    for edge in route.elapsed_time_path.edges:
+        mpm.job_queue.put(ElapsedTimeJob(edge))
+        # etj = ElapsedTimeJob(edge)
+        # etj.execute()
     mpm.job_queue.join()
 
     print(f'\nAdding results to edges')
     for edge in route.elapsed_time_path.edges:
-        edge.dataframe = mpm.result_lookup[id(edge)]
-        if isinstance(edge.dataframe, dataframe): print(f'{checkmark}     {edge.name}', flush=True)
-        else: print(f'X     {edge.name}', flush=True)
+        assign_verify_output_data(edge, dataframe)
 
     # combine elapsed times by speed
     print(f'\nSorting elapsed times by speed', flush=True)

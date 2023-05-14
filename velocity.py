@@ -10,8 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.by import By
 
-from project_globals import WDW, DF_FILE_TYPE, file_exists
-from project_globals import mins_secs
+from project_globals import mins_secs, WDW, DF_FILE_TYPE, file_exists
 import multiprocess as mpm
 from ChromeDriver import ChromeDriver as cd
 from ReadWrite import ReadWrite as rw
@@ -60,7 +59,9 @@ class VelocityJob:
         driver.quit()
         download_df.rename(columns={'Date_Time (LST/LDT)': 'date_time'}, inplace=True)
         download_df['date_index'] = download_df['date_time'].apply(lambda x: pd.Timestamp(x).timestamp())
+        download_df['date_index'] = download_df['date_index'].astype(np.int32)
         download_df['velocity'] = download_df[' Speed (knots)'].apply(dash_to_zero)
+        download_df['velocity'] = download_df['velocity'].astype(np.float8)
         return download_df
 
     def __init__(self, year, waypoint):
@@ -119,10 +120,8 @@ class InterpolationJob:
 
     @staticmethod
     def write_dataframe(wp, velocities):
-        download_df = pd.DataFrame()
-        download_df['date_index'] = range(wp.start_index, wp.end_index, InterpolationDataJob.interpolation_timestep)
+        download_df = pd.DataFrame(data={'date_index': range(wp.start_index, wp.end_index, InterpolationDataJob.interpolation_timestep), 'velocity': velocities})
         download_df['date_time'] = pd.to_datetime(download_df['date_index'], unit='s')
-        download_df['velocity'] = velocities
         rw.write_df_csv(download_df, wp.interpolation_data_file)
 
     def execute(self):

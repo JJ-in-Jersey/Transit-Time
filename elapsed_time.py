@@ -34,29 +34,32 @@ class ElapsedTimeJob:
         self.length = edge.length
         self.init_velo = edge.start.output_data
         self.final_velo = edge.end.output_data
-        self.name = edge.name
+        self.unique_name = edge.unique_name
 
     def execute(self):
         init_time = perf_counter()
-        if file_exists(self.edge.et_file):
-            print(f'+     {self.name} ({round(self.length, 2)} nm)', flush=True)
-            elapsed_times_df = rw.read_df(self.edge.et_file)
+        if file_exists(self.edge.output_data_file):
+            print(f'+     {self.unique_name} ({round(self.length, 2)} nm)', flush=True)
+            elapsed_times_df = pd.read_csv(self.edge.output_data_file.with_suffix('.csv'), header='infer').astype(np.int32)
+            # elapsed_times_df = elapsed_times_df.convert_dtypes()
+            # print(elapsed_times_df.memory_usage())
             return tuple([self.result_key, elapsed_times_df, init_time])
         else:
-            print(f'+     {self.name} ({round(self.length, 2)} nm)', flush=True)
-            elapsed_times_df = pd.DataFrame(data=self.edge_range, columns=['departure_index'])
+            print(f'+     {self.unique_name} ({round(self.length, 2)} nm)', flush=True)
+            elapsed_times_df = pd.DataFrame(data={'departure_index': self.edge.edge_range})
             ts_in_hr = TIMESTEP / 3600  # in hours because NOAA speeds are in knots (nautical miles per hour)
             for s in boat_speeds:
-                col_name = str(s) + ' ' + self.name
+                col_name = str(s) + ' ' + self.unique_name
                 dist = ElapsedTimeJob.distance(self.final_velo[1:], self.init_velo[:-1], s, ts_in_hr)  # distance in nm
                 dist = np.insert(dist, 0, 0.0)  # because distance uses an offset calculation VIx VFx+1, we need to add a zero to the beginning
-                elapsed_times_df[col_name] = [elapsed_time(i, dist, sign(s)*self.length) for i in range(0, len(self.edge_range))]
+                elapsed_times_df[col_name] = [elapsed_time(i, dist, sign(s)*self.length) for i in range(len(self.edge.edge_range))]
             elapsed_times_df.fillna(0, inplace=True)
-            rw.write_df(elapsed_times_df, self.edge.et_file, DF_FILE_TYPE)
+            elapsed_times_df.to_csv(self.edge.output_data_file.with_suffix('.csv'), index=include_index)
+
         return tuple([self.result_key, elapsed_times_df, init_time])  # elapsed times are reported in number of timesteps
 
     def execute_callback(self, result):
-        print(f'-     {self.name} ({round(self.length, 2)} nm) {mins_secs(perf_counter() - result[2])} minutes', flush=True)
+        print(f'-     {self.unique_name} ({round(self.length, 2)} nm) {mins_secs(perf_counter() - result[2])} minutes', flush=True)
 
     def error_callback(self, result):
-        print(f'!     {self.name} process has raised an error: {result}', flush=True)
+        print(f'!     {self.unique_name} process has raised an error: {result}', flush=True)
