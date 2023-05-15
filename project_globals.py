@@ -16,7 +16,6 @@ WINDOW_MARGIN = 10  # minutes
 TIMESTEP_MARGIN = WINDOW_MARGIN * 60 / TIMESTEP  # number of timesteps to add to minimum to find edges of time windows
 FIVE_HOURS_OF_TIMESTEPS = 5*3600 / TIMESTEP  # only consider windows of transit times less than the midline that are at least 5 ours long (6 hour tide change)
 WDW = 5
-DF_FILE_TYPE = 'csv'  # csv, hdf, pkl
 
 boat_speeds = [v for v in range(-7, -2, 2)]+[v for v in range(3, 8, 2)]  # knots
 def sign(value): return value/abs(value)
@@ -25,6 +24,7 @@ def file_exists(path): return True if path.with_suffix('.csv').exists() or path.
 def hours_mins(secs): return "%d:%02d" % (secs // 3600, secs % 3600 // 60)
 def mins_secs(secs): return "%d:%02d" % (secs // 60, secs % 60)
 def int_timestamp(date): return int(pd.Timestamp(date).timestamp())
+def round_dt(date): return dt.min + round((date - dt.min) / td(minutes=15)) * td(minutes=15)
 
 class Environment:
 
@@ -67,12 +67,12 @@ class ChartYear:
     # def edge_end_index(self): return int(pd.Timestamp(self.last_day_plus_two).timestamp())
     def edge_range(self): return range(int_timestamp(self.first_day_minus_one), int_timestamp(self.last_day_plus_two), TIMESTEP)
 
-    def transit_start_index(self): return pd.Timestamp(self.first_day_minus_one).timestamp()
-    def transit_end_index(self): return pd.Timestamp(self.last_day_plus_one).timestamp()
-    def transit_range(self): return range(int(self.transit_start_index()), int(self.transit_end_index()), TIMESTEP)
+    def transit_start_index(self): return int_timestamp(self.first_day_minus_one)
+    def transit_end_index(self): return int_timestamp(self.last_day_plus_one)
+    def transit_range(self): return range(self.transit_start_index(), self.transit_end_index(), TIMESTEP)
 
-    def first_day_index(self): return pd.Timestamp(self.first_day, unit='s').timestamp()
-    def last_day_index(self): return pd.Timestamp(self.last_day, unit='s').timestamp()
+    def first_day_index(self): return int_timestamp(self.first_day)
+    def last_day_index(self): return int_timestamp(self.last_day)
 
     def __init__(self, args):
         self._year = args['year']  # underscore _year to differentiate it from the method year()

@@ -10,7 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.by import By
 
-from project_globals import mins_secs, WDW, DF_FILE_TYPE, file_exists, int_timestamp
+from project_globals import mins_secs, WDW, file_exists, int_timestamp
 import multiprocess as mpm
 from ChromeDriver import ChromeDriver as cd
 from ReadWrite import ReadWrite as rw
@@ -89,7 +89,7 @@ class CurrentStationJob(VelocityJob):
 
             output_df = pd.DataFrame()
             output_df['date_index'] = self.v_range
-            output_df['date_time'] = pd.to_datetime(output_df['date_index'], unit='s')
+            output_df['date_time'] = pd.to_datetime(output_df['date_index'])
             output_df['velocity'] = output_df['date_index'].apply(cs)
             rw.write_df(output_df, self.wp.folder.joinpath(self.wp.unique_name + '_output'))
 
@@ -121,7 +121,7 @@ class InterpolationJob:
     @staticmethod
     def write_dataframe(wp, velocities):
         download_df = pd.DataFrame(data={'date_index': range(wp.start_index, wp.end_index, InterpolationDataJob.interpolation_timestep), 'velocity': velocities})
-        download_df['date_time'] = pd.to_datetime(download_df['date_index'], unit='s')
+        download_df['date_time'] = pd.to_datetime(download_df['date_index'])
         rw.write_df(download_df, wp.interpolation_data_file)
 
     def execute(self):

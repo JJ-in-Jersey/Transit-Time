@@ -4,7 +4,7 @@ from pathlib import Path
 from time import perf_counter
 from GPX import Edge
 
-from project_globals import TIMESTEP, DF_FILE_TYPE, boat_speeds, sign, file_exists, mins_secs
+from project_globals import TIMESTEP, boat_speeds, sign, file_exists, mins_secs
 from ReadWrite import ReadWrite as rw
 from MemoryHelper import MemoryHelper as mh
 

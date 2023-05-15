@@ -21,9 +21,9 @@ from VelocityInterpolation import Interpolator as vi
 
 checkmark = u'\N{check mark}'
 
-def assign_verify_output_data(entity, type):
+def assign_verify_output_data(entity, ent_type):
     entity.output_data = mpm.result_lookup[id(entity)]
-    if isinstance(entity.output_data, type): print(f'{checkmark}     {entity.unique_name}', flush=True)
+    if isinstance(entity.output_data, ent_type): print(f'{checkmark}     {entity.unique_name}', flush=True)
     else: print(f'X     {entity.unique_name}', flush=True)
 
 if __name__ == '__main__':
@@ -115,7 +115,10 @@ if __name__ == '__main__':
 
     # calculate the number of timesteps from first node to last node
     print(f'\nCalculating transit times (1st day-1 to last day+1)')
-    for speed in boat_speeds: mpm.job_queue.put(TransitTimeMinimaJob(env, cyr, route, speed))
+    for speed in boat_speeds:
+        mpm.job_queue.put(TransitTimeMinimaJob(env, cy, route, speed))
+        # tt = TransitTimeMinimaJob(env, cy, route, speed)
+        # tt.execute()
     mpm.job_queue.join()
 
     Semaphore.off(mpm.job_manager_semaphore)

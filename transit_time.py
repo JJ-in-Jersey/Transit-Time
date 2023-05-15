@@ -3,8 +3,9 @@ from scipy.signal import savgol_filter
 from time import perf_counter
 from num2words import num2words
 
-from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS, DF_FILE_TYPE, file_exists, hours_mins, mins_secs
+from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS, file_exists, hours_mins, mins_secs
 from ReadWrite import ReadWrite as rw
+from MemoryHelper import MemoryHelper as mh
 
 def total_transit_time(init_row, d_frame, cols):
     row = init_row
@@ -43,21 +44,26 @@ class TransitTimeMinimaJob:
         if file_exists(self._transit_timesteps):
             transit_timesteps = rw.read_arr(self._transit_timesteps)
         else:
-            transit_timesteps = [total_transit_time(row, self._elapsed_times_df, self._elapsed_times_df.columns.to_list()) for row in range(len(self._transit_range))]  # in timesteps
+            row_range = range(len(self._transit_range))
+            transit_timesteps = [total_transit_time(row, self._elapsed_times_df, self._elapsed_times_df.columns.to_list()) for row in row_range]  # in timesteps
+            # transit_timesteps = []
+            # for row in row_range:
+            #     result = total_transit_time(row, self._elapsed_times_df, self._elapsed_times_df.columns.to_list())
+            #     transit_timesteps.append(result)
             rw.write_list(transit_timesteps, self._transit_timesteps)
 
         if file_exists(self._plotting_table):
             minima_table_df = rw.read_df(self._plotting_table)
         else:
             minima_table_df = self.minima_table(transit_timesteps)
-            rw.write_df_csv(minima_table_df, self._plotting_table)
+            rw.write_df(minima_table_df, self._plotting_table)
         minima_table_df.drop(['midline', 'plot'], axis=1, inplace=True)
 
         minima_time_table_df = self.start_min_end(minima_table_df)
         minima_time_table_df.drop(['min_index'], axis=1, inplace=True)
 
         final_df = self.trim_to_year(minima_time_table_df)
-        rw.write_df_csv(final_df, self._transit_time)
+        rw.write_df(final_df, self._transit_time)
         return tuple([self.speed, minima_time_table_df, init_time])
 
     def execute_callback(self, result):
@@ -69,15 +75,17 @@ class TransitTimeMinimaJob:
     def start_min_end(self, minima_df):
         minima_df.dropna(axis=0, inplace=True)
         minima_df['transit_time'] = (minima_df['tts']*TIMESTEP).apply(lambda x: hours_mins(x))
+        minima_df['transit_time_new'] = pd.to_datetime(minima_df['tts']*TIMESTEP, unit='s').round('min')
         minima_df.drop(['tts'], axis=1, inplace=True)
-        minima_df['start_time'] = pd.to_datetime(minima_df['start_index'], unit='s')
-        minima_df['min_time'] = pd.to_datetime(minima_df['min_index'], unit='s')
-        minima_df['end_time'] = pd.to_datetime(minima_df['end_index'], unit='s')
+        minima_df['start_time'] = pd.to_datetime(minima_df['start_index'], unit='s').round('min')
+        minima_df['min_time'] = pd.to_datetime(minima_df['min_index'], unit='s').round('min')
+        minima_df['end_time'] = pd.to_datetime(minima_df['end_index'], unit='s').round('min')
         minima_df['start_rounded'] = pd.to_datetime(minima_df['start_index'], unit='s').round('min')
         minima_df['min_rounded'] = pd.to_datetime(minima_df['min_index'], unit='s').round('min')
         minima_df['end_rounded'] = pd.to_datetime(minima_df['end_index'], unit='s').round('min')
-        minima_df['window_time'] = (minima_df['end_index'] - minima_df['start_index']).apply(hours_mins)
-        minima_df['window_rounded'] = (minima_df['end_index'].apply(rounded_to_minutes) - minima_df['start_index'].apply(rounded_to_minutes)).apply(hours_mins)
+        minima_df['window_time'] = pd.to_timedelta(minima_df['end_index'] - minima_df['start_index'], unit='s').round('min')
+        minima_df['window_rounded'] = minima_df['window_time']
+        minima_df = mh.shrink_dataframe(minima_df)
         return minima_df
 
     def minima_table(self, transit_array):
@@ -89,7 +97,7 @@ class TransitTimeMinimaJob:
             tt_df['midline'] = rw.read_df(self.savgol)
         else:
             tt_df['midline'] = savgol_filter(transit_array, 50000, 1)
-            rw.write_df(tt_df['midline'], self.savgol, DF_FILE_TYPE)
+            rw.write_df(tt_df['midline'], self.savgol)
         min_segs = tt_df['tts'].lt(tt_df['midline']).to_list()  # list of True or False the same length as tt_df
         clump = []
         for row, val in enumerate(min_segs):  # rows in tt_df, not the departure index
@@ -122,8 +130,8 @@ class TransitTimeMinimaJob:
         return tt_df
 
     def trim_to_year(self, final_df):
-        final_df['departure_time'] = final_df['departure_index'].apply(index_to_date)
-        final_df = final_df[final_df['end_index'].apply(rounded_to_minutes) > self._first_day_index]
-        final_df = final_df[final_df['start_index'].apply(rounded_to_minutes) < self._last_day_index]
+        final_df['departure_time'] = pd.to_datetime(final_df['departure_index'], unit='s').round('min')
+        final_df = final_df[final_df['end_index'] > self._first_day_index]
+        final_df = final_df[final_df['start_index'] < self._last_day_index]
         final_df.drop(['departure_index', 'start_index', 'end_index'], axis=1, inplace=True)
         return final_df
