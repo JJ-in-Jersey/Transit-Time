@@ -51,7 +51,7 @@ if __name__ == '__main__':
     print(f'timestep: {TIMESTEP}')
     print(f'boat speeds: {boat_speeds}')
     print(f'length {round(route.elapsed_time_path.length,1)} nm')
-    print(f'direction {route.elapsed_time_path.direction}\n')
+    print(f'direction {route.elapsed_time_path.direction}')
     print(f'heading {route.elapsed_time_path.heading}\n')
 
     mgr = Manager()
