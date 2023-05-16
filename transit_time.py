@@ -75,7 +75,7 @@ class TransitTimeMinimaJob:
     # noinspection PyMethodMayBeStatic
     def start_min_end(self, minima_df):
         minima_df.dropna(axis=0, inplace=True)
-        minima_df['transit_time'] = (minima_df['tts']*TIMESTEP).apply(lambda x: hours_mins(x))
+        minima_df['transit_time'] = (minima_df['tts']*TIMESTEP).apply(lambda x: dtt.hours_mins(x))
         # minima_df['transit_time_new'] = pd.to_datetime(minima_df['tts']*TIMESTEP, unit='s').round('min')
         minima_df.drop(['tts'], axis=1, inplace=True)
         minima_df['start_time'] = pd.to_datetime(minima_df['start_index'], unit='s').round('min')
