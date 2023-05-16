@@ -4,9 +4,10 @@ from pathlib import Path
 from time import perf_counter
 from GPX import Edge
 
-from project_globals import TIMESTEP, boat_speeds, sign, file_exists, mins_secs
+from project_globals import TIMESTEP, boat_speeds, sign
 from FileTools import FileTools as ft
 from MemoryHelper import MemoryHelper as mh
+from DateTimeTools import DateTimeTools as dtt
 
 #  Elapsed times are reported in number of timesteps
 
@@ -39,7 +40,7 @@ class ElapsedTimeJob:
 
     def execute(self):
         init_time = perf_counter()
-        if file_exists(self.edge.output_data_file):
+        if ft.file_exists(self.edge.output_data_file):
             print(f'+     {self.unique_name} ({round(self.length, 2)} nm)', flush=True)
             elapsed_times_df = ft.read_df(self.edge.output_data_file)
             return tuple([self.result_key, elapsed_times_df, init_time])
@@ -59,7 +60,7 @@ class ElapsedTimeJob:
         return tuple([self.result_key, elapsed_times_df, init_time])  # elapsed times are reported in number of timesteps
 
     def execute_callback(self, result):
-        print(f'-     {self.unique_name} ({round(self.length, 2)} nm) {mins_secs(perf_counter() - result[2])} minutes', flush=True)
+        print(f'-     {self.unique_name} ({round(self.length, 2)} nm) {dtt.mins_secs(perf_counter() - result[2])} minutes', flush=True)
 
     def error_callback(self, result):
         print(f'!     {self.unique_name} process has raised an error: {result}', flush=True)

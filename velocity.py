@@ -10,7 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.by import By
 
-from project_globals import mins_secs, WDW, file_exists, int_timestamp
+from project_globals import WDW
 import multiprocess as mpm
 from ChromeDriver import ChromeDriver as cd
 from Navigation import Navigation as nav
@@ -18,6 +18,7 @@ from VelocityInterpolation import Interpolator as VI
 from FileTools import FileTools as ft
 from GPX import Waypoint
 from MemoryHelper import MemoryHelper as mh
+from DateTimeTools import DateTimeTools as dtt
 
 #  VELOCITIES ARE DOWNLOADED, CALCULATED AND SAVE AS NAUTICAL MILES PER HOUR!
 
@@ -58,7 +59,7 @@ class VelocityJob:
             download_df = pd.concat([download_df, file_df])
         driver.quit()
         download_df.rename(columns={'Date_Time (LST/LDT)': 'date_time'}, inplace=True)
-        download_df['date_index'] = download_df['date_time'].apply(lambda x: int_timestamp(x))
+        download_df['date_index'] = download_df['date_time'].apply(lambda x: dtt.int_timestamp(x))
         download_df['velocity'] = download_df[' Speed (knots)'].apply(dash_to_zero)
         download_df = mh.shrink_dataframe(download_df)
         return download_df
@@ -73,10 +74,10 @@ class CurrentStationJob(VelocityJob):
         init_time = perf_counter()
         print(f'+     {self.wp.unique_name}', flush=True)
 
-        if file_exists(self.wp.output_data_file):
+        if ft.file_exists(self.wp.output_data_file):
             return tuple([self.result_key, ft.read_arr(self.wp.output_data_file), init_time])
         else:
-            if file_exists(self.wp.interpolation_data_file):
+            if ft.file_exists(self.wp.interpolation_data_file):
                 download_df = ft.read_df(self.wp.interpolation_data_file)
             else:
                 download_df = self.velocity_aggregate()
@@ -97,7 +98,7 @@ class CurrentStationJob(VelocityJob):
             return tuple([self.result_key, velo_array, init_time])
 
     def execute_callback(self, result):
-        print(f'-     {self.wp.unique_name} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
+        print(f'-     {self.wp.unique_name} {dtt.mins_secs(perf_counter() - result[2])} minutes', flush=True)
 
     def error_callback(self, result):
         print(f'!     {self.wp.unique_name} process has raised an error: {result}', flush=True)
@@ -135,7 +136,7 @@ class InterpolationJob:
         return tuple([self.result_key, output, init_time])
 
     def execute_callback(self, result):
-        print(f'-     {self.wp.unique_name} {self.index} {mins_secs(perf_counter() - result[2])} minutes', flush=True)
+        print(f'-     {self.wp.unique_name} {self.index} {dtt.mins_secs(perf_counter() - result[2])} minutes', flush=True)
 
     def error_callback(self, result):
         print(f'!     {self.wp.unique_name} process has raised an error: {result}', flush=True)

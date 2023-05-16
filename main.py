@@ -13,7 +13,7 @@ from velocity import CurrentStationJob, InterpolationJob, InterpolationDataJob, 
 from elapsed_time import ElapsedTimeJob
 from elapsed_time_reduce import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
-from project_globals import TIMESTEP, boat_speeds, Environment, ChartYear, file_exists
+from project_globals import TIMESTEP, boat_speeds, Environment, ChartYear
 
 from Semaphore import SimpleSemaphore as Semaphore
 from ChromeDriver import ChromeDriver as cd
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     for group in route.interpolation_groups:
         interpolation_pt = group[0]
 
-        if not file_exists(interpolation_pt.interpolation_data_file):
+        if not ft.file_exists(interpolation_pt.interpolation_data_file):
             group_range = range(len(group[1].output_data))
             for i in group_range: mpm.job_queue.put(InterpolationJob(group, i))  # (group, i, True) to display results
             mpm.job_queue.join()

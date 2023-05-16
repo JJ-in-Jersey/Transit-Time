@@ -3,9 +3,10 @@ from scipy.signal import savgol_filter
 from time import perf_counter
 from num2words import num2words
 
-from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS, file_exists, hours_mins, mins_secs, round_dt_quarter_hour, time_to_degrees
+from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS
 from FileTools import FileTools as ft
 from MemoryHelper import MemoryHelper as mh
+from DateTimeTools import DateTimeTools as dtt
 
 def total_transit_time(init_row, d_frame, cols):
     row = init_row
@@ -35,13 +36,13 @@ class TransitTimeMinimaJob:
 
     def execute(self):
         init_time = perf_counter()
-        if file_exists(self._transit_time):
+        if ft.file_exists(self._transit_time):
             print(f'+     Transit time ({self.speed}) reading data file', flush=True)
             tt_minima_df = ft.read_df(self._transit_time)
             return tuple([self.speed, tt_minima_df, init_time])
 
         print(f'+     Transit time ({self.speed})', flush=True)
-        if file_exists(self._transit_timesteps):
+        if ft.file_exists(self._transit_timesteps):
             transit_timesteps = ft.read_arr(self._transit_timesteps)
         else:
             row_range = range(len(self._transit_range))
@@ -52,7 +53,7 @@ class TransitTimeMinimaJob:
             #     result = total_transit_time(row, self._elapsed_times_df, self._elapsed_times_df.columns.to_list())
             #     transit_timesteps.append(result)
 
-        if file_exists(self._plotting_table):
+        if ft.file_exists(self._plotting_table):
             minima_table_df = ft.read_df(self._plotting_table)
         else:
             minima_table_df = self.minima_table(transit_timesteps)
@@ -67,7 +68,7 @@ class TransitTimeMinimaJob:
         return tuple([self.speed, minima_time_table_df, init_time])
 
     def execute_callback(self, result):
-        print(f'-     Transit time ({self.speed}) {mins_secs(perf_counter() - result[2])} minutes', flush=True)
+        print(f'-     Transit time ({self.speed}) {dtt.mins_secs(perf_counter() - result[2])} minutes', flush=True)
     def error_callback(self, result):
         print(f'!     Transit time ({self.speed}) process has raised an error: {result}', flush=True)
 
@@ -96,7 +97,7 @@ class TransitTimeMinimaJob:
         tt_df['departure_time'] = pd.to_datetime(self._transit_range, unit='s')
         tt_df['plot'] = 0
         tt_df = tt_df.assign(tts=transit_array)
-        if file_exists(self.savgol):
+        if ft.file_exists(self.savgol):
             tt_df['midline'] = ft.read_df(self.savgol)
         else:
             tt_df['midline'] = savgol_filter(transit_array, 50000, 1)
