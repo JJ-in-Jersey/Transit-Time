@@ -17,6 +17,7 @@ from project_globals import TIMESTEP, boat_speeds, Environment, ChartYear
 
 from Semaphore import SimpleSemaphore as Semaphore
 from ChromeDriver import ChromeDriver as cd
+from FileTools import FileTools as ft
 
 from VelocityInterpolation import Interpolator as vi
 
