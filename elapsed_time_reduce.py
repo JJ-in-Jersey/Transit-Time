@@ -36,4 +36,4 @@ def elapsed_time_reduce(folder, route):
             ft.write_df(speed_df, speed_file)
         route.elapsed_time_lookup(speed, speed_df)
     del et_reduce_df
-    print(f':     elapsed time reduce ({mins_secs(perf_counter() - init_time)} minutes)', flush=True)
+    print(f':     elapsed time reduce ({dtt.mins_secs(perf_counter() - init_time)} minutes)', flush=True)

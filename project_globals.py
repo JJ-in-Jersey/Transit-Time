@@ -58,8 +58,6 @@ class ChartYear:
     def waypoint_start_index(self): return dtt.int_timestamp(self.first_day_minus_one)
     def waypoint_end_index(self): return dtt.int_timestamp(self.last_day_plus_three)
 
-    # def edge_start_index(self): return int(pd.Timestamp(self.first_day_minus_one).timestamp())
-    # def edge_end_index(self): return int(pd.Timestamp(self.last_day_plus_two).timestamp())
     def edge_range(self): return range(dtt.int_timestamp(self.first_day_minus_one), dtt.int_timestamp(self.last_day_plus_two), TIMESTEP)
 
     def transit_start_index(self): return dtt.int_timestamp(self.first_day_minus_one)
