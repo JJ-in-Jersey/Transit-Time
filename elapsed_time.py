@@ -5,7 +5,7 @@ from time import perf_counter
 from GPX import Edge
 
 from project_globals import TIMESTEP, boat_speeds, sign, file_exists, mins_secs
-from ReadWrite import ReadWrite as rw
+from FileTools import FileTools as ft
 from MemoryHelper import MemoryHelper as mh
 
 #  Elapsed times are reported in number of timesteps
@@ -41,7 +41,7 @@ class ElapsedTimeJob:
         init_time = perf_counter()
         if file_exists(self.edge.output_data_file):
             print(f'+     {self.unique_name} ({round(self.length, 2)} nm)', flush=True)
-            elapsed_times_df = rw.read_df(self.edge.output_data_file)
+            elapsed_times_df = ft.read_df(self.edge.output_data_file)
             return tuple([self.result_key, elapsed_times_df, init_time])
         else:
             print(f'+     {self.unique_name} ({round(self.length, 2)} nm)', flush=True)
@@ -54,7 +54,7 @@ class ElapsedTimeJob:
                 elapsed_times_df[col_name] = [elapsed_time(i, dist, sign(s)*self.length) for i in range(len(self.edge.edge_range))]
             elapsed_times_df.fillna(0, inplace=True)
             elapsed_times_df = mh.shrink_dataframe(elapsed_times_df)
-            rw.write_df(elapsed_times_df, self.edge.output_data_file)
+            ft.write_df(elapsed_times_df, self.edge.output_data_file)
 
         return tuple([self.result_key, elapsed_times_df, init_time])  # elapsed times are reported in number of timesteps
 

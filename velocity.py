@@ -13,10 +13,9 @@ from selenium.webdriver.common.by import By
 from project_globals import mins_secs, WDW, file_exists, int_timestamp
 import multiprocess as mpm
 from ChromeDriver import ChromeDriver as cd
-from ReadWrite import ReadWrite as rw
 from Navigation import Navigation as nav
 from VelocityInterpolation import Interpolator as VI
-from FileTools import FileTools as FT
+from FileTools import FileTools as ft
 from GPX import Waypoint
 from MemoryHelper import MemoryHelper as mh
 
@@ -31,11 +30,11 @@ class VelocityJob:
 
     @staticmethod
     def velocity_download(folder, wdw):
-        newest_before = newest_after = FT.newest_file(folder)
+        newest_before = newest_after = ft.newest_file(folder)
         wdw.until(ec.element_to_be_clickable((By.ID, 'generatePDF'))).click()
         while newest_before == newest_after:
             sleep(0.1)
-            newest_after = FT.newest_file(folder)
+            newest_after = ft.newest_file(folder)
         return newest_after
 
     def velocity_page(self, y, driver, wdw):
@@ -75,14 +74,14 @@ class CurrentStationJob(VelocityJob):
         print(f'+     {self.wp.unique_name}', flush=True)
 
         if file_exists(self.wp.output_data_file):
-            return tuple([self.result_key, rw.read_arr(self.wp.output_data_file), init_time])
+            return tuple([self.result_key, ft.read_arr(self.wp.output_data_file), init_time])
         else:
             if file_exists(self.wp.interpolation_data_file):
-                download_df = rw.read_df(self.wp.interpolation_data_file)
+                download_df = ft.read_df(self.wp.interpolation_data_file)
             else:
                 download_df = self.velocity_aggregate()
                 download_df = download_df[(self.wp.start_index <= download_df['date_index']) & (download_df['date_index'] <= self.wp.end_index)]
-                rw.write_df(download_df, self.wp.interpolation_data_file)
+                ft.write_df(download_df, self.wp.interpolation_data_file)
 
             # create cubic spline
             cs = CubicSpline(download_df['date_index'], download_df['velocity'])
@@ -91,10 +90,10 @@ class CurrentStationJob(VelocityJob):
             output_df['date_index'] = self.v_range
             output_df['date_time'] = pd.to_datetime(output_df['date_index'])
             output_df['velocity'] = output_df['date_index'].apply(cs)
-            rw.write_df(output_df, self.wp.folder.joinpath(self.wp.unique_name + '_output'))
+            ft.write_df(output_df, self.wp.folder.joinpath(self.wp.unique_name + '_output'))
 
             velo_array = np.array(output_df['velocity'].to_list(), dtype=np.half)
-            rw.write_arr(velo_array, self.wp.output_data_file)
+            ft.write_arr(velo_array, self.wp.output_data_file)
             return tuple([self.result_key, velo_array, init_time])
 
     def execute_callback(self, result):
@@ -122,7 +121,7 @@ class InterpolationJob:
     def write_dataframe(wp, velocities):
         download_df = pd.DataFrame(data={'date_index': range(wp.start_index, wp.end_index, InterpolationDataJob.interpolation_timestep), 'velocity': velocities})
         download_df['date_time'] = pd.to_datetime(download_df['date_index'])
-        rw.write_df(download_df, wp.interpolation_data_file)
+        ft.write_df(download_df, wp.interpolation_data_file)
 
     def execute(self):
         init_time = perf_counter()
