@@ -82,23 +82,24 @@ if __name__ == '__main__':
             assign_verify_output_data(wp, array)
 
     # Calculate the approximation of the velocity at interpolation points
-    print(f'\nApproximating the velocity at INTERPOLATION waypoints (1st day-1 to last day+3)', flush=True)
-    for group in route.interpolation_groups:
-        interpolation_pt = group[0]
+    if route.interpolation_groups is not None:
+        print(f'\nApproximating the velocity at INTERPOLATION waypoints (1st day-1 to last day+3)', flush=True)
+        for group in route.interpolation_groups:
+            interpolation_pt = group[0]
 
-        if not ft.file_exists(interpolation_pt.interpolation_data_file):
-            group_range = range(len(group[1].output_data))
-            for i in group_range: mpm.job_queue.put(InterpolationJob(group, i))  # (group, i, True) to display results
+            if not ft.file_exists(interpolation_pt.interpolation_data_file):
+                group_range = range(len(group[1].output_data))
+                for i in group_range: mpm.job_queue.put(InterpolationJob(group, i))  # (group, i, True) to display results
+                mpm.job_queue.join()
+
+                wp_data = [mpm.result_lookup[str(id(interpolation_pt)) + '_' + str(i)][2].evalf() for i in group_range]
+                InterpolationJob.write_dataframe(interpolation_pt, wp_data)
+
+            mpm.job_queue.put(CurrentStationJob(args['year'], interpolation_pt, TIMESTEP))
             mpm.job_queue.join()
 
-            wp_data = [mpm.result_lookup[str(id(interpolation_pt)) + '_' + str(i)][2].evalf() for i in group_range]
-            InterpolationJob.write_dataframe(interpolation_pt, wp_data)
-
-        mpm.job_queue.put(CurrentStationJob(args['year'], interpolation_pt, TIMESTEP))
-        mpm.job_queue.join()
-
-        if isinstance(interpolation_pt, InterpolationWP):
-            assign_verify_output_data(interpolation_pt, array)
+            if isinstance(interpolation_pt, InterpolationWP):
+                assign_verify_output_data(interpolation_pt, array)
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for edges (1st day-1 to last day+2)')
