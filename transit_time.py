@@ -2,7 +2,6 @@ import pandas as pd
 from scipy.signal import savgol_filter
 from time import perf_counter
 from num2words import num2words
-
 from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS
 from FileTools import FileTools as ft
 from MemoryHelper import MemoryHelper as mh
@@ -80,13 +79,13 @@ class TransitTimeMinimaJob:
         minima_df.drop(['tts'], axis=1, inplace=True)
         minima_df['start_time'] = pd.to_datetime(minima_df['start_index'], unit='s').round('min')
         minima_df['start_rounded'] = minima_df['start_time'].apply(dtt.round_dt_quarter_hour)
-        minima_df['start_rounded_degrees'] = minima_df['start_rounded'].apply(time_to_degrees)
+        minima_df['start_rounded_degrees'] = minima_df['start_rounded'].apply(dtt.time_to_degrees)
         minima_df['min_time'] = pd.to_datetime(minima_df['min_index'], unit='s').round('min')
         minima_df['min_rounded'] = minima_df['min_time'].apply(dtt.round_dt_quarter_hour)
-        minima_df['min_rounded_degrees'] = minima_df['min_rounded'].apply(time_to_degrees)
+        minima_df['min_rounded_degrees'] = minima_df['min_rounded'].apply(dtt.time_to_degrees)
         minima_df['end_time'] = pd.to_datetime(minima_df['end_index'], unit='s').round('min')
         minima_df['end_rounded'] = minima_df['end_time'].apply(dtt.round_dt_quarter_hour)
-        minima_df['end_rounded_degrees'] = minima_df['end_rounded'].apply(time_to_degrees)
+        minima_df['end_rounded_degrees'] = minima_df['end_rounded'].apply(dtt.time_to_degrees)
         minima_df['window_time'] = minima_df['end_rounded'] - minima_df['start_rounded']
         minima_df = mh.shrink_dataframe(minima_df)
         return minima_df
