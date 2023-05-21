@@ -59,7 +59,7 @@ if __name__ == '__main__':
     jm = mpm.WaitForProcess(target=mpm.JobManager, args=(mpm.job_queue, mpm.result_lookup))
     jm.start()
 
-    cd.update_driver()  # update chrome driver before launching process that use it
+    # cd.update_driver()  # update chrome driver before launching process that use it
 
     # Download noaa data and create velocity arrays for each CURRENT waypoint
     print(f'\nDownloading and processing currents at CURRENT and INTERPOLATION DATA waypoints (1st day-1 to last day+3)', flush=True)
@@ -119,10 +119,9 @@ if __name__ == '__main__':
 
     # calculate the number of timesteps from first node to last node
     print(f'\nCalculating transit times (1st day-1 to last day+1)')
-    # for speed in boat_speeds:
-        # mpm.job_queue.put(TransitTimeMinimaJob(env, cy, route, speed))
-    tt = TransitTimeMinimaJob(env, cy, route, -3)
-    tt.execute()
+    for speed in boat_speeds: mpm.job_queue.put(TransitTimeMinimaJob(env, cy, route, speed))
+    # tt = TransitTimeMinimaJob(env, cy, route, -3)
+    # tt.execute()
     mpm.job_queue.join()
 
     Semaphore.off(mpm.job_manager_semaphore)

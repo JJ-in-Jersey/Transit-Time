@@ -59,9 +59,10 @@ class TransitTimeMinimaJob:
         minima_time_table_df.drop(['min_index'], axis=1, inplace=True)
         final_df = self.trim_to_year(minima_time_table_df)
 
-        final_df.drop(['departure_index', 'departure_time', 'start_time', 'min_time', 'end_time', 'start_day', 'min_day', 'end_day', 'transit_time', 'start_rounded', 'min_rounded', 'end_rounded', 'window_time'], axis=1, inplace=True)
-        final_df['x-day'] = (final_df['start_day_index'] + final_df['min_day_index'] + final_df['end_day_index'])/final_df['start_day_index']
-
+        final_df['x-day'] = (final_df['start_rounded'].dt.date == final_df['min_rounded'].dt.date) & (final_df['min_rounded'].dt.date == final_df['end_rounded'].dt.date)
+        # final_df.drop(['departure_index', 'departure_time', 'transit_time', 'start_time', 'min_time'], axis=1, inplace=True)
+        # final_df.drop(['end_time', 'min_day', 'end_day', 'start_rounded', 'min_rounded', 'end_rounded', 'window_time'], axis=1, inplace=True)
+        # final_df.drop(['start_day_index', 'min_day_index', 'end_day_index'], axis=1, inplace=True)
 
         ft.write_df(final_df, self._transit_time)
         return tuple([self.speed, minima_time_table_df, init_time])
@@ -78,18 +79,12 @@ class TransitTimeMinimaJob:
         # minima_df['transit_time_new'] = pd.to_datetime(minima_df['tts']*TIMESTEP, unit='s').round('min')
         minima_df.drop(['tts'], axis=1, inplace=True)
         minima_df['start_time'] = pd.to_datetime(minima_df['start_index'], unit='s').round('min')
-        minima_df['start_day'] = pd.to_datetime(minima_df['start_index'], unit='s').round('D')
-        minima_df['start_day_index'] = minima_df['start_day'].apply(dtt.int_timestamp)
         minima_df['start_rounded'] = minima_df['start_time'].apply(dtt.round_dt_quarter_hour)
         minima_df['start_rounded_degrees'] = minima_df['start_rounded'].apply(dtt.time_to_degrees)
         minima_df['min_time'] = pd.to_datetime(minima_df['min_index'], unit='s').round('min')
-        minima_df['min_day'] = pd.to_datetime(minima_df['min_index'], unit='s').round('D')
-        minima_df['min_day_index'] = minima_df['min_day'].apply(dtt.int_timestamp)
         minima_df['min_rounded'] = minima_df['min_time'].apply(dtt.round_dt_quarter_hour)
         minima_df['min_rounded_degrees'] = minima_df['min_rounded'].apply(dtt.time_to_degrees)
         minima_df['end_time'] = pd.to_datetime(minima_df['end_index'], unit='s').round('min')
-        minima_df['end_day'] = pd.to_datetime(minima_df['end_index'], unit='s').round('D')
-        minima_df['end_day_index'] = minima_df['end_day'].apply(dtt.int_timestamp)
         minima_df['end_rounded'] = minima_df['end_time'].apply(dtt.round_dt_quarter_hour)
         minima_df['end_rounded_degrees'] = minima_df['end_rounded'].apply(dtt.time_to_degrees)
         minima_df['window_time'] = minima_df['end_rounded'] - minima_df['start_rounded']
