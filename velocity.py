@@ -89,7 +89,7 @@ class CurrentStationJob(VelocityJob):
 
             output_df = pd.DataFrame()
             output_df['date_index'] = self.v_range
-            output_df['date_time'] = pd.to_datetime(output_df['date_index'])
+            output_df['date_time'] = pd.to_datetime(output_df['date_index'], unit='s').round('min')
             output_df['velocity'] = output_df['date_index'].apply(cs)
             ft.write_df(output_df, self.wp.folder.joinpath(self.wp.unique_name + '_output'))
 
@@ -121,7 +121,7 @@ class InterpolationJob:
     @staticmethod
     def write_dataframe(wp, velocities):
         download_df = pd.DataFrame(data={'date_index': range(wp.start_index, wp.end_index, InterpolationDataJob.interpolation_timestep), 'velocity': velocities})
-        download_df['date_time'] = pd.to_datetime(download_df['date_index'])
+        download_df['date_time'] = pd.to_datetime(download_df['date_index']).round('min')
         ft.write_df(download_df, wp.interpolation_data_file)
 
     def execute(self):
