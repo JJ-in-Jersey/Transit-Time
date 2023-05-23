@@ -58,6 +58,7 @@ class TransitTimeMinimaJob:
 
         transit_time_values_df = self.start_min_end(plot_data_df)
         transit_time_values_df['x-day'] = (transit_time_values_df['start_rounded'].dt.date == transit_time_values_df['min_rounded'].dt.date) & (transit_time_values_df['min_rounded'].dt.date == transit_time_values_df['end_rounded'].dt.date)
+        transit_time_values_df.drop(columns=['departure_index', 'departure_time', 'plot'], inplace=True)
         ft.write_df(transit_time_values_df, self.debug_data)
 
         transit_time_values_df = self.trim_to_year(transit_time_values_df)
