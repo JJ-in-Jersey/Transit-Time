@@ -84,7 +84,7 @@ class TransitTimeMinimaJob:
         return minima_df
 
     def minima_table(self, transit_array):
-        tt_df = pd.DataFrame(columns=['departure_index', 'departure_time', 'tts', 'transit_time', 'midline', 'start_index', 'min_index', 'end_index', 'plot', 'start_time', 'min_time', 'end_time', 'start_rounded', 'start_rounded_degrees', 'min_rounded', 'min_rounded_degrees', 'end_rounded', 'end_rounded_degrees', 'window_time', 'x - day']
+        tt_df = pd.DataFrame(columns=['departure_index', 'departure_time', 'tts', 'transit_time', 'midline', 'start_index', 'min_index', 'end_index', 'plot', 'start_time', 'min_time', 'end_time', 'start_rounded', 'start_rounded_degrees', 'min_rounded', 'min_rounded_degrees', 'end_rounded', 'end_rounded_degrees', 'window_time', 'x - day'])
         tt_df['departure_index'] = self._transit_range
         tt_df['departure_time'] = pd.to_datetime(self._transit_range, unit='s').round('min')
         tt_df['plot'] = 0
