@@ -124,7 +124,7 @@ class TransitTimeMinimaJob:
                     tt_df.at[tt_df_min_row, 'start_index'] = start_index
                     tt_df.at[tt_df_min_row, 'start_time'] = pd.to_datetime(start_index, unit='s').round('min')
                     tt_df.at[tt_df_min_row, 'min_index'] = min_index
-                    tt_df.at[tt_df_min_row, 'min_time'] =  pd.to_datetime(min_index, unit='s').round('min')
+                    tt_df.at[tt_df_min_row, 'min_time'] = pd.to_datetime(min_index, unit='s').round('min')
                     tt_df.at[tt_df_min_row, 'end_index'] = end_index
                     tt_df.at[tt_df_min_row, 'end_time'] = pd.to_datetime(end_index, unit='s').round('min')
                     tt_df.at[tt_df_start_row, 'plot'] = max(transit_array)
@@ -139,9 +139,5 @@ class TransitTimeMinimaJob:
         output_frame = output_frame[output_frame['end_index'] > self._first_day_index]
         output_frame = output_frame[output_frame['start_index'] < self._last_day_index]
         output_frame.drop(['start_index', 'end_index'], axis=1, inplace=True)
-
-        # output_frame['fraction_end'] = 0
-        # output_frame['fraction_start'] = 0
-
 
         return output_frame
