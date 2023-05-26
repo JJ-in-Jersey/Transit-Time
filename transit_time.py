@@ -69,7 +69,7 @@ class TransitTimeMinimaJob:
         transit_time_values_df.drop(columns=['departure_index', 'departure_time', 'plot'], inplace=True)
         ft.write_df(transit_time_values_df, self.debug_data)
 
-        transit_time_values_df = self.trim_to_year(transit_time_values_df)
+        transit_time_values_df = self.final_output(transit_time_values_df)
         ft.write_df(transit_time_values_df, self.transit_time_values)
         return tuple([self.speed, transit_time_values_df, init_time])
 
@@ -141,7 +141,7 @@ class TransitTimeMinimaJob:
         tt_df = mh.shrink_dataframe(tt_df)
         return tt_df
 
-    def trim_to_year(self, input_frame):
+    def final_output(self, input_frame):
         output_frame = input_frame[['start_index', 'end_index', 'start_rounded', 'start_degrees', 'min_rounded', 'min_degrees', 'end_rounded', 'end_degrees', 'fraction_date', 'fraction_start', 'fraction_end']].copy()
         output_frame = output_frame[output_frame['end_index'] > self._first_day_index]
         output_frame = output_frame[output_frame['start_index'] < self._last_day_index]
