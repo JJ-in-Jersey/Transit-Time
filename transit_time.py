@@ -143,6 +143,7 @@ class TransitTimeMinimaJob:
 
     def final_output(self, input_frame):
         output_frame = input_frame[['start_index', 'end_index', 'start_rounded', 'start_degrees', 'min_rounded', 'min_degrees', 'end_rounded', 'end_degrees', 'fraction_date', 'fraction_start', 'fraction_end']].copy()
+        output_frame.rename({'start_rounded': 'start_date', 'min_rounded': 'min_date', 'end_rounded': 'end_date'}, axis=1, inplace=True)
         output_frame = output_frame[output_frame['end_index'] > self._first_day_index]
         output_frame = output_frame[output_frame['start_index'] < self._last_day_index]
         output_frame.drop(['start_index', 'end_index'], axis=1, inplace=True)
@@ -151,27 +152,27 @@ class TransitTimeMinimaJob:
         end_list = output_frame[output_frame['fraction_end'] == True].index.tolist()
 
         for row in start_list:
-            output_frame.loc[row - 0.5, 'fraction_date'] = output_frame.loc[row,'start_rounded']
-            output_frame.loc[row - 0.5, 'fraction_start'] = output_frame.loc[row,'start_degrees']
+            output_frame.loc[row - 0.5, 'fraction_date'] = output_frame.loc[row, 'start_date']
+            output_frame.loc[row - 0.5, 'fraction_start'] = output_frame.loc[row, 'start_degrees']
             output_frame.loc[row - 0.5, 'fraction_end'] = 360
             output_frame.loc[row - 0.5, 'x-day adjustment'] = '*'
-            output_frame.loc[row, 'start_rounded'] = output_frame.loc[row, 'start_rounded'] + pd.Timedelta(days=1)
+            output_frame.loc[row, 'start_date'] = output_frame.loc[row, 'start_date'] + pd.Timedelta(days=1)
             output_frame.loc[row, 'start_degrees'] = 0
             output_frame.loc[row, 'x-day adjustment'] = '*'
 
         for row in end_list:
             if output_frame.loc[row, 'end_degrees'] == 0:
-                output_frame.loc[row, 'end_rounded'] = output_frame.loc[row, 'end_rounded'] - pd.Timedelta(days=1)
+                output_frame.loc[row, 'end_date'] = output_frame.loc[row, 'end_date'] - pd.Timedelta(days=1)
                 output_frame.loc[row, 'end_degrees'] = 360
                 output_frame.loc[row, 'fraction_start'] = None
                 output_frame.loc[row, 'fraction_end'] = None
                 output_frame.loc[row, 'x-day adjustment'] = '*'
             else:
-                output_frame.loc[row + 0.5, 'fraction_start'] = 0
+                output_frame.loc[row + 0.5, 'fraction_start'] = 360
                 output_frame.loc[row + 0.5, 'fraction_end'] = output_frame.loc[row, 'end_degrees']
-                output_frame.loc[row + 0.5, 'fraction_date'] = output_frame.loc[row, 'end_rounded']
+                output_frame.loc[row + 0.5, 'fraction_date'] = output_frame.loc[row, 'end_date']
                 output_frame.loc[row + 0.5, 'x-day adjustment'] = '*'
-                output_frame.loc[row, 'end_rounded'] = output_frame.loc[row, 'end_rounded'] - pd.Timedelta(days=1)
+                output_frame.loc[row, 'end_date'] = output_frame.loc[row, 'end_date'] - pd.Timedelta(days=1)
                 output_frame.loc[row, 'end_degrees'] = 360
                 output_frame.loc[row, 'x-day adjustment'] = '*'
 
@@ -181,6 +182,8 @@ class TransitTimeMinimaJob:
         start_list = start_list + output_frame[(output_frame['fraction_start'] == False)].index.tolist()
         for row in start_list:
             output_frame.loc[row, 'fraction_start'] = None
+        fraction_start_reset_list = output_frame[(output_frame['fraction_start'] == 360)].index.tolist()
+        for row in fraction_start_reset_list: output_frame.loc[row, 'fraction_start'] = 0
         end_list = output_frame[(output_frame['fraction_end'] == True)].index.tolist()
         end_list = end_list + output_frame[(output_frame['fraction_end'] == False)].index.tolist()
         for row in end_list:
