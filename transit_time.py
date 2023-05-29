@@ -24,7 +24,8 @@ def total_transit_time(init_row, d_frame, cols):
 class TransitTimeMinimaJob:
 
     def __init__(self, env, cy, route, speed):
-        file_header = 'tt_' + str(speed)
+        boat_direction = 'P_' if speed/abs(speed) > 0 else 'N_'
+        file_header = str(cy.year()) + '_' + boat_direction + str(abs(speed))
         self.speed = speed
         self._first_day_index = cy.first_day_index()
         self._last_day_index = cy.last_day_index()
@@ -35,10 +36,10 @@ class TransitTimeMinimaJob:
         self._elapsed_time_table = env.transit_time_folder().joinpath('et_' + str(speed))  # elapsed times in table, sorted by speed
         self.speed_folder = env.speed_folder(num2words(speed))
         self.transit_timesteps = self.speed_folder.joinpath(file_header + '_timesteps')  # transit times column
-        self.savgol_data = self.speed_folder.joinpath(file_header + 'savgol_data')  # savgol column
+        self.savgol_data = self.speed_folder.joinpath(file_header + '_savgol_data')  # savgol column
         self.plot_data = self.speed_folder.joinpath(file_header + '_plot_data')  # full data calculated for transit time, can be plotted
         self.debug_data = self.speed_folder.joinpath(file_header + '_debug_data')  # full data with rows for plotting removed and s, m, e added
-        self.transit_time_values = env.transit_time_folder().joinpath(file_header + '_final')  # final results table
+        self.transit_time_values = env.transit_time_folder().joinpath(file_header)  # final results table
 
     def execute(self):
         init_time = perf_counter()
@@ -64,7 +65,6 @@ class TransitTimeMinimaJob:
         transit_time_values_df = self.start_min_end(plot_data_df)
         transit_time_values_df['fraction_start'] = (transit_time_values_df['start_rounded'].dt.date != transit_time_values_df['min_rounded'].dt.date)
         transit_time_values_df['fraction_end'] = (transit_time_values_df['min_rounded'].dt.date != transit_time_values_df['end_rounded'].dt.date)
-        transit_time_values_df['x-day adjustment'] = None
         transit_time_values_df.drop(columns=['departure_index', 'departure_time', 'plot'], inplace=True)
         ft.write_df(transit_time_values_df, self.debug_data)
 
@@ -156,10 +156,10 @@ class TransitTimeMinimaJob:
             output_frame.loc[row - 0.5, 'date'] = output_frame.loc[row, 'date']
             output_frame.loc[row - 0.5, 'fraction_start'] = output_frame.loc[row, 'arc_start']
             output_frame.loc[row - 0.5, 'fraction_end'] = 360
-            output_frame.loc[row - 0.5, 'x-day adjustment'] = '*'
+            # output_frame.loc[row - 0.5, 'x-day adjustment'] = '*'
             output_frame.loc[row, 'date'] = output_frame.loc[row, 'date'] + pd.Timedelta(days=1)
             output_frame.loc[row, 'arc_start'] = 0
-            output_frame.loc[row, 'x-day adjustment'] = '*'
+            # output_frame.loc[row, 'x-day adjustment'] = '*'
 
         for row in end_list:
             if output_frame.loc[row, 'arc_end'] == 0:
@@ -167,15 +167,15 @@ class TransitTimeMinimaJob:
                 output_frame.loc[row, 'arc_end'] = 360
                 output_frame.loc[row, 'fraction_start'] = None
                 output_frame.loc[row, 'fraction_end'] = None
-                output_frame.loc[row, 'x-day adjustment'] = '*'
+                # output_frame.loc[row, 'x-day adjustment'] = '*'
             else:
                 output_frame.loc[row + 0.5, 'fraction_start'] = 360
                 output_frame.loc[row + 0.5, 'fraction_end'] = output_frame.loc[row, 'arc_end']
                 output_frame.loc[row + 0.5, 'date'] = output_frame.loc[row, 'end_date']
-                output_frame.loc[row + 0.5, 'x-day adjustment'] = '*'
+                # output_frame.loc[row + 0.5, 'x-day adjustment'] = '*'
                 output_frame.loc[row, 'end_date'] = output_frame.loc[row, 'end_date'] - pd.Timedelta(days=1)
                 output_frame.loc[row, 'arc_end'] = 360
-                output_frame.loc[row, 'x-day adjustment'] = '*'
+                # output_frame.loc[row, 'x-day adjustment'] = '*'
 
         output_frame = output_frame.sort_index().reset_index(drop=True)
 
