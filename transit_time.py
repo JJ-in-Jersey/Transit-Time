@@ -142,9 +142,10 @@ class TransitTimeMinimaJob:
 
     def final_output(self, input_frame):
 
-        input_frame = input_frame[input_frame['end_index'] >= self._first_day_index]
-        input_frame = input_frame[input_frame['start_index'] <= self._last_day_index]
-        input_frame.drop(['start_index', 'end_index'], axis=1, inplace=True)
+        #  trim to start & end dates
+        # input_frame = input_frame[input_frame['end_index'] >= self._first_day_index]
+        # input_frame = input_frame[input_frame['start_index'] <= self._last_day_index]
+        # input_frame.drop(['start_index', 'end_index'], axis=1, inplace=True)
 
         output_frame = input_frame[['start_rounded', 'start_degrees', 'end_rounded', 'end_degrees', 'min_degrees', 'fraction_start', 'fraction_end']].copy()
         output_frame.rename({'start_rounded': 'date', 'end_rounded': 'end_date', 'start_degrees': 'arc_start', 'end_degrees': 'arc_end', 'min_degrees': 'min'}, axis=1, inplace=True)
