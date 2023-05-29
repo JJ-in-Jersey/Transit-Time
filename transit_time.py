@@ -39,7 +39,7 @@ class TransitTimeMinimaJob:
         self.savgol_data = self.speed_folder.joinpath(file_header + '_savgol_data')  # savgol column
         self.plot_data = self.speed_folder.joinpath(file_header + '_plot_data')  # full data calculated for transit time, can be plotted
         self.debug_data = self.speed_folder.joinpath(file_header + '_debug_data')  # full data with rows for plotting removed and s, m, e added
-        self.transit_time_values = env.transit_time_folder().joinpath(file_header)  # final results table
+        self.transit_time_values = env.transit_time_folder().joinpath(file_header + '_')  # final results table
 
     def execute(self):
         init_time = perf_counter()
@@ -142,8 +142,8 @@ class TransitTimeMinimaJob:
 
     def final_output(self, input_frame):
 
-        input_frame = input_frame[input_frame['end_index'] > self._first_day_index]
-        input_frame = input_frame[input_frame['start_index'] < self._last_day_index]
+        input_frame = input_frame[input_frame['end_index'] >= self._first_day_index]
+        input_frame = input_frame[input_frame['start_index'] <= self._last_day_index]
         input_frame.drop(['start_index', 'end_index'], axis=1, inplace=True)
 
         output_frame = input_frame[['start_rounded', 'start_degrees', 'end_rounded', 'end_degrees', 'min_degrees', 'fraction_start', 'fraction_end']].copy()
