@@ -147,34 +147,34 @@ class TransitTimeMinimaJob:
         input_frame.drop(['start_index', 'end_index'], axis=1, inplace=True)
 
         output_frame = input_frame[['start_rounded', 'start_degrees', 'end_rounded', 'end_degrees', 'min_degrees', 'fraction_start', 'fraction_end']].copy()
-        output_frame.rename({'start_rounded': 'date', 'end_rounded': 'end_date'}, axis=1, inplace=True)
+        output_frame.rename({'start_rounded': 'date', 'end_rounded': 'end_date', 'start_degrees': 'arc_start', 'end_degrees': 'arc_end', 'min_degrees': 'min'}, axis=1, inplace=True)
 
         start_list = output_frame[output_frame['fraction_start'] == True].index.tolist()
         end_list = output_frame[output_frame['fraction_end'] == True].index.tolist()
 
         for row in start_list:
             output_frame.loc[row - 0.5, 'date'] = output_frame.loc[row, 'date']
-            output_frame.loc[row - 0.5, 'fraction_start'] = output_frame.loc[row, 'start_degrees']
+            output_frame.loc[row - 0.5, 'fraction_start'] = output_frame.loc[row, 'arc_start']
             output_frame.loc[row - 0.5, 'fraction_end'] = 360
             output_frame.loc[row - 0.5, 'x-day adjustment'] = '*'
             output_frame.loc[row, 'date'] = output_frame.loc[row, 'date'] + pd.Timedelta(days=1)
-            output_frame.loc[row, 'start_degrees'] = 0
+            output_frame.loc[row, 'arc_start'] = 0
             output_frame.loc[row, 'x-day adjustment'] = '*'
 
         for row in end_list:
-            if output_frame.loc[row, 'end_degrees'] == 0:
+            if output_frame.loc[row, 'arc_end'] == 0:
                 output_frame.loc[row, 'end_date'] = output_frame.loc[row, 'end_date'] - pd.Timedelta(days=1)
-                output_frame.loc[row, 'end_degrees'] = 360
+                output_frame.loc[row, 'arc_end'] = 360
                 output_frame.loc[row, 'fraction_start'] = None
                 output_frame.loc[row, 'fraction_end'] = None
                 output_frame.loc[row, 'x-day adjustment'] = '*'
             else:
                 output_frame.loc[row + 0.5, 'fraction_start'] = 360
-                output_frame.loc[row + 0.5, 'fraction_end'] = output_frame.loc[row, 'end_degrees']
+                output_frame.loc[row + 0.5, 'fraction_end'] = output_frame.loc[row, 'arc_end']
                 output_frame.loc[row + 0.5, 'date'] = output_frame.loc[row, 'end_date']
                 output_frame.loc[row + 0.5, 'x-day adjustment'] = '*'
                 output_frame.loc[row, 'end_date'] = output_frame.loc[row, 'end_date'] - pd.Timedelta(days=1)
-                output_frame.loc[row, 'end_degrees'] = 360
+                output_frame.loc[row, 'arc_end'] = 360
                 output_frame.loc[row, 'x-day adjustment'] = '*'
 
         output_frame = output_frame.sort_index().reset_index(drop=True)
