@@ -62,7 +62,6 @@ class TransitTimeMinimaJob:
             ft.write_df(plot_data_df, self.plot_data)
 
         transit_time_values_df = self.start_min_end(plot_data_df)
-        transit_time_values_df['fraction_date'] = None
         transit_time_values_df['fraction_start'] = (transit_time_values_df['start_rounded'].dt.date != transit_time_values_df['min_rounded'].dt.date)
         transit_time_values_df['fraction_end'] = (transit_time_values_df['min_rounded'].dt.date != transit_time_values_df['end_rounded'].dt.date)
         transit_time_values_df['x-day adjustment'] = None
@@ -142,21 +141,23 @@ class TransitTimeMinimaJob:
         return tt_df
 
     def final_output(self, input_frame):
-        output_frame = input_frame[['start_index', 'end_index', 'start_rounded', 'start_degrees', 'min_rounded', 'min_degrees', 'end_rounded', 'end_degrees', 'fraction_date', 'fraction_start', 'fraction_end']].copy()
-        output_frame.rename({'start_rounded': 'start_date', 'min_rounded': 'min_date', 'end_rounded': 'end_date'}, axis=1, inplace=True)
-        output_frame = output_frame[output_frame['end_index'] > self._first_day_index]
-        output_frame = output_frame[output_frame['start_index'] < self._last_day_index]
-        output_frame.drop(['start_index', 'end_index'], axis=1, inplace=True)
+
+        input_frame = input_frame[input_frame['end_index'] > self._first_day_index]
+        input_frame = input_frame[input_frame['start_index'] < self._last_day_index]
+        input_frame.drop(['start_index', 'end_index'], axis=1, inplace=True)
+
+        output_frame = input_frame[['start_rounded', 'start_degrees', 'end_rounded', 'end_degrees', 'min_degrees', 'fraction_start', 'fraction_end']].copy()
+        output_frame.rename({'start_rounded': 'date', 'end_rounded': 'end_date'}, axis=1, inplace=True)
 
         start_list = output_frame[output_frame['fraction_start'] == True].index.tolist()
         end_list = output_frame[output_frame['fraction_end'] == True].index.tolist()
 
         for row in start_list:
-            output_frame.loc[row - 0.5, 'fraction_date'] = output_frame.loc[row, 'start_date']
+            output_frame.loc[row - 0.5, 'date'] = output_frame.loc[row, 'date']
             output_frame.loc[row - 0.5, 'fraction_start'] = output_frame.loc[row, 'start_degrees']
             output_frame.loc[row - 0.5, 'fraction_end'] = 360
             output_frame.loc[row - 0.5, 'x-day adjustment'] = '*'
-            output_frame.loc[row, 'start_date'] = output_frame.loc[row, 'start_date'] + pd.Timedelta(days=1)
+            output_frame.loc[row, 'date'] = output_frame.loc[row, 'date'] + pd.Timedelta(days=1)
             output_frame.loc[row, 'start_degrees'] = 0
             output_frame.loc[row, 'x-day adjustment'] = '*'
 
@@ -170,7 +171,7 @@ class TransitTimeMinimaJob:
             else:
                 output_frame.loc[row + 0.5, 'fraction_start'] = 360
                 output_frame.loc[row + 0.5, 'fraction_end'] = output_frame.loc[row, 'end_degrees']
-                output_frame.loc[row + 0.5, 'fraction_date'] = output_frame.loc[row, 'end_date']
+                output_frame.loc[row + 0.5, 'date'] = output_frame.loc[row, 'end_date']
                 output_frame.loc[row + 0.5, 'x-day adjustment'] = '*'
                 output_frame.loc[row, 'end_date'] = output_frame.loc[row, 'end_date'] - pd.Timedelta(days=1)
                 output_frame.loc[row, 'end_degrees'] = 360
@@ -180,13 +181,15 @@ class TransitTimeMinimaJob:
 
         start_list = output_frame[(output_frame['fraction_start'] == True)].index.tolist()
         start_list = start_list + output_frame[(output_frame['fraction_start'] == False)].index.tolist()
-        for row in start_list:
-            output_frame.loc[row, 'fraction_start'] = None
+        for row in start_list: output_frame.loc[row, 'fraction_start'] = None
+
         fraction_start_reset_list = output_frame[(output_frame['fraction_start'] == 360)].index.tolist()
         for row in fraction_start_reset_list: output_frame.loc[row, 'fraction_start'] = 0
+
         end_list = output_frame[(output_frame['fraction_end'] == True)].index.tolist()
         end_list = end_list + output_frame[(output_frame['fraction_end'] == False)].index.tolist()
-        for row in end_list:
-            output_frame.loc[row, 'fraction_end'] = None
+        for row in end_list: output_frame.loc[row, 'fraction_end'] = None
+
+        output_frame.drop(['end_date'], axis=1, inplace=True)
 
         return output_frame
