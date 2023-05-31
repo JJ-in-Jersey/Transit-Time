@@ -60,10 +60,10 @@ if __name__ == '__main__':
     jm = mpm.WaitForProcess(target=mpm.JobManager, args=(mpm.job_queue, mpm.result_lookup))
     jm.start()
 
-    # cd.update_driver()  # update chrome driver before launching process that use it
+    cd.update_driver()  # update chrome driver before launching process that use it
 
     # Download noaa data and create velocity arrays for each CURRENT waypoint
-    print(f'\nDownloading and processing currents at CURRENT and INTERPOLATION DATA waypoints (1st day-1 to last day+3)', flush=True)
+    print(f'\nDownloading and processing currents at CURRENT and INTERPOLATION DATA waypoints (1st day-1 to last day+4)', flush=True)
     for wp in route.waypoints:
         if isinstance(wp, DataWP):  # DataWP must come before CurrentStationWP because DataWP IS A CurrentStationWP
             mpm.job_queue.put(InterpolationDataJob(args['year'], wp))
@@ -84,7 +84,7 @@ if __name__ == '__main__':
 
     # Calculate the approximation of the velocity at interpolation points
     if route.interpolation_groups is not None:
-        print(f'\nApproximating the velocity at INTERPOLATION waypoints (1st day-1 to last day+3)', flush=True)
+        print(f'\nApproximating the velocity at INTERPOLATION waypoints (1st day-1 to last day+4)', flush=True)
         for group in route.interpolation_groups:
             interpolation_pt = group[0]
 
@@ -103,7 +103,7 @@ if __name__ == '__main__':
                 assign_verify_output_data(interpolation_pt, array)
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
-    print(f'\nCalculating elapsed times for edges (1st day-1 to last day+2)')
+    print(f'\nCalculating elapsed times for edges (1st day-1 to last day+3)')
     for edge in route.elapsed_time_path.edges:
         mpm.job_queue.put(ElapsedTimeJob(edge))
         # etj = ElapsedTimeJob(edge)
@@ -119,7 +119,7 @@ if __name__ == '__main__':
     elapsed_time_reduce(env.elapsed_time_folder(), route)
 
     # calculate the number of timesteps from first node to last node
-    print(f'\nCalculating transit times (1st day-1 to last day+1)')
+    print(f'\nCalculating transit times (1st day-1 to last day+2)')
     for speed in boat_speeds: mpm.job_queue.put(TransitTimeMinimaJob(env, cy, route, speed))
     # tt = TransitTimeMinimaJob(env, cy, route, -3)
     # tt.execute()

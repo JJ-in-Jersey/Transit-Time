@@ -59,12 +59,11 @@ class TransitTimeMinimaJob:
         if ft.file_exists(self.plot_data):
             plot_data_df = ft.read_df(self.plot_data)
         else:
-            plot_data_df = self.minima_table(transit_timesteps_arr)
+            plot_data_df = self.minima_table(transit_timesteps_arr)  # call minima_table
             ft.write_df(plot_data_df, self.plot_data)
 
-        transit_time_values_df = self.start_min_end(plot_data_df)
-        transit_time_values_df['fraction_start'] = (transit_time_values_df['start_rounded'].dt.date != transit_time_values_df['min_rounded'].dt.date)
-        transit_time_values_df['fraction_end'] = (transit_time_values_df['min_rounded'].dt.date != transit_time_values_df['end_rounded'].dt.date)
+        transit_time_values_df = self.start_min_end(plot_data_df)  # call start_min_end
+        transit_time_values_df['fraction'] = (transit_time_values_df['start_rounded'].dt.date != transit_time_values_df['end_rounded'].dt.date)
         transit_time_values_df.drop(columns=['departure_index', 'departure_time', 'plot'], inplace=True)
         ft.write_df(transit_time_values_df, self.debug_data)
 
@@ -83,12 +82,14 @@ class TransitTimeMinimaJob:
         minima_df['transit_time'] = pd.to_timedelta(minima_df['tts']*TIMESTEP, unit='s').round('min')
         minima_df['start_time'] = pd.to_datetime(minima_df['start_index'], unit='s').round('min')
         minima_df['start_rounded'] = minima_df['start_time'].apply(dtt.round_dt_quarter_hour)
+        minima_df['start_rounded_index'] = dtt.int_timestamp(minima_df['start_rounded'])
         minima_df['start_degrees'] = minima_df['start_rounded'].apply(dtt.time_to_degrees)
         minima_df['min_time'] = pd.to_datetime(minima_df['min_index'], unit='s').round('min')
         minima_df['min_rounded'] = minima_df['min_time'].apply(dtt.round_dt_quarter_hour)
         minima_df['min_degrees'] = minima_df['min_rounded'].apply(dtt.time_to_degrees)
         minima_df['end_time'] = pd.to_datetime(minima_df['end_index'], unit='s').round('min')
         minima_df['end_rounded'] = minima_df['end_time'].apply(dtt.round_dt_quarter_hour)
+        minima_df['end_rounded_index'] = dtt.int_timestamp(minima_df['end_rounded'])
         minima_df['end_degrees'] = minima_df['end_rounded'].apply(dtt.time_to_degrees)
         minima_df['window_time'] = minima_df['end_rounded'] - minima_df['start_rounded']
         minima_df = mh.shrink_dataframe(minima_df)
@@ -142,55 +143,33 @@ class TransitTimeMinimaJob:
 
     def final_output(self, input_frame):
 
-        #  trim to start & end dates
-        # input_frame = input_frame[input_frame['end_index'] >= self._first_day_index]
-        # input_frame = input_frame[input_frame['start_index'] <= self._last_day_index]
-        # input_frame.drop(['start_index', 'end_index'], axis=1, inplace=True)
+        output_frame = input_frame[['start_rounded_index', 'end_rounded_index', 'start_rounded', 'start_degrees', 'end_rounded', 'end_degrees', 'min_rounded', 'min_degrees', 'fraction']].copy()
+        output_frame.rename({'start_rounded': 'date', 'end_rounded': 'end_date', 'min_rounded': 'min_date', 'start_degrees': 'arc_start', 'end_degrees': 'arc_end', 'min_degrees': 'min'}, axis=1, inplace=True)
 
-        output_frame = input_frame[['start_rounded', 'start_degrees', 'end_rounded', 'end_degrees', 'min_degrees', 'fraction_start', 'fraction_end']].copy()
-        output_frame.rename({'start_rounded': 'date', 'end_rounded': 'end_date', 'start_degrees': 'arc_start', 'end_degrees': 'arc_end', 'min_degrees': 'min'}, axis=1, inplace=True)
+        fraction_list = output_frame[output_frame['fraction'] == True].index.tolist()
 
-        start_list = output_frame[output_frame['fraction_start'] == True].index.tolist()
-        end_list = output_frame[output_frame['fraction_end'] == True].index.tolist()
-
-        for row in start_list:
-            output_frame.loc[row - 0.5, 'date'] = output_frame.loc[row, 'date']
-            output_frame.loc[row - 0.5, 'fraction_start'] = output_frame.loc[row, 'arc_start']
-            output_frame.loc[row - 0.5, 'fraction_end'] = 360
-            # output_frame.loc[row - 0.5, 'x-day adjustment'] = '*'
-            output_frame.loc[row, 'date'] = output_frame.loc[row, 'date'] + pd.Timedelta(days=1)
-            output_frame.loc[row, 'arc_start'] = 0
-            # output_frame.loc[row, 'x-day adjustment'] = '*'
-
-        for row in end_list:
+        for row in fraction_list:
             if output_frame.loc[row, 'arc_end'] == 0:
-                output_frame.loc[row, 'end_date'] = output_frame.loc[row, 'end_date'] - pd.Timedelta(days=1)
+                # special case where arc ends exactly at 00:00
+                output_frame.loc[row, 'end_date'] = output_frame.loc[row, 'date']
                 output_frame.loc[row, 'arc_end'] = 360
-                output_frame.loc[row, 'fraction_start'] = None
-                output_frame.loc[row, 'fraction_end'] = None
-                # output_frame.loc[row, 'x-day adjustment'] = '*'
             else:
-                output_frame.loc[row + 0.5, 'fraction_start'] = 360
-                output_frame.loc[row + 0.5, 'fraction_end'] = output_frame.loc[row, 'arc_end']
+                # create new row for fraction - from 0 to end_degrees
+                output_frame.loc[row + 0.5] = output_frame.loc[row].to_list()
                 output_frame.loc[row + 0.5, 'date'] = output_frame.loc[row, 'end_date']
-                # output_frame.loc[row + 0.5, 'x-day adjustment'] = '*'
-                output_frame.loc[row, 'end_date'] = output_frame.loc[row, 'end_date'] - pd.Timedelta(days=1)
+                output_frame.loc[row + 0.5, 'arc_start'] = 0
+                output_frame.loc[row + 0.5, 'arc_end'] = output_frame.loc[row, 'arc_end']
+                output_frame.loc[row + 0.5, 'fraction'] = 'NEW'
+                # fix old row - from start to zero
+                output_frame.loc[row, 'end_date'] = output_frame.loc[row, 'date']
                 output_frame.loc[row, 'arc_end'] = 360
-                # output_frame.loc[row, 'x-day adjustment'] = '*'
 
         output_frame = output_frame.sort_index().reset_index(drop=True)
-
-        start_list = output_frame[(output_frame['fraction_start'] == True)].index.tolist()
-        start_list = start_list + output_frame[(output_frame['fraction_start'] == False)].index.tolist()
-        for row in start_list: output_frame.loc[row, 'fraction_start'] = None
-
-        fraction_start_reset_list = output_frame[(output_frame['fraction_start'] == 360)].index.tolist()
-        for row in fraction_start_reset_list: output_frame.loc[row, 'fraction_start'] = 0
-
-        end_list = output_frame[(output_frame['fraction_end'] == True)].index.tolist()
-        end_list = end_list + output_frame[(output_frame['fraction_end'] == False)].index.tolist()
-        for row in end_list: output_frame.loc[row, 'fraction_end'] = None
-
         output_frame.drop(['end_date'], axis=1, inplace=True)
+
+        # trim to start & end dates
+        output_frame = output_frame[output_frame['end_rounded_index'] >= self._first_day_index]
+        output_frame = output_frame[output_frame['start_rounded_index'] <= self._last_day_index]
+        output_frame.drop(['start_rounded_index', 'end_rounded_index'], axis=1, inplace=True)
 
         return output_frame
