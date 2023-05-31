@@ -6,7 +6,7 @@ from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS
 from FileTools import FileTools as ft
 from MemoryHelper import MemoryHelper as mh
 from DateTimeTools import DateTimeTools as dtt
-
+from datetime import datetime as dt
 
 def none_row(row, df):
     for c in range(len(df.columns)):
@@ -82,14 +82,14 @@ class TransitTimeMinimaJob:
         minima_df['transit_time'] = pd.to_timedelta(minima_df['tts']*TIMESTEP, unit='s').round('min')
         minima_df['start_time'] = pd.to_datetime(minima_df['start_index'], unit='s').round('min')
         minima_df['start_rounded'] = minima_df['start_time'].apply(dtt.round_dt_quarter_hour)
-        minima_df['start_rounded_index'] = dtt.int_timestamp(minima_df['start_rounded'])
+        minima_df['start_rounded_index'] = minima_df['start_rounded'].apply(lambda x: dtt.int_timestamp(x))
         minima_df['start_degrees'] = minima_df['start_rounded'].apply(dtt.time_to_degrees)
         minima_df['min_time'] = pd.to_datetime(minima_df['min_index'], unit='s').round('min')
         minima_df['min_rounded'] = minima_df['min_time'].apply(dtt.round_dt_quarter_hour)
         minima_df['min_degrees'] = minima_df['min_rounded'].apply(dtt.time_to_degrees)
         minima_df['end_time'] = pd.to_datetime(minima_df['end_index'], unit='s').round('min')
         minima_df['end_rounded'] = minima_df['end_time'].apply(dtt.round_dt_quarter_hour)
-        minima_df['end_rounded_index'] = dtt.int_timestamp(minima_df['end_rounded'])
+        minima_df['end_rounded_index'] = minima_df['end_rounded'].apply(lambda x: dtt.int_timestamp(x))
         minima_df['end_degrees'] = minima_df['end_rounded'].apply(dtt.time_to_degrees)
         minima_df['window_time'] = minima_df['end_rounded'] - minima_df['start_rounded']
         minima_df = mh.shrink_dataframe(minima_df)
@@ -151,25 +151,36 @@ class TransitTimeMinimaJob:
         for row in fraction_list:
             if output_frame.loc[row, 'arc_end'] == 0:
                 # special case where arc ends exactly at 00:00
-                output_frame.loc[row, 'end_date'] = output_frame.loc[row, 'date']
+                # end_time = output_frame.loc[row, 'end_date'].time()
+                # start_date = output_frame.loc[row, 'date'].date()
+                # output_frame.loc[row, 'end_date'] = dt.combine(output_frame.loc[row, 'date'].date(), output_frame.loc[row, 'end_date'].time())
+                # output_frame.loc[row, 'end_rounded_index'] = dtt.int_timestamp(output_frame.loc[row, 'end_date'])
+                output_frame.loc[row, 'end_date'] = pd.to_datetime(output_frame.loc[row, 'date'].date()) + pd.Timedelta('23:59:59')  # resetting end to ensure correct trim at end of year
+                output_frame.loc[row, 'end_rounded_index'] = dtt.int_timestamp(output_frame.loc[row, 'end_date'])
                 output_frame.loc[row, 'arc_end'] = 360
+                output_frame.loc[row, 'fraction'] = 'ADJ'
             else:
                 # create new row for fraction - from 0 to end_degrees
                 output_frame.loc[row + 0.5] = output_frame.loc[row].to_list()
-                output_frame.loc[row + 0.5, 'date'] = output_frame.loc[row, 'end_date']
+                output_frame.loc[row + 0.5, 'date'] = output_frame.loc[row, 'end_date'].date()
+                output_frame.loc[row + 0.5, 'start_rounded_index'] = dtt.int_timestamp(output_frame.loc[row, 'end_date'].date())
+                # output_frame.loc[row + 0.5, 'start_rounded_index'] = output_frame.loc[row, 'end_rounded_index']
+                # output_frame.loc[row + 0.5, 'date'] = pd.to_datetime(output_frame.loc[row, 'end_date'].date()) + pd.Timedelta('00:00:00')
+                # output_frame.loc[row + 0.5, 'start_rounded_index'] = dtt.int_timestamp(output_frame.loc[row, 'end_date'])
                 output_frame.loc[row + 0.5, 'arc_start'] = 0
                 output_frame.loc[row + 0.5, 'arc_end'] = output_frame.loc[row, 'arc_end']
                 output_frame.loc[row + 0.5, 'fraction'] = 'NEW'
                 # fix old row - from start to zero
-                output_frame.loc[row, 'end_date'] = output_frame.loc[row, 'date']
+                output_frame.loc[row, 'end_date'] = pd.to_datetime(output_frame.loc[row, 'date'].date()) + pd.Timedelta('23:59:59')
+                output_frame.loc[row, 'end_rounded_index'] = dtt.int_timestamp(output_frame.loc[row, 'end_date'])
                 output_frame.loc[row, 'arc_end'] = 360
+                output_frame.loc[row, 'fraction'] = 'ADJ'
 
         output_frame = output_frame.sort_index().reset_index(drop=True)
-        output_frame.drop(['end_date'], axis=1, inplace=True)
 
         # trim to start & end dates
         output_frame = output_frame[output_frame['end_rounded_index'] >= self._first_day_index]
         output_frame = output_frame[output_frame['start_rounded_index'] <= self._last_day_index]
-        output_frame.drop(['start_rounded_index', 'end_rounded_index'], axis=1, inplace=True)
+        output_frame.drop(['start_rounded_index', 'end_rounded_index', 'end_date', 'fraction'], axis=1, inplace=True)
 
         return output_frame
