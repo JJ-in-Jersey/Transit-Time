@@ -121,7 +121,7 @@ if __name__ == '__main__':
     # calculate the number of timesteps from first node to last node
     print(f'\nCalculating transit times (1st day-1 to last day+2)')
     for speed in boat_speeds: mpm.job_queue.put(TransitTimeMinimaJob(env, cy, route, speed))
-    # tt = TransitTimeMinimaJob(env, cy, route, -3)
+    # tt = TransitTimeMinimaJob(env, cy, route, 5)
     # tt.execute()
     mpm.job_queue.join()
 

@@ -144,37 +144,41 @@ class TransitTimeMinimaJob:
     def final_output(self, input_frame):
 
         output_frame = input_frame[['start_index', 'end_index', 'start_rounded', 'start_degrees', 'end_rounded', 'end_degrees', 'min_rounded', 'min_degrees', 'fraction']].copy()
-        output_frame.rename({'start_rounded': 'date', 'end_rounded': 'end_date', 'min_rounded': 'min_date', 'start_degrees': 'arc_start', 'end_degrees': 'arc_end', 'min_degrees': 'min'}, axis=1, inplace=True)
+        output_frame.rename({'start_rounded': 'start_date', 'end_rounded': 'end_date', 'min_rounded': 'min_date', 'start_degrees': 'arc_start', 'end_degrees': 'arc_end'}, axis=1, inplace=True)
 
         fraction_list = output_frame[output_frame['fraction'] == True].index.tolist()
 
         for row in fraction_list:
             if output_frame.loc[row, 'arc_end'] == 0:
                 # special case where arc ends exactly at 00:00
-                output_frame.loc[row, 'end_date'] = pd.to_datetime(output_frame.loc[row, 'date'].date()) + pd.Timedelta('23:59:59')  # resetting end to ensure correct trim at end of year
+                output_frame.loc[row, 'end_date'] = pd.to_datetime(output_frame.loc[row, 'start_date'].date()) + pd.Timedelta('23:59:59')  # resetting end to ensure correct trim at end of year
                 output_frame.loc[row, 'arc_end'] = 360
                 output_frame.loc[row, 'fraction'] = 'ADJ'
             else:
                 # create new row for fraction - from 0 to end_degrees
-                if output_frame.loc[row, 'min_date'].date() == output_frame.loc[row, 'date'].date(): output_frame.loc[row + 0.5, 'min'] = 'None'
                 output_frame.loc[row + 0.5] = output_frame.loc[row].to_list()
-                output_frame.loc[row + 0.5, 'date'] = output_frame.loc[row, 'end_date'].date()
+                if output_frame.loc[row, 'min_date'].date() == output_frame.loc[row, 'start_date'].date(): output_frame.loc[row + 0.5, 'min_degrees'] = 'None'
+                output_frame.loc[row + 0.5, 'start_date'] = output_frame.loc[row, 'end_date'].date()
                 output_frame.loc[row + 0.5, 'arc_start'] = 0
                 output_frame.loc[row + 0.5, 'arc_end'] = output_frame.loc[row, 'arc_end']
                 output_frame.loc[row + 0.5, 'fraction'] = 'NEW'
                 # fix old row - from start to zero
-                if output_frame.loc[row, 'min_date'].date() == output_frame.loc[row, 'end_date'].date(): output_frame.loc[row, 'min'] = 'None'
-                output_frame.loc[row, 'end_date'] = pd.to_datetime(output_frame.loc[row, 'date'].date()) + pd.Timedelta('23:59:59')  # resetting end to ensure correct trim at end of year
+                if output_frame.loc[row, 'min_date'].date() == output_frame.loc[row, 'end_date'].date():
+                    if output_frame.loc[row, 'min_degrees'] == 0:
+                        output_frame.loc[row, 'min_degrees'] = 360
+                    else:
+                        output_frame.loc[row, 'min_degrees'] = 'None'
+                output_frame.loc[row, 'end_date'] = pd.to_datetime(output_frame.loc[row, 'start_date'].date()) + pd.Timedelta('23:59:59')  # resetting end to ensure correct trim at end of year
                 output_frame.loc[row, 'arc_end'] = 360
                 output_frame.loc[row, 'fraction'] = 'ADJ'
 
         output_frame = output_frame.sort_index().reset_index(drop=True)
 
         # add clock time columns
-        datetime_list = output_frame[output_frame['date'].apply(lambda x: not isinstance(x, pd.Timestamp))].index.to_list()
-        for r in datetime_list: output_frame.loc[r, 'date'] = pd.Timestamp(output_frame.loc[r, 'date'])
-        output_frame['start_time'] = output_frame['date'].apply(lambda x: x.time())
-        output_frame['date'] = output_frame['date'].apply(lambda x: x.date())
+        datetime_list = output_frame[output_frame['start_date'].apply(lambda x: not isinstance(x, pd.Timestamp))].index.to_list()
+        for r in datetime_list: output_frame.loc[r, 'start_date'] = pd.Timestamp(output_frame.loc[r, 'start_date'])
+        output_frame['start_time'] = output_frame['start_date'].apply(lambda x: x.time())
+        output_frame['start_date'] = output_frame['start_date'].apply(lambda x: x.date())
 
         datetime_list = output_frame[output_frame['end_date'].apply(lambda x: not isinstance(x, pd.Timestamp))].index.to_list()
         for r in datetime_list: output_frame.loc[r, 'end_date'] = pd.Timestamp(output_frame.loc[r, 'end_date'])
@@ -185,10 +189,10 @@ class TransitTimeMinimaJob:
         output_frame['min_time'] = output_frame['min_date'].apply(lambda x: x.time())
 
         # trim to first and last day
-        output_frame['start_index'] = output_frame['date'].apply(lambda x: dtt.int_timestamp(x))
+        output_frame['start_index'] = output_frame['start_date'].apply(lambda x: dtt.int_timestamp(x))
         output_frame['end_index'] = output_frame['end_date'].apply(lambda x: dtt.int_timestamp(x))
         output_frame = output_frame[output_frame['start_index'] >= self.first_day_index]
         output_frame = output_frame[output_frame['end_index'] < self.last_day_index]
-        output_frame = output_frame[['date', 'start_time', 'arc_start', 'arc_end', 'end_time', 'min_time', 'min']]
+        output_frame = output_frame[['start_date', 'start_time', 'arc_start', 'arc_end', 'end_time', 'min_time', 'min_degrees']]
 
         return output_frame
