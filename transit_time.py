@@ -174,6 +174,7 @@ class TransitTimeMinimaJob:
         datetime_list = output_frame[output_frame['date'].apply(lambda x: not isinstance(x, pd.Timestamp))].index.to_list()
         for r in datetime_list: output_frame.loc[r, 'date'] = pd.Timestamp(output_frame.loc[r, 'date'])
         output_frame['start_time'] = output_frame['date'].apply(lambda x: x.time())
+        output_frame['date'] = output_frame['date'].apply(lambda x: x.date())
 
         datetime_list = output_frame[output_frame['end_date'].apply(lambda x: not isinstance(x, pd.Timestamp))].index.to_list()
         for r in datetime_list: output_frame.loc[r, 'end_date'] = pd.Timestamp(output_frame.loc[r, 'end_date'])
