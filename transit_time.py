@@ -179,9 +179,13 @@ class TransitTimeMinimaJob:
         for r in datetime_list: output_frame.loc[r, 'end_date'] = pd.Timestamp(output_frame.loc[r, 'end_date'])
         output_frame['end_time'] = output_frame['end_date'].apply(lambda x: x.time())
 
+        datetime_list = output_frame[output_frame['min_date'].apply(lambda x: not isinstance(x, pd.Timestamp))].index.to_list()
+        for r in datetime_list: output_frame.loc[r, 'min_date'] = pd.Timestamp(output_frame.loc[r, 'min_date'])
+        output_frame['min_time'] = output_frame['min_date'].apply(lambda x: x.time())
+
         # trim to first and last day
         output_frame = output_frame[output_frame['start_index'] >= self.first_day_index]
         output_frame = output_frame[output_frame['end_index'] < self.last_day_index]
-        output_frame = output_frame[['date', 'start_time', 'arc_start', 'arc_end', 'end_time', 'min']]
+        output_frame = output_frame[['date', 'start_time', 'arc_start', 'arc_end', 'end_time', 'min_time', 'min']]
 
         return output_frame
