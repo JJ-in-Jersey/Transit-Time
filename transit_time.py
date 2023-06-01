@@ -185,6 +185,8 @@ class TransitTimeMinimaJob:
         output_frame['min_time'] = output_frame['min_date'].apply(lambda x: x.time())
 
         # trim to first and last day
+        output_frame['start_index'] = output_frame['date'].apply(lambda x: dtt.int_timestamp(x))
+        output_frame['end_index'] = output_frame['end_date'].apply(lambda x: dtt.int_timestamp(x))
         output_frame = output_frame[output_frame['start_index'] >= self.first_day_index]
         output_frame = output_frame[output_frame['end_index'] < self.last_day_index]
         output_frame = output_frame[['date', 'start_time', 'arc_start', 'arc_end', 'end_time', 'min_time', 'min']]
