@@ -156,21 +156,32 @@ class TransitTimeMinimaJob:
                 output_frame.loc[row, 'fraction'] = 'ADJ'
             else:
                 # create new row for fraction - from 0 to end_degrees
+                if output_frame.loc[row, 'min_date'].date() == output_frame.loc[row, 'date'].date(): output_frame.loc[row + 0.5, 'min'] = 'None'
                 output_frame.loc[row + 0.5] = output_frame.loc[row].to_list()
                 output_frame.loc[row + 0.5, 'date'] = output_frame.loc[row, 'end_date'].date()
                 output_frame.loc[row + 0.5, 'arc_start'] = 0
                 output_frame.loc[row + 0.5, 'arc_end'] = output_frame.loc[row, 'arc_end']
                 output_frame.loc[row + 0.5, 'fraction'] = 'NEW'
                 # fix old row - from start to zero
+                if output_frame.loc[row, 'min_date'].date() == output_frame.loc[row, 'end_date'].date(): output_frame.loc[row, 'min'] = 'None'
                 output_frame.loc[row, 'end_date'] = pd.to_datetime(output_frame.loc[row, 'date'].date()) + pd.Timedelta('23:59:59')  # resetting end to ensure correct trim at end of year
                 output_frame.loc[row, 'arc_end'] = 360
                 output_frame.loc[row, 'fraction'] = 'ADJ'
 
         output_frame = output_frame.sort_index().reset_index(drop=True)
 
-        # trim to start & end dates
+        # add clock time columns
+        datetime_list = output_frame[output_frame['date'].apply(lambda x: not isinstance(x, pd.Timestamp))].index.to_list()
+        for r in datetime_list: output_frame.loc[r, 'date'] = pd.Timestamp(output_frame.loc[r, 'date'])
+        output_frame['start_time'] = output_frame['date'].apply(lambda x: x.time())
+
+        datetime_list = output_frame[output_frame['end_date'].apply(lambda x: not isinstance(x, pd.Timestamp))].index.to_list()
+        for r in datetime_list: output_frame.loc[r, 'end_date'] = pd.Timestamp(output_frame.loc[r, 'end_date'])
+        output_frame['end_time'] = output_frame['end_date'].apply(lambda x: x.time())
+
+        # trim to first and last day
         output_frame = output_frame[output_frame['start_index'] >= self.first_day_index]
         output_frame = output_frame[output_frame['end_index'] < self.last_day_index]
-        output_frame.drop(['start_index', 'end_index', 'end_date', 'fraction'], axis=1, inplace=True)
+        output_frame = output_frame[['date', 'start_time', 'arc_start', 'arc_end', 'end_time', 'min']]
 
         return output_frame
