@@ -65,7 +65,7 @@ class ChartYear:
     def transit_range(self): return range(self.transit_start_index(), self.transit_end_index(), TIMESTEP)
 
     def first_day_index(self): return dtt.int_timestamp(self.first_day)
-    def last_day_index(self): return dtt.int_timestamp(self.last_day)
+    def last_day_index(self): return dtt.int_timestamp(self.last_day + td(days=1))  # need last full day - date + 24 hours
 
     def __init__(self, args):
         self._year = args['year']  # underscore _year to differentiate it from the method year()
