@@ -6,19 +6,18 @@ from project_globals import boat_speeds
 from FileTools import FileTools as ft
 from DateTimeTools import DateTimeTools as dtt
 
-def elapsed_time_reduce(folder, route):
+def transit_time_reduce(folder, route):
 
     init_time = perf_counter()
-    elapsed_times_file = folder.joinpath('elapsed_times')
-    if ft.file_exists(elapsed_times_file):
-        print(f':     elapsed time reduce - reading data file', flush=True)
-        et_reduce_df = ft.read_df(elapsed_times_file)
-        print(f':     elapsed time reduce ({dtt.mins_secs(perf_counter() - init_time)} minutes)', flush=True)
+    transit_times_file = folder.joinpath('transit_times')
+    if ft.file_exists(transit_times_file):
+        print(f':     transit time reduce - reading data file', flush=True)
+        et_reduce_df = ft.read_df(transit_times_file)
+        print(f':     transit time reduce ({dtt.mins_secs(perf_counter() - init_time)} minutes)', flush=True)
     else:
-        print(f':     elapsed time reduce - reducing elapsed times', flush=True)
-        elapsed_time_tables = [edge.output_data for edge in route.elapsed_time_path.edges]
-        et_reduce_df = reduce(lambda left, right: pd.merge(left, right, on='departure_index'), elapsed_time_tables)
-        ft.write_df(et_reduce_df, elapsed_times_file)
+        print(f':     transit time reduce - reducing elapsed times', flush=True)
+        tt_reduce_df = reduce(lambda left, right: pd.merge(left, right, on='departure_index'), elapsed_time_tables)
+        ft.write_df(et_reduce_df, transit_times_file)
         print(f':     elapsed time reduce ({dtt.mins_secs(perf_counter() - init_time)} minutes)', flush=True)
 
     for speed in boat_speeds:

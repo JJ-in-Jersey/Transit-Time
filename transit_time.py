@@ -6,12 +6,10 @@ from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS
 from FileTools import FileTools as ft
 from MemoryHelper import MemoryHelper as mh
 from DateTimeTools import DateTimeTools as dtt
-from datetime import datetime as dt
 
 def none_row(row, df):
     for c in range(len(df.columns)):
         df.iloc[row, c] = None
-
 def total_transit_time(init_row, d_frame, cols):
     row = init_row
     tt = 0
@@ -20,12 +18,12 @@ def total_transit_time(init_row, d_frame, cols):
         tt += val
         row += val
     return tt
-
 class TransitTimeMinimaJob:
 
     def __init__(self, env, cy, route, speed):
-        boat_direction = 'P_' if speed/abs(speed) > 0 else 'N_'
-        file_header = str(cy.year()) + '_' + boat_direction + str(abs(speed))
+        self.boat_direction = 'P' if speed/abs(speed) > 0 else 'N'
+        self.boat_speed = abs(speed)
+        file_header = str(cy.year()) + '_' + self.boat_direction + '_' + str(self.boat_speed)
         self.speed = speed
         self.first_day_index = cy.first_day_index()
         self.last_day_index = cy.last_day_index()
@@ -70,7 +68,6 @@ class TransitTimeMinimaJob:
         transit_time_values_df = self.final_output(transit_time_values_df)
         ft.write_df(transit_time_values_df, self.transit_time_values)
         return tuple([self.speed, transit_time_values_df, init_time])
-
     def execute_callback(self, result):
         print(f'-     Transit time ({self.speed}) {dtt.mins_secs(perf_counter() - result[2])} minutes', flush=True)
     def error_callback(self, result):
@@ -194,5 +191,14 @@ class TransitTimeMinimaJob:
         output_frame = output_frame[output_frame['start_index'] >= self.first_day_index]
         output_frame = output_frame[output_frame['end_index'] < self.last_day_index]
         output_frame = output_frame[['start_date', 'start_time', 'arc_start', 'arc_end', 'end_time', 'min_time', 'min_degrees']]
+
+        output_frame = output_frame.sort_index().reset_index(drop=True)
+        output_frame['arc_name'] = self.boat_direction + str(self.boat_speed) + 'A'
+
+        arc_count = 1
+        for row in range(0, len(output_frame)-1):
+            output_frame.loc[row, 'arc_name'] = output_frame.loc[row, 'arc_name'] + str(arc_count)
+            if output_frame.loc[row, 'start_date'] == output_frame.loc[row+1, 'start_date']: arc_count += 1
+            else: arc_count = 1
 
         return output_frame
