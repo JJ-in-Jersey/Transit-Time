@@ -5,6 +5,7 @@ from argparse import ArgumentParser as argParser
 from pathlib import Path
 from multiprocessing import Manager
 from numpy import ndarray as array
+import pandas as pd
 from pandas import DataFrame as dataframe
 from sympy import Point
 
@@ -12,7 +13,7 @@ import multiprocess as mpm
 from GPX import Route, Waypoint, Edge, CurrentStationWP, InterpolationWP, DataWP
 from velocity import CurrentStationJob, InterpolationJob, InterpolationDataJob, VelocityJob
 from elapsed_time import ElapsedTimeJob
-from elapsed_time_reduce import elapsed_time_reduce
+from dataframe_merge import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
 from project_globals import TIMESTEP, boat_speeds, Environment, ChartYear
 
@@ -23,11 +24,6 @@ from FileTools import FileTools as ft
 from VelocityInterpolation import Interpolator as vi
 
 checkmark = u'\N{check mark}'
-
-def assign_verify_output_data(entity, ent_type):
-    entity.output_data = mpm.result_lookup[id(entity)]
-    if isinstance(entity.output_data, ent_type): print(f'{checkmark}     {entity.unique_name}', flush=True)
-    else: print(f'X     {entity.unique_name}', flush=True)
 
 if __name__ == '__main__':
 
@@ -80,7 +76,9 @@ if __name__ == '__main__':
     print(f'\nAdding results to waypoints', flush=True)
     for wp in route.waypoints:
         if isinstance(wp, CurrentStationWP) or isinstance(wp, DataWP):
-            assign_verify_output_data(wp, array)
+            wp.output_data = mpm.result_lookup[id(wp)]
+            if isinstance(wp.output_data, array): print(f'{checkmark}     {wp.unique_name}', flush=True)
+            else: print(f'X     {wp.unique_name}', flush=True)
 
     # Calculate the approximation of the velocity at interpolation points
     if route.interpolation_groups is not None:
@@ -100,7 +98,9 @@ if __name__ == '__main__':
             mpm.job_queue.join()
 
             if isinstance(interpolation_pt, InterpolationWP):
-                assign_verify_output_data(interpolation_pt, array)
+                interpolation_pt.output_data = mpm.result_lookup[id(interpolation_pt)]
+                if isinstance(interpolation_pt.output_data, array): print(f'{checkmark}     {interpolation_pt.unique_name}', flush=True)
+                else: print(f'X     {interpolation_pt.unique_name}', flush=True)
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for edges (1st day-1 to last day+3)')
@@ -112,7 +112,9 @@ if __name__ == '__main__':
 
     print(f'\nAdding results to edges')
     for edge in route.elapsed_time_path.edges:
-        assign_verify_output_data(edge, dataframe)
+        edge.output_data = mpm.result_lookup[id(edge)]
+        if isinstance(edge.output_data, dataframe): print(f'{checkmark}     {edge.unique_name}', flush=True)
+        else: print(f'X     {edge.unique_name}', flush=True)
 
     # combine elapsed times by speed
     print(f'\nSorting elapsed times by speed', flush=True)
@@ -124,5 +126,16 @@ if __name__ == '__main__':
     # tt = TransitTimeMinimaJob(env, cy, route, 5)
     # tt.execute()
     mpm.job_queue.join()
+
+    print(f'\nAdding transit time speed results to route')
+    for speed in boat_speeds:
+        route.transit_time_lookup[speed] = mpm.result_lookup[speed]
+        if isinstance(route.transit_time_lookup[speed], dataframe): print(f'{checkmark}     tt {speed}', flush=True)
+        else: print(f'X     tt {speed}', flush=True)
+
+    transit_time_tables = [route.transit_time_lookup[key] for key in route.transit_time_lookup]
+    tt_concat_df = pd.concat(transit_time_tables)
+    tt_concat_df.sort_values(['start_date', 'shape_name', 'start_time'])
+    ft.write_df(tt_concat_df, env.transit_folder.joinpath('transit_times'))
 
     Semaphore.off(mpm.job_manager_semaphore)

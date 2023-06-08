@@ -30,7 +30,7 @@ class TransitTimeMinimaJob:
         self._start_index = cy.transit_start_index()
         self._end_index = cy.transit_end_index()
         self.transit_range = cy.transit_range()
-        self._elapsed_times_df = route.elapsed_time_lookup(speed)
+        self._elapsed_times_df = route.elapsed_time_lookup[speed]
         self._elapsed_time_table = env.transit_time_folder().joinpath('et_' + str(speed))  # elapsed times in table, sorted by speed
         self.speed_folder = env.speed_folder(num2words(speed))
         self.transit_timesteps = self.speed_folder.joinpath(file_header + '_timesteps')  # transit times column
@@ -193,12 +193,18 @@ class TransitTimeMinimaJob:
         output_frame = output_frame[['start_date', 'start_time', 'arc_start', 'arc_end', 'end_time', 'min_time', 'min_degrees']]
 
         output_frame = output_frame.sort_index().reset_index(drop=True)
-        output_frame['arc_name'] = self.boat_direction + str(self.boat_speed) + 'A'
+        output_frame['shape_name'] = self.boat_direction + str(self.boat_speed) + 'A'
 
         arc_count = 1
-        for row in range(0, len(output_frame)-1):
-            output_frame.loc[row, 'arc_name'] = output_frame.loc[row, 'arc_name'] + str(arc_count)
-            if output_frame.loc[row, 'start_date'] == output_frame.loc[row+1, 'start_date']: arc_count += 1
+        for row in range(0, len(output_frame) - 1):
+            output_frame.loc[row, 'shape_name'] = output_frame.loc[row, 'shape_name'] + str(arc_count)
+            if output_frame.loc[row, 'start_date'] == output_frame.loc[row + 1, 'start_date']: arc_count += 1
             else: arc_count = 1
+
+        for row in output_frame.index:
+            if output_frame.loc[row, 'min_degrees'] != 'None':
+                output_frame.loc[row + 0.5] = output_frame.loc[row]
+                output_frame.loc[row + 0.5, 'shape_name'] = output_frame.loc[row,'shape_name'] + 'm'
+        output_frame = output_frame.sort_index().reset_index(drop=True)
 
         return output_frame
