@@ -135,7 +135,7 @@ if __name__ == '__main__':
 
     transit_time_tables = [route.transit_time_lookup[key] for key in route.transit_time_lookup]
     tt_concat_df = pd.concat(transit_time_tables)
-    tt_concat_df.sort_values(['start_date', 'start_time'])
+    tt_concat_df.sort_values(['start_date'])
     ft.write_df(tt_concat_df, env.transit_folder.joinpath('transit_times'))
 
     Semaphore.off(mpm.job_manager_semaphore)
