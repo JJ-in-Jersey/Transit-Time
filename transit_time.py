@@ -6,6 +6,7 @@ from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS
 from FileTools import FileTools as ft
 from MemoryHelper import MemoryHelper as mh
 from DateTimeTools import DateTimeTools as dtt
+from Geometry import Arc, RoundedArc, FractionalArcStartDay, FractionalArcEndDay
 
 def none_row(row, df):
     for c in range(len(df.columns)):
@@ -23,6 +24,7 @@ class TransitTimeMinimaJob:
     def __init__(self, env, cy, route, speed):
         self.boat_direction = 'P' if speed/abs(speed) > 0 else 'N'
         self.boat_speed = abs(speed)
+        self.shape_base_name = self.boat_direction + str(self.boat_speed) + 'A'
         file_header = str(cy.year()) + '_' + self.boat_direction + '_' + str(self.boat_speed)
         self.speed = speed
         self.first_day_index = cy.first_day_index()
@@ -60,49 +62,29 @@ class TransitTimeMinimaJob:
             plot_data_df = self.minima_table(transit_timesteps_arr)  # call minima_table
             ft.write_df(plot_data_df, self.plot_data)
 
-        transit_time_values_df = self.start_min_end(plot_data_df)  # call start_min_end
-        transit_time_values_df['fraction'] = (transit_time_values_df['start_rounded'].dt.date != transit_time_values_df['end_rounded'].dt.date)
-        transit_time_values_df.drop(columns=['departure_index', 'departure_time', 'plot'], inplace=True)
-        ft.write_df(transit_time_values_df, self.debug_data)
+        plot_data_df = plot_data_df.dropna(axis=0).sort_index().reset_index(drop=True)
+        plot_data_df = plot_data_df.astype({'departure_index': int, 'start_index': int, 'min_index': int, 'end_index': int})
+        ft.write_df(plot_data_df, self.debug_data)
 
-        transit_time_values_df = self.final_output(transit_time_values_df)
-        ft.write_df(transit_time_values_df, self.transit_time_values)
-        return tuple([self.speed, transit_time_values_df, init_time])
+        arc_df = self.create_arcs(plot_data_df)
+        ft.write_df(arc_df, self.speed_folder.joinpath('arc_df'))
+        return tuple([self.speed, arc_df, init_time])
+
     def execute_callback(self, result):
         print(f'-     Transit time ({self.speed}) {dtt.mins_secs(perf_counter() - result[2])} minutes', flush=True)
     def error_callback(self, result):
         print(f'!     Transit time ({self.speed}) process has raised an error: {result}', flush=True)
 
-    # noinspection PyMethodMayBeStatic
-    def start_min_end(self, minima_df):
-        minima_df.dropna(axis=0, inplace=True)
-        minima_df['transit_time'] = pd.to_timedelta(minima_df['tts']*TIMESTEP, unit='s').round('min')
-        minima_df['start_time'] = pd.to_datetime(minima_df['start_index'], unit='s').round('min')
-        minima_df['start_rounded'] = minima_df['start_time'].apply(dtt.round_dt_quarter_hour)
-        # minima_df['start_rounded_index'] = minima_df['start_rounded'].apply(lambda x: dtt.int_timestamp(x))
-        minima_df['start_degrees'] = minima_df['start_rounded'].apply(dtt.time_to_degrees)
-        minima_df['min_time'] = pd.to_datetime(minima_df['min_index'], unit='s').round('min')
-        minima_df['min_rounded'] = minima_df['min_time'].apply(dtt.round_dt_quarter_hour)
-        minima_df['min_degrees'] = minima_df['min_rounded'].apply(dtt.time_to_degrees)
-        minima_df['end_time'] = pd.to_datetime(minima_df['end_index'], unit='s').round('min')
-        minima_df['end_rounded'] = minima_df['end_time'].apply(dtt.round_dt_quarter_hour)
-        # minima_df['end_rounded_index'] = minima_df['end_rounded'].apply(lambda x: dtt.int_timestamp(x))
-        minima_df['end_degrees'] = minima_df['end_rounded'].apply(dtt.time_to_degrees)
-        minima_df['window_time'] = minima_df['end_rounded'] - minima_df['start_rounded']
-        minima_df = mh.shrink_dataframe(minima_df)
-        return minima_df
-
     def minima_table(self, transit_array):
         tt_df = pd.DataFrame()
         tt_df['departure_index'] = self.transit_range
-        tt_df['departure_time'] = pd.to_datetime(self.transit_range, unit='s').round('min')
         tt_df['plot'] = 0
         tt_df = tt_df.assign(tts=transit_array)
         if ft.file_exists(self.savgol_data):
-            tt_df['midline'] = ft.read_df(self.savgol_data)
+            tt_df['midline'] = ft.read_arr(self.savgol_data)
         else:
             tt_df['midline'] = savgol_filter(transit_array, 50000, 1)
-            ft.write_df(tt_df['midline'], self.savgol_data)
+            ft.write_arr(tt_df['midline'], self.savgol_data)
         min_segs = tt_df['tts'].lt(tt_df['midline']).to_list()  # list of True or False the same length as tt_df
         clump = []
         for row, val in enumerate(min_segs):  # rows in tt_df, not the departure index
@@ -125,16 +107,14 @@ class TransitTimeMinimaJob:
                     tt_df_start_row = tt_df[tt_df['departure_index'] == start_index].index[0]
                     tt_df_min_row = tt_df[tt_df['departure_index'] == min_index].index[0]
                     tt_df_end_row = tt_df[tt_df['departure_index'] == end_index].index[0]
-                    tt_df.at[tt_df_min_row, 'start_index'] = start_index
-                    tt_df.at[tt_df_min_row, 'start_time'] = pd.to_datetime(start_index, unit='s').round('min')
-                    tt_df.at[tt_df_min_row, 'min_index'] = min_index
-                    tt_df.at[tt_df_min_row, 'min_time'] = pd.to_datetime(min_index, unit='s').round('min')
-                    tt_df.at[tt_df_min_row, 'end_index'] = end_index
-                    tt_df.at[tt_df_min_row, 'end_time'] = pd.to_datetime(end_index, unit='s').round('min')
+                    tt_df.at[tt_df_min_row, 'start_index'] = int(start_index)
+                    tt_df.at[tt_df_min_row, 'min_index'] = int(min_index)
+                    tt_df.at[tt_df_min_row, 'end_index'] = int(end_index)
                     tt_df.at[tt_df_start_row, 'plot'] = max(transit_array)
                     tt_df.at[tt_df_min_row, 'plot'] = min(transit_array)
                     tt_df.at[tt_df_end_row, 'plot'] = max(transit_array)
                 clump = []
+        tt_df['transit_time'] = pd.to_timedelta(tt_df['tts']*TIMESTEP, unit='s').round('min')
         tt_df = mh.shrink_dataframe(tt_df)
         return tt_df
 
@@ -204,7 +184,25 @@ class TransitTimeMinimaJob:
         for row in output_frame.index:
             if output_frame.loc[row, 'min_degrees'] != 'None':
                 output_frame.loc[row + 0.5] = output_frame.loc[row]
-                output_frame.loc[row + 0.5, 'shape_name'] = output_frame.loc[row,'shape_name'] + 'm'
+                output_frame.loc[row + 0.5, 'shape_name'] = output_frame.loc[row, 'shape_name'] + 'm'
         output_frame = output_frame.sort_index().reset_index(drop=True)
 
         return output_frame
+
+    def create_arcs(self, input_frame):
+
+        arc_frame = input_frame[['tts', 'start_index', 'min_index', 'end_index']]
+        Arc.name = self.shape_base_name
+
+        arcs = [RoundedArc(*row.values.tolist()) for i, row in arc_frame.iterrows()]
+        fractured_arc_list = list(filter(lambda n: n.fractured, arcs))
+        arc_list = list(filter(lambda n: not n.fractured, arcs))
+
+        for arc in fractured_arc_list:
+            arc_list.append(FractionalArcStartDay(*arc.fractional_arc_args()))
+            arc_list.append(FractionalArcEndDay(*arc.fractional_arc_args()))
+
+        arc_df = pd.DataFrame([arc.df_angles() for arc in arc_list])
+        arc_df.columns = Arc.columns
+
+        return arc_df

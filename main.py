@@ -121,21 +121,24 @@ if __name__ == '__main__':
     elapsed_time_reduce(env.elapsed_time_folder(), route)
 
     # calculate the number of timesteps from first node to last node
-    print(f'\nCalculating transit times (1st day-1 to last day+2)')
+    # print(f'\nCalculating transit times (1st day-1 to last day+2)')
     for speed in boat_speeds: mpm.job_queue.put(TransitTimeMinimaJob(env, cy, route, speed))
-    # tt = TransitTimeMinimaJob(env, cy, route, 5)
+    # tt = TransitTimeMinimaJob(env, cy, route, -3)
     # tt.execute()
     mpm.job_queue.join()
 
-    print(f'\nAdding transit time speed results to route')
-    for speed in boat_speeds:
-        route.transit_time_lookup[speed] = mpm.result_lookup[speed]
-        if isinstance(route.transit_time_lookup[speed], dataframe): print(f'{checkmark}     tt {speed}', flush=True)
-        else: print(f'X     tt {speed}', flush=True)
-
-    transit_time_tables = [route.transit_time_lookup[key] for key in route.transit_time_lookup]
-    tt_concat_df = pd.concat(transit_time_tables)
-    tt_concat_df.sort_values(['start_date'])
-    ft.write_df(tt_concat_df, env.transit_folder.joinpath('transit_times'))
+    # print(f'\nAdding transit time speed results to route')
+    # for speed in boat_speeds:
+    #     route.transit_time_lookup[speed] = mpm.result_lookup[speed]
+    #     if isinstance(route.transit_time_lookup[speed], dataframe): print(f'{checkmark}     tt {speed}', flush=True)
+    #     else: print(f'X     tt {speed}', flush=True)
+    #
+    # text_rotation_df = pd.concat([route.transit_time_lookup[7], route.transit_time_lookup[-7]])
+    # text_rotation_df.sort_values(['start_date'], inplace=True)
+    #
+    # transit_time_tables = [route.transit_time_lookup[key] for key in route.transit_time_lookup]
+    # tt_concat_df = pd.concat(transit_time_tables)
+    # tt_concat_df.sort_values(['start_date'], inplace=True)
+    # ft.write_df(tt_concat_df, env.transit_folder.joinpath('transit_times'))
 
     Semaphore.off(mpm.job_manager_semaphore)
