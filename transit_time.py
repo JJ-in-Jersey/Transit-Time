@@ -152,7 +152,7 @@ class TransitTimeMinimaJob:
     def dump_rounded(self, arc_list):
         arc_df = pd.DataFrame([arc.df_angles() for arc in arc_list])
         arc_df.columns = Arc.columns
-        arc_df.sort_values(['date'], ignore_index=True, inplace=True)
+        arc_df.sort_values(['date', 'start'], ignore_index=True, inplace=True)
         ft.write_df(arc_df, self.speed_folder.joinpath('dump_rounded'))
 
 

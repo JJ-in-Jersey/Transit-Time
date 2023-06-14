@@ -134,7 +134,7 @@ if __name__ == '__main__':
         else: print(f'X     tt {speed}', flush=True)
 
     text_rotation_df = pd.concat([route.transit_time_lookup[7], route.transit_time_lookup[-7]])
-    text_rotation_df.sort_values(['date'], ignore_index=True, inplace=True)
+    text_rotation_df.sort_values(['date', 'start'], ignore_index=True, inplace=True)
     ft.write_df(text_rotation_df, env.transit_folder.joinpath('text_rotation'))
 
     transit_times_df = pd.concat([route.transit_time_lookup[key] for key in route.transit_time_lookup])
