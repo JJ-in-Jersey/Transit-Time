@@ -1,5 +1,5 @@
-# C:\Users\jason\PycharmProjects\Transit-Time\venv\Scripts\python.exe C:\Users\jason\PycharmProjects\Transit-Time\main.py "East River" "C:\users\jason\Developer Workspace\GPX\East River West to East.gpx" 2023 -dd
-# C:\Users\bronfelj\PycharmProjects\Transit-Time\venv\Scripts\python.exe C:\Users\bronfelj\PycharmProjects\Transit-Time\main.py "East River" "C:\users\bronfelj\Developer Workspace\GPX\East River West to East.gpx" 2023 -dd
+# C:\Users\jason\PycharmProjects\Transit-Time\venv\Scripts\python.exe C:\Users\jason\PycharmProjects\Transit-Time\main.py "ER" "C:\users\jason\Developer Workspace\GPX\East River West to East.gpx" 2023 -dd
+# C:\Users\bronfelj\PycharmProjects\Transit-Time\venv\Scripts\python.exe C:\Users\bronfelj\PycharmProjects\Transit-Time\main.py "ER" "C:\users\bronfelj\Developer Workspace\GPX\East River West to East.gpx" 2023 -dd
 
 from argparse import ArgumentParser as argParser
 from pathlib import Path
