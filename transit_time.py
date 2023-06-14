@@ -143,7 +143,7 @@ class TransitTimeMinimaJob:
             if arc_df.loc[row, 'date'] == arc_df.loc[row + 1, 'date']: count += 1
             else: count = 1
 
-        arc_df = arc_df[arc_df['date'] >= self.first_day]
-        arc_df = arc_df[arc_df['date'] <= self.last_day]
+        arc_df = arc_df[arc_df['date'] >= self.first_day.date()]
+        arc_df = arc_df[arc_df['date'] <= self.last_day.date()]
 
         return arc_df
