@@ -7,11 +7,10 @@ from multiprocessing import Manager
 from numpy import ndarray as array
 import pandas as pd
 from pandas import DataFrame as dataframe
-from sympy import Point
 
 import multiprocess as mpm
 from GPX import Route, Waypoint, Edge, CurrentStationWP, InterpolationWP, DataWP
-from velocity import CurrentStationJob, InterpolationJob, InterpolationDataJob, VelocityJob
+from velocity import CurrentStationJob, InterpolationJob, InterpolationDataJob
 from elapsed_time import ElapsedTimeJob
 from dataframe_merge import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
@@ -20,8 +19,6 @@ from project_globals import TIMESTEP, boat_speeds, Environment, ChartYear
 from Semaphore import SimpleSemaphore as Semaphore
 from ChromeDriver import ChromeDriver as cd
 from FileTools import FileTools as ft
-
-from VelocityInterpolation import Interpolator as vi
 
 checkmark = u'\N{check mark}'
 
@@ -136,6 +133,13 @@ if __name__ == '__main__':
     text_rotation_df = pd.concat([route.transit_time_lookup[7], route.transit_time_lookup[-7]])
     text_rotation_df.sort_values(['date', 'start'], ignore_index=True, inplace=True)
     ft.write_df(text_rotation_df, env.transit_folder.joinpath('text_rotation'))
+
+    text_rotation_values_df = pd.DataFrame(columns=['date', 'angle'])
+    for date in text_rotation_df['date'].drop_duplicates(ignore_index=True):
+        date_df = text_rotation_df[text_rotation_df['date'] == date].sort_index().reset_index(drop=True)
+        angle = (date_df.loc[1, 'start'] + date_df.loc[0, 'end'])/2
+        text_rotation_values_df = pd.concat([text_rotation_values_df, pd.DataFrame.from_dict({'date': [date], 'angle': [angle]})])
+        text_rotation_df = text_rotation_df[text_rotation_df['date'] != date]
 
     transit_times_df = pd.concat([route.transit_time_lookup[key] for key in route.transit_time_lookup])
     transit_times_df.sort_values(['date'], ignore_index=True, inplace=True)
