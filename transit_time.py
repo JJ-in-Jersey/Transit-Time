@@ -27,8 +27,8 @@ class TransitTimeMinimaJob:
         self.shape_base_name = self.boat_direction + str(self.boat_speed) + 'A'
         file_header = str(cy.year()) + '_' + self.boat_direction + '_' + str(self.boat_speed)
         self.speed = speed
-        self.first_day = cy.first_day()
-        self.last_day = cy.last_day()
+        self.first_day = cy.first_day
+        self.last_day = cy.last_day
         self._start_index = cy.transit_start_index()
         self._end_index = cy.transit_end_index()
         self.transit_range = cy.transit_range()
