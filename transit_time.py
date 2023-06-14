@@ -125,6 +125,7 @@ class TransitTimeMinimaJob:
         Arc.name = self.shape_base_name
 
         arcs = [RoundedArc(*row.values.tolist()) for i, row in arc_frame.iterrows()]
+        self.dump_rounded(arcs)
         fractured_arc_list = list(filter(lambda n: n.fractured, arcs))
         arc_list = list(filter(lambda n: not n.fractured, arcs))
 
@@ -147,3 +148,11 @@ class TransitTimeMinimaJob:
         arc_df = arc_df[arc_df['date'] <= self.last_day.date()]
 
         return arc_df
+
+    def dump_rounded(self, arc_list):
+        arc_df = pd.DataFrame([arc.df_angles() for arc in arc_list])
+        arc_df.columns = Arc.columns
+        arc_df.sort_values(['date'], ignore_index=True, inplace=True)
+        ft.write_df(arc_df, self.speed_folder.joinpath('dump_rounded'))
+
+
