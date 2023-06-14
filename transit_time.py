@@ -27,8 +27,8 @@ class TransitTimeMinimaJob:
         self.shape_base_name = self.boat_direction + str(self.boat_speed) + 'A'
         file_header = str(cy.year()) + '_' + self.boat_direction + '_' + str(self.boat_speed)
         self.speed = speed
-        self.first_day_index = cy.first_day_index()
-        self.last_day_index = cy.last_day_index()
+        self.first_day = cy.first_day()
+        self.last_day = cy.last_day()
         self._start_index = cy.transit_start_index()
         self._end_index = cy.transit_end_index()
         self.transit_range = cy.transit_range()
@@ -68,6 +68,7 @@ class TransitTimeMinimaJob:
 
         arc_df = self.create_arcs(plot_data_df)
         ft.write_df(arc_df, self.speed_folder.joinpath('arc_df'))
+
         return tuple([self.speed, arc_df, init_time])
 
     def execute_callback(self, result):
@@ -118,77 +119,6 @@ class TransitTimeMinimaJob:
         tt_df = mh.shrink_dataframe(tt_df)
         return tt_df
 
-    def final_output(self, input_frame):
-
-        output_frame = input_frame[['start_index', 'end_index', 'start_rounded', 'start_degrees', 'end_rounded', 'end_degrees', 'min_rounded', 'min_degrees', 'fraction']].copy()
-        output_frame.rename({'start_rounded': 'start_date', 'end_rounded': 'end_date', 'min_rounded': 'min_date', 'start_degrees': 'arc_start', 'end_degrees': 'arc_end'}, axis=1, inplace=True)
-
-        fraction_list = output_frame[output_frame['fraction'] == True].index.tolist()
-
-        for row in fraction_list:
-            if output_frame.loc[row, 'arc_end'] == 0:
-                # special case where arc ends exactly at 00:00
-                output_frame.loc[row, 'end_date'] = pd.to_datetime(output_frame.loc[row, 'start_date'].date()) + pd.Timedelta('23:59:59')  # resetting end to ensure correct trim at end of year
-                output_frame.loc[row, 'arc_end'] = 360
-                output_frame.loc[row, 'fraction'] = 'ADJ'
-            else:
-                # create new row for fraction - from 0 to end_degrees
-                output_frame.loc[row + 0.5] = output_frame.loc[row].to_list()
-                if output_frame.loc[row, 'min_date'].date() == output_frame.loc[row, 'start_date'].date(): output_frame.loc[row + 0.5, 'min_degrees'] = 'None'
-                output_frame.loc[row + 0.5, 'start_date'] = output_frame.loc[row, 'end_date'].date()
-                output_frame.loc[row + 0.5, 'arc_start'] = 0
-                output_frame.loc[row + 0.5, 'arc_end'] = output_frame.loc[row, 'arc_end']
-                output_frame.loc[row + 0.5, 'fraction'] = 'NEW'
-                # fix old row - from start to zero
-                if output_frame.loc[row, 'min_date'].date() == output_frame.loc[row, 'end_date'].date():
-                    if output_frame.loc[row, 'min_degrees'] == 0:
-                        output_frame.loc[row, 'min_degrees'] = 360
-                    else:
-                        output_frame.loc[row, 'min_degrees'] = 'None'
-                output_frame.loc[row, 'end_date'] = pd.to_datetime(output_frame.loc[row, 'start_date'].date()) + pd.Timedelta('23:59:59')  # resetting end to ensure correct trim at end of year
-                output_frame.loc[row, 'arc_end'] = 360
-                output_frame.loc[row, 'fraction'] = 'ADJ'
-
-        output_frame = output_frame.sort_index().reset_index(drop=True)
-
-        # add clock time columns
-        datetime_list = output_frame[output_frame['start_date'].apply(lambda x: not isinstance(x, pd.Timestamp))].index.to_list()
-        for r in datetime_list: output_frame.loc[r, 'start_date'] = pd.Timestamp(output_frame.loc[r, 'start_date'])
-        output_frame['start_time'] = output_frame['start_date'].apply(lambda x: x.time())
-        output_frame['start_date'] = output_frame['start_date'].apply(lambda x: x.date())
-
-        datetime_list = output_frame[output_frame['end_date'].apply(lambda x: not isinstance(x, pd.Timestamp))].index.to_list()
-        for r in datetime_list: output_frame.loc[r, 'end_date'] = pd.Timestamp(output_frame.loc[r, 'end_date'])
-        output_frame['end_time'] = output_frame['end_date'].apply(lambda x: x.time())
-
-        datetime_list = output_frame[output_frame['min_date'].apply(lambda x: not isinstance(x, pd.Timestamp))].index.to_list()
-        for r in datetime_list: output_frame.loc[r, 'min_date'] = pd.Timestamp(output_frame.loc[r, 'min_date'])
-        output_frame['min_time'] = output_frame['min_date'].apply(lambda x: x.time())
-
-        # trim to first and last day
-        output_frame['start_index'] = output_frame['start_date'].apply(lambda x: dtt.int_timestamp(x))
-        output_frame['end_index'] = output_frame['end_date'].apply(lambda x: dtt.int_timestamp(x))
-        output_frame = output_frame[output_frame['start_index'] >= self.first_day_index]
-        output_frame = output_frame[output_frame['end_index'] < self.last_day_index]
-        output_frame = output_frame[['start_date', 'start_time', 'arc_start', 'arc_end', 'end_time', 'min_time', 'min_degrees']]
-
-        output_frame = output_frame.sort_index().reset_index(drop=True)
-        output_frame['shape_name'] = self.boat_direction + str(self.boat_speed) + 'A'
-
-        arc_count = 1
-        for row in range(0, len(output_frame) - 1):
-            output_frame.loc[row, 'shape_name'] = output_frame.loc[row, 'shape_name'] + str(arc_count)
-            if output_frame.loc[row, 'start_date'] == output_frame.loc[row + 1, 'start_date']: arc_count += 1
-            else: arc_count = 1
-
-        for row in output_frame.index:
-            if output_frame.loc[row, 'min_degrees'] != 'None':
-                output_frame.loc[row + 0.5] = output_frame.loc[row]
-                output_frame.loc[row + 0.5, 'shape_name'] = output_frame.loc[row, 'shape_name'] + 'm'
-        output_frame = output_frame.sort_index().reset_index(drop=True)
-
-        return output_frame
-
     def create_arcs(self, input_frame):
 
         arc_frame = input_frame[['tts', 'start_index', 'min_index', 'end_index']]
@@ -204,5 +134,16 @@ class TransitTimeMinimaJob:
 
         arc_df = pd.DataFrame([arc.df_angles() for arc in arc_list])
         arc_df.columns = Arc.columns
+        arc_df.sort_values(['date'], ignore_index=True, inplace=True)
+
+        # add shape counts to shapes, last row doesn't matter, it will be trimmed away
+        count = 1
+        for row in arc_df.index[:-1]:
+            arc_df.loc[row, 'name'] = arc_df.loc[row, 'name'] + str(count)
+            if arc_df.loc[row, 'date'] == arc_df.loc[row + 1, 'date']: count += 1
+            else: count = 1
+
+        arc_df = arc_df[arc_df['date'] >= self.first_day]
+        arc_df = arc_df[arc_df['date'] <= self.last_day]
 
         return arc_df
