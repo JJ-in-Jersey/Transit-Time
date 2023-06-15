@@ -130,16 +130,16 @@ if __name__ == '__main__':
         if isinstance(route.transit_time_lookup[speed], dataframe): print(f'{checkmark}     tt {speed}', flush=True)
         else: print(f'X     tt {speed}', flush=True)
 
-    text_rotation_df = pd.concat([route.transit_time_lookup[7], route.transit_time_lookup[-7]])
-    text_rotation_df.sort_values(['date', 'start'], ignore_index=True, inplace=True)
-    ft.write_df(text_rotation_df, env.transit_folder.joinpath('text_rotation'))
-
-    text_rotation_values_df = pd.DataFrame(columns=['date', 'angle'])
-    for date in text_rotation_df['date'].drop_duplicates(ignore_index=True):
-        date_df = text_rotation_df[text_rotation_df['date'] == date].sort_index().reset_index(drop=True)
-        angle = (date_df.loc[1, 'start'] + date_df.loc[0, 'end'])/2
-        text_rotation_values_df = pd.concat([text_rotation_values_df, pd.DataFrame.from_dict({'date': [date], 'angle': [angle]})])
-        text_rotation_df = text_rotation_df[text_rotation_df['date'] != date]
+    if not ft.file_exists(env.transit_folder.joinpath('text_rotation')):
+        text_rotation_df = pd.DataFrame(columns=['date', 'angle'])
+        text_arcs_df = pd.concat([route.transit_time_lookup[7], route.transit_time_lookup[-7]])
+        text_arcs_df.sort_values(['date', 'start'], ignore_index=True, inplace=True)
+        for date in text_arcs_df['date'].drop_duplicates(ignore_index=True):
+            date_df = text_arcs_df[text_arcs_df['date'] == date].sort_index().reset_index(drop=True)
+            angle = (date_df.loc[1, 'start'] + date_df.loc[0, 'end'])/2
+            text_rotation_df = pd.concat([text_rotation_df, pd.DataFrame.from_dict({'date': [date], 'angle': [angle]})])
+            text_arcs_df = text_arcs_df[text_arcs_df['date'] != date]
+        ft.write_df(text_rotation_df, env.transit_folder.joinpath('text_rotation'))
 
     transit_times_df = pd.concat([route.transit_time_lookup[key] for key in route.transit_time_lookup])
     transit_times_df.sort_values(['date'], ignore_index=True, inplace=True)

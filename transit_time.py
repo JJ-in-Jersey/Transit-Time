@@ -62,12 +62,13 @@ class TransitTimeMinimaJob:
             plot_data_df = self.minima_table(transit_timesteps_arr)  # call minima_table
             ft.write_df(plot_data_df, self.plot_data)
 
-        plot_data_df = plot_data_df.dropna(axis=0).sort_index().reset_index(drop=True)
-        plot_data_df = plot_data_df.astype({'departure_index': int, 'start_index': int, 'min_index': int, 'end_index': int})
-        ft.write_df(plot_data_df, self.debug_data)
-
-        arc_df = self.create_arcs(plot_data_df)
-        ft.write_df(arc_df, self.speed_folder.joinpath('arc_df'))
+        if ft.file_exists(self.speed_folder.joinpath('arc_df')):
+            arc_df = ft.read_df(self.speed_folder.joinpath('arc_df'))
+        else:
+            plot_data_df = plot_data_df.dropna(axis=0).sort_index().reset_index(drop=True)
+            plot_data_df = plot_data_df.astype({'departure_index': int, 'start_index': int, 'min_index': int, 'end_index': int})
+            arc_df = self.create_arcs(plot_data_df)
+            ft.write_df(arc_df, self.speed_folder.joinpath('arc_df'))
 
         return tuple([self.speed, arc_df, init_time])
 
@@ -125,7 +126,6 @@ class TransitTimeMinimaJob:
         Arc.name = self.shape_base_name
 
         arcs = [RoundedArc(*row.values.tolist()) for i, row in arc_frame.iterrows()]
-        self.dump_rounded(arcs)
         fractured_arc_list = list(filter(lambda n: n.fractured, arcs))
         arc_list = list(filter(lambda n: not n.fractured, arcs))
 
@@ -148,11 +148,3 @@ class TransitTimeMinimaJob:
         arc_df = arc_df[arc_df['date'] <= self.last_day.date()]
 
         return arc_df
-
-    def dump_rounded(self, arc_list):
-        arc_df = pd.DataFrame([arc.df_angles() for arc in arc_list])
-        arc_df.columns = Arc.columns
-        arc_df.sort_values(['date', 'start'], ignore_index=True, inplace=True)
-        ft.write_df(arc_df, self.speed_folder.joinpath('dump_rounded'))
-
-

@@ -1,8 +1,5 @@
 from time import sleep
 from multiprocessing import Pool, Process, cpu_count, JoinableQueue
-from multiprocessing.managers import BaseManager
-
-from project_globals import ChartYear, Environment
 from Semaphore import SimpleSemaphore as semaphore
 
 def pm_init(): print(f'+   multiprocessing shared object manager', flush=True)

@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from pathlib import Path
 from time import perf_counter
 from GPX import Edge
 
