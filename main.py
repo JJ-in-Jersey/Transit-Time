@@ -141,8 +141,12 @@ if __name__ == '__main__':
             text_arcs_df = text_arcs_df[text_arcs_df['date'] != date]
         ft.write_df(text_rotation_df, env.transit_folder.joinpath('text_rotation'))
 
-    transit_times_df = pd.concat([route.transit_time_lookup[key] for key in route.transit_time_lookup])
-    transit_times_df.sort_values(['date'], ignore_index=True, inplace=True)
-    ft.write_df(transit_times_df, env.transit_folder.joinpath('transit_times'))
+    arcs_df = pd.concat([route.transit_time_lookup[key] for key in route.transit_time_lookup])
+    arcs_df.sort_values(['date'], ignore_index=True, inplace=True)
+    min_rotation_df = arcs_df[arcs_df['min'].notna()]
+    min_rotation_df.drop(['date_time', 'start', 'end'], axis=1, inplace=True)
+    ft.write_df(min_rotation_df, env.transit_folder.joinpath('min_rotation'))
+    arcs_df.drop(['date_time', 'min'], axis=1, inplace=True)
+    ft.write_df(arcs_df, env.transit_folder.joinpath('arcs'))
 
     Semaphore.off(mpm.job_manager_semaphore)
