@@ -144,7 +144,7 @@ if __name__ == '__main__':
     arcs_df = pd.concat([route.transit_time_lookup[key] for key in route.transit_time_lookup])
     arcs_df.sort_values(['date'], ignore_index=True, inplace=True)
     min_rotation_df = arcs_df[arcs_df['min'].notna()]
-    min_rotation_df.drop(['date_time', 'start', 'end'], axis=1, inplace=True)
+    min_rotation_df = min_rotation_df.drop(['date_time', 'start', 'end'], axis=1)
     ft.write_df(min_rotation_df, env.transit_folder.joinpath('min_rotation'))
     arcs_df.drop(['date_time', 'min'], axis=1, inplace=True)
     ft.write_df(arcs_df, env.transit_folder.joinpath('arcs'))
