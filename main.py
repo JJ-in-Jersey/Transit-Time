@@ -141,14 +141,15 @@ if __name__ == '__main__':
             angle = (date_df.loc[1, 'start'] + date_df.loc[0, 'end'])/2
             text_rotation_df = pd.concat([text_rotation_df, pd.DataFrame.from_dict({'date': [date], 'angle': [angle]})])
             text_arcs_df = text_arcs_df[text_arcs_df['date'] != date]
-        ft.write_df(text_rotation_df, env.transit_folder.joinpath(file_name_header + 'text_rotation'))
+        ft.write_df(text_rotation_df, env.transit_folder.joinpath(file_name_header + 'legend'))
 
     arcs_df = pd.concat([route.transit_time_lookup[key] for key in route.transit_time_lookup])
     arcs_df.sort_values(['date'], ignore_index=True, inplace=True)
     min_rotation_df = arcs_df[arcs_df['min'].notna()]
-    min_rotation_df['name'] = min_rotation_df['name'] + 'm'
+    min_rotation_df = min_rotation_df.rename(columns={'min': 'angle', 'name': 'base_name'})
+    min_rotation_df['name'] = min_rotation_df['base_name'] + 'm'
     min_rotation_df = min_rotation_df.drop(['date_time', 'start', 'end'], axis=1)
-    ft.write_df(min_rotation_df, env.transit_folder.joinpath(file_name_header + 'min_rotation'))
+    ft.write_df(min_rotation_df, env.transit_folder.joinpath(file_name_header + 'minima'))
     arcs_df.drop(['date_time', 'min'], axis=1, inplace=True)
     ft.write_df(arcs_df, env.transit_folder.joinpath(file_name_header + 'arcs'))
 

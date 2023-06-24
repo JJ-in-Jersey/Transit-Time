@@ -200,6 +200,8 @@ Sub set_globals()
 
     Debug.Print "setting globals"
     
+    tt_location = "East River"
+    
     arc_degree_offset = -180
     rotation_degree_offset = -90
     p_color = RGB(0, 153, 255)
@@ -209,7 +211,7 @@ Sub set_globals()
     Set slide_name_arc_start_lookups = CreateObject("Scripting.Dictionary")
     Set slide_name_arc_end_lookups = CreateObject("Scripting.Dictionary")
     Set slide_name_shape_name_shape_lookups = CreateObject("Scripting.Dictionary")
-    file_dir = Environ("Userprofile") & "\Developer Workspace\East River\Transit Time\"
+    file_dir = Environ("Userprofile") & "\Developer Workspace\" & tt_location & "\Transit Time\"
 
     
 End Sub
