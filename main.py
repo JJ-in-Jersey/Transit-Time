@@ -19,6 +19,7 @@ from project_globals import TIMESTEP, boat_speeds, Environment, ChartYear
 from Semaphore import SimpleSemaphore as Semaphore
 from ChromeDriver import ChromeDriver as cd
 from FileTools import FileTools as ft
+from validations import EastRiverValidation
 
 checkmark = u'\N{check mark}'
 
@@ -47,6 +48,8 @@ if __name__ == '__main__':
     print(f'length {round(route.elapsed_time_path.length,1)} nm')
     print(f'direction {route.elapsed_time_path.direction}')
     print(f'heading {route.elapsed_time_path.heading}\n')
+
+    # EastRiverValidation(route.waypoints)
 
     mgr = Manager()
     mpm.result_lookup = mgr.dict()

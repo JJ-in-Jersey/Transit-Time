@@ -252,3 +252,12 @@ Sub update_master(heading, year)
     Next
 
 End Sub
+
+Sub reverse_slides()
+
+    Set Slides = ActivePresentation.Slides
+    For i = 1 To Slides.Count
+        Slides(i).MoveTo 1
+    Next
+
+End Sub

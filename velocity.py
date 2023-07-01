@@ -54,9 +54,10 @@ class VelocityJob:
             file_df = pd.read_csv(downloaded_file, parse_dates=['Date_Time (LST/LDT)'])
             download_df = pd.concat([download_df, file_df])
         driver.quit()
-        download_df.rename(columns={'Date_Time (LST/LDT)': 'date_time'}, inplace=True)
+        download_df.rename(columns={' Event': 'Event', ' Speed (knots)': 'Speed (knots)', 'Date_Time (LST/LDT)': 'date_time'}, inplace=True)
+        download_df['Event']= download_df['Event'].apply(lambda s: s.strip())
         download_df['date_index'] = download_df['date_time'].apply(lambda x: dtt.int_timestamp(x))
-        download_df['velocity'] = download_df[' Speed (knots)'].apply(dash_to_zero)
+        download_df['velocity'] = download_df['Speed (knots)'].apply(dash_to_zero)
         download_df = mh.shrink_dataframe(download_df)
         return download_df
 
