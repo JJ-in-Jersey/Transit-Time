@@ -1,12 +1,12 @@
 from pathlib import Path
 from os import environ, makedirs
+from sys import platform
 import shutil
 import pandas as pd
 import dateparser as dp
 import warnings
 from datetime import timedelta as td
 from DateTimeTools import DateTimeTools as dtt
-
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
@@ -17,13 +17,14 @@ TIMESTEP_MARGIN = int(WINDOW_MARGIN * 60 / TIMESTEP)  # number of timesteps to a
 FIVE_HOURS_OF_TIMESTEPS = int(5*3600 / TIMESTEP)  # only consider windows of transit times less than the midline that are at least 5 ours long (6 hour tide change)
 WDW = 5
 
+profile_lookup = {'darwin': 'HOME', 'win32': 'USERPROFILE'}
 boat_speeds = [v for v in range(-7, -2, 2)]+[v for v in range(3, 8, 2)]  # knots
 def sign(value): return value/abs(value)
 
 class Environment:
 
     def __init__(self, args):
-        self.user_profile = environ['USERPROFILE']
+        self.user_profile = environ[profile_lookup[platform]]
         project_folder = Path(self.user_profile + '/Developer Workspace/' + args['project_name']+'/')
         self.velo_folder = project_folder.joinpath('Velocity')
         self.elapsed_folder = project_folder.joinpath('Elapsed Time')
