@@ -8,18 +8,20 @@ from numpy import ndarray as array
 import pandas as pd
 from pandas import DataFrame as dataframe
 
+from tt_gpx.gpx import Route, Waypoint, Edge, CurrentStationWP, InterpolationWP, DataWP
+from tt_semaphore import simple_semaphore as semaphore
+from tt_chrome_driver import chrome_driver as cd
+from tt_file_tools import file_tools as ft
+
 import multiprocess as mpm
-from GPX import Route, Waypoint, Edge, CurrentStationWP, InterpolationWP, DataWP
 from velocity import CurrentStationJob, InterpolationJob, InterpolationDataJob
 from elapsed_time import ElapsedTimeJob
 from dataframe_merge import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
 from project_globals import TIMESTEP, boat_speeds, Environment, ChartYear
 
-from Semaphore import SimpleSemaphore as Semaphore
-from ChromeDriver import ChromeDriver as cd
-from FileTools import FileTools as ft
-from validations import EastRiverValidation
+
+# from validations import EastRiverValidation
 
 checkmark = u'\N{check mark}'
 
@@ -33,6 +35,8 @@ if __name__ == '__main__':
     args = vars(ap.parse_args())
     env = Environment(args)
     cy = ChartYear(args)
+
+    cd.update_driver()  # update chrome driver before launching process that use it
 
     Waypoint.velocity_folder = env.velocity_folder()
     Edge.elapsed_time_folder = env.elapsed_time_folder()
@@ -55,8 +59,6 @@ if __name__ == '__main__':
     mpm.result_lookup = mgr.dict()
     jm = mpm.WaitForProcess(target=mpm.JobManager, args=(mpm.job_queue, mpm.result_lookup))
     jm.start()
-
-    cd.update_driver()  # update chrome driver before launching process that use it
 
     # Download noaa data and create velocity arrays for each CURRENT waypoint
     print(f'\nDownloading and processing currents at CURRENT and INTERPOLATION DATA waypoints (1st day-1 to last day+4)', flush=True)
@@ -156,4 +158,4 @@ if __name__ == '__main__':
     arcs_df.drop(['date_time', 'min'], axis=1, inplace=True)
     ft.write_df(arcs_df, env.transit_folder.joinpath(file_name_header + 'arcs'))
 
-    Semaphore.off(mpm.job_manager_semaphore)
+    semaphore.off(mpm.job_manager_semaphore)

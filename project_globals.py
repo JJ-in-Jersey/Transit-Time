@@ -5,7 +5,8 @@ import pandas as pd
 import dateparser as dp
 import warnings
 from datetime import timedelta as td
-from DateTimeTools import DateTimeTools as dtt
+
+from tt_date_time_tools import date_time_tools as dtt
 
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
