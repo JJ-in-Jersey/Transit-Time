@@ -6,7 +6,7 @@ from scipy.interpolate import CubicSpline
 from sympy import Point
 
 from tt_chrome_driver import chrome_driver as cd
-from tt_interpolation import velocity_interpolation as VI
+from tt_interpolation.velocity_interpolation import Interpolator as VI
 from tt_file_tools import file_tools as ft
 from tt_memory_helper import reduce_memory as rm
 from tt_date_time_tools import date_time_tools as dtt
