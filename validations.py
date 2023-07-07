@@ -1,4 +1,4 @@
-from FileTools import FileTools as ft
+from tt_file_tools import file_tools as ft
 
 class EastRiverValidation:
 
