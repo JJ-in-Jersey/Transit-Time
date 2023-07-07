@@ -73,10 +73,10 @@ class CurrentStationJob(VelocityJob):
         init_time = perf_counter()
         print(f'+     {self.wp.unique_name}', flush=True)
 
-        if ft.file_exists(self.wp.output_data_file):
+        if ft.csv_npy_file_exists(self.wp.output_data_file):
             return tuple([self.result_key, ft.read_arr(self.wp.output_data_file), init_time])
         else:
-            if ft.file_exists(self.wp.interpolation_data_file):
+            if ft.csv_npy_file_exists(self.wp.interpolation_data_file):
                 download_df = ft.read_df(self.wp.interpolation_data_file)
             else:
                 download_df = self.velocity_aggregate()
