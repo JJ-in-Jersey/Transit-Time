@@ -41,7 +41,7 @@ class ElapsedTimeJob:
 
     def execute(self):
         init_time = perf_counter()
-        if ft.file_exists(self.edge.output_data_file):
+        if ft.csv_npy_file_exists(self.edge.output_data_file):
             print(f'+     {self.unique_name} ({round(self.length, 2)} nm)', flush=True)
             elapsed_times_df = ft.read_df(self.edge.output_data_file)
             return tuple([self.result_key, elapsed_times_df, init_time])

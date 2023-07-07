@@ -88,7 +88,7 @@ if __name__ == '__main__':
         for group in route.interpolation_groups:
             interpolation_pt = group[0]
 
-            if not ft.file_exists(interpolation_pt.interpolation_data_file):
+            if not ft.csv_npy_file_exists(interpolation_pt.interpolation_data_file):
                 group_range = range(len(group[1].output_data))
                 for i in group_range: mpm.job_queue.put(InterpolationJob(group, i))  # (group, i, True) to display results
                 mpm.job_queue.join()
@@ -137,7 +137,7 @@ if __name__ == '__main__':
         if isinstance(route.transit_time_lookup[speed], dataframe): print(f'{checkmark}     tt {speed}', flush=True)
         else: print(f'X     tt {speed}', flush=True)
 
-    if not ft.file_exists(env.transit_folder.joinpath(file_name_header + 'text_rotation')):
+    if not ft.csv_npy_file_exists(env.transit_folder.joinpath(file_name_header + 'text_rotation')):
         text_rotation_df = pd.DataFrame(columns=['date', 'angle'])
         text_arcs_df = pd.concat([route.transit_time_lookup[7], route.transit_time_lookup[-7]])
         text_arcs_df.sort_values(['date', 'start'], ignore_index=True, inplace=True)

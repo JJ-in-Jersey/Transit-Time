@@ -11,7 +11,7 @@ def elapsed_time_reduce(folder, route):
 
     init_time = perf_counter()
     elapsed_times_file = folder.joinpath('elapsed_times')
-    if ft.file_exists(elapsed_times_file):
+    if ft.csv_npy_file_exists(elapsed_times_file):
         print(f':     elapsed time reduce - reading data file', flush=True)
         et_reduce_df = ft.read_df(elapsed_times_file)
         print(f':     elapsed time reduce ({dtt.mins_secs(perf_counter() - init_time)} minutes)', flush=True)
@@ -24,7 +24,7 @@ def elapsed_time_reduce(folder, route):
 
     for speed in boat_speeds:
         speed_file = folder.joinpath('speed' + str(speed))
-        if ft.file_exists(speed_file):
+        if ft.csv_npy_file_exists(speed_file):
             print(f'      reading {speed} data file', flush=True)
             speed_df = ft.read_df(speed_file)
         else:

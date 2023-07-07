@@ -45,26 +45,26 @@ class TransitTimeMinimaJob:
 
     def execute(self):
         init_time = perf_counter()
-        if ft.file_exists(self.transit_time_values):  # results exists
+        if ft.csv_npy_file_exists(self.transit_time_values):  # results exists
             print(f'+     Transit time ({self.speed}) reading data file', flush=True)
             transit_time_values_df = ft.read_df(self.transit_time_values)
             return tuple([self.speed, transit_time_values_df, init_time])
 
         print(f'+     Transit time ({self.speed})', flush=True)
-        if ft.file_exists(self.transit_timesteps):
+        if ft.csv_npy_file_exists(self.transit_timesteps):
             transit_timesteps_arr = ft.read_arr(self.transit_timesteps)
         else:
             row_range = range(len(self.transit_range))
             transit_timesteps_arr = [total_transit_time(row, self._elapsed_times_df, self._elapsed_times_df.columns.to_list()) for row in row_range]
             ft.write_arr(transit_timesteps_arr, self.transit_timesteps)
 
-        if ft.file_exists(self.plot_data):
+        if ft.csv_npy_file_exists(self.plot_data):
             plot_data_df = ft.read_df(self.plot_data)
         else:
             plot_data_df = self.minima_table(transit_timesteps_arr)  # call minima_table
             ft.write_df(plot_data_df, self.plot_data)
 
-        if ft.file_exists(self.speed_folder.joinpath('arc_df')):
+        if ft.csv_npy_file_exists(self.speed_folder.joinpath('arc_df')):
             arc_df = ft.read_df(self.speed_folder.joinpath('arc_df'))
         else:
             plot_data_df = plot_data_df.dropna(axis=0).sort_index().reset_index(drop=True)
@@ -84,7 +84,7 @@ class TransitTimeMinimaJob:
         tt_df['departure_index'] = self.transit_range
         tt_df['plot'] = 0
         tt_df = tt_df.assign(tts=transit_array)
-        if ft.file_exists(self.savgol_data):
+        if ft.csv_npy_file_exists(self.savgol_data):
             tt_df['midline'] = ft.read_arr(self.savgol_data)
         else:
             tt_df['midline'] = savgol_filter(transit_array, 50000, 1)
