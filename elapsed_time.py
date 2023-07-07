@@ -1,12 +1,13 @@
 import numpy as np
 import pandas as pd
 from time import perf_counter
-from GPX import Edge
+
+from tt_gpx.gpx import Edge
+from tt_file_tools import file_tools as ft
+from tt_memory_helper import reduce_memory as rm
+from tt_date_time_tools import date_time_tools as dtt
 
 from project_globals import TIMESTEP, boat_speeds, sign
-from FileTools import FileTools as ft
-from MemoryHelper import MemoryHelper as mh
-from DateTimeTools import DateTimeTools as dtt
 
 #  Elapsed times are reported in number of timesteps
 
@@ -53,7 +54,7 @@ class ElapsedTimeJob:
                 dist = np.insert(dist, 0, 0.0)  # because distance uses an offset calculation VIx VFx+1, we need to add a zero to the beginning
                 elapsed_times_df[col_name] = [elapsed_time(i, dist, sign(s)*self.length) for i in range(len(self.edge.edge_range))]
             elapsed_times_df.fillna(0, inplace=True)
-            elapsed_times_df = mh.shrink_dataframe(elapsed_times_df)
+            elapsed_times_df = rm.shrink_dataframe(elapsed_times_df)
             ft.write_df(elapsed_times_df, self.edge.output_data_file)
 
         return tuple([self.result_key, elapsed_times_df, init_time])  # elapsed times are reported in number of timesteps

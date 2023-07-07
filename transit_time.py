@@ -2,11 +2,14 @@ import pandas as pd
 from scipy.signal import savgol_filter
 from time import perf_counter
 from num2words import num2words
+
+from tt_file_tools import file_tools as ft
+from tt_memory_helper import reduce_memory as rm
+from tt_date_time_tools import date_time_tools as dtt
+from tt_geometry.geometry import Arc, RoundedArc, FractionalArcStartDay, FractionalArcEndDay
+
 from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS
-from FileTools import FileTools as ft
-from MemoryHelper import MemoryHelper as mh
-from DateTimeTools import DateTimeTools as dtt
-from Geometry import Arc, RoundedArc, FractionalArcStartDay, FractionalArcEndDay
+
 
 def none_row(row, df):
     for c in range(len(df.columns)):
@@ -117,7 +120,7 @@ class TransitTimeMinimaJob:
                     tt_df.at[tt_df_end_row, 'plot'] = max(transit_array)
                 clump = []
         tt_df['transit_time'] = pd.to_timedelta(tt_df['tts']*TIMESTEP, unit='s').round('min')
-        tt_df = mh.shrink_dataframe(tt_df)
+        tt_df = rm.shrink_dataframe(tt_df)
         return tt_df
 
     def create_arcs(self, input_frame):

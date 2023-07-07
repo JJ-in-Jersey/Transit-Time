@@ -10,11 +10,11 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.by import By
 
 from project_globals import WDW
-from ChromeDriver import ChromeDriver as cd
-from VelocityInterpolation import Interpolator as VI
-from FileTools import FileTools as ft
-from MemoryHelper import MemoryHelper as mh
-from DateTimeTools import DateTimeTools as dtt
+from tt_chrome_driver import chrome_driver as cd
+from tt_interpolation import velocity_interpolation as VI
+from tt_file_tools import file_tools as ft
+from tt_memory_helper import reduce_memory as rm
+from tt_date_time_tools import date_time_tools as dtt
 
 #  VELOCITIES ARE DOWNLOADED, CALCULATED AND SAVE AS NAUTICAL MILES PER HOUR!
 
@@ -58,7 +58,7 @@ class VelocityJob:
         download_df['Event']= download_df['Event'].apply(lambda s: s.strip())
         download_df['date_index'] = download_df['date_time'].apply(lambda x: dtt.int_timestamp(x))
         download_df['velocity'] = download_df['Speed (knots)'].apply(dash_to_zero)
-        download_df = mh.shrink_dataframe(download_df)
+        download_df = rm.shrink_dataframe(download_df)
         return download_df
 
     def __init__(self, year, waypoint):

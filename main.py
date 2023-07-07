@@ -1,5 +1,6 @@
 # C:\Users\jason\PycharmProjects\Transit-Time\venv\Scripts\python.exe C:\Users\jason\PycharmProjects\Transit-Time\main.py "ER" "C:\users\jason\Developer Workspace\GPX\East River West to East.gpx" 2023 -dd
 # C:\Users\bronfelj\PycharmProjects\Transit-Time\venv\Scripts\python.exe C:\Users\bronfelj\PycharmProjects\Transit-Time\main.py "ER" "C:\users\bronfelj\Developer Workspace\GPX\East River West to East.gpx" 2023 -dd
+# /Users/jasonbronfeld/PycharmProjects/Transit-Time/venv/Scripts/python.exe /Users/jasonbronfeld/PycharmProjects/Transit-Time/main.py "ER" "/Users/jasonbronfeld/Developer Workspace/GPX/East River.gpx" 2023 -dd
 
 from argparse import ArgumentParser as argParser
 from pathlib import Path
@@ -8,17 +9,18 @@ from numpy import ndarray as array
 import pandas as pd
 from pandas import DataFrame as dataframe
 
+from tt_gpx.gpx import Route, Waypoint, Edge, CurrentStationWP, InterpolationWP, DataWP
+from tt_semaphore import simple_semaphore as semaphore
+from tt_chrome_driver import chrome_driver as cd
+from tt_file_tools import file_tools as ft
+
 import multiprocess as mpm
-from GPX import Route, Waypoint, Edge, CurrentStationWP, InterpolationWP, DataWP
 from velocity import CurrentStationJob, InterpolationJob, InterpolationDataJob
 from elapsed_time import ElapsedTimeJob
 from dataframe_merge import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
 from project_globals import TIMESTEP, boat_speeds, Environment, ChartYear
 
-from Semaphore import SimpleSemaphore as Semaphore
-from ChromeDriver import ChromeDriver as cd
-from FileTools import FileTools as ft
 from validations import EastRiverValidation
 
 checkmark = u'\N{check mark}'
@@ -156,4 +158,4 @@ if __name__ == '__main__':
     arcs_df.drop(['date_time', 'min'], axis=1, inplace=True)
     ft.write_df(arcs_df, env.transit_folder.joinpath(file_name_header + 'arcs'))
 
-    Semaphore.off(mpm.job_manager_semaphore)
+    semaphore.off(mpm.job_manager_semaphore)
