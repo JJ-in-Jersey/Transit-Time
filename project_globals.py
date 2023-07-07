@@ -1,5 +1,6 @@
 from pathlib import Path
 from os import environ, makedirs
+import platform
 import shutil
 import pandas as pd
 import dateparser as dp
@@ -7,7 +8,6 @@ import warnings
 from datetime import timedelta as td
 
 from tt_date_time_tools import date_time_tools as dtt
-
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
@@ -24,7 +24,10 @@ def sign(value): return value/abs(value)
 class Environment:
 
     def __init__(self, args):
-        self.user_profile = environ['USERPROFILE']
+        if platform.system() == 'Darwin':
+            self.user_profile = environ['HOME']
+        elif platform.system() == 'Windows':
+            self.user_profile = environ['USERPROFILE']
         project_folder = Path(self.user_profile + '/Developer Workspace/' + args['project_name']+'/')
         self.velo_folder = project_folder.joinpath('Velocity')
         self.elapsed_folder = project_folder.joinpath('Elapsed Time')
