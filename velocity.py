@@ -35,7 +35,6 @@ class VelocityJob:
             sleep(0.1)
             newest_after = ft.newest_file(folder)
         return newest_after
-
     def velocity_page(self, y, driver, wdw):
         code_string = 'Annual?id=' + self.wp.code
         wdw.until(ec.element_to_be_clickable((By.CSS_SELECTOR, "a[href*='" + code_string + "']"))).click()

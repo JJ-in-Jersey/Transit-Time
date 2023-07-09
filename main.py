@@ -20,7 +20,6 @@ from dataframe_merge import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
 from project_globals import TIMESTEP, boat_speeds, Environment, ChartYear
 
-
 # from validations import EastRiverValidation
 
 checkmark = u'\N{check mark}'
