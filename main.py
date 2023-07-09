@@ -37,7 +37,7 @@ if __name__ == '__main__':
     Waypoint.velocity_folder = env.velocity_folder()
     Edge.elapsed_time_folder = env.elapsed_time_folder()
 
-    # Assemble route and route objects
+    # Assemble route
     route = Route(args['filepath'], cy.waypoint_start_index(), cy.waypoint_end_index(), cy.edge_range())
 
     print(f'\nCalculating route "{route.name}"')
