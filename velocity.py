@@ -17,7 +17,6 @@ from selenium.webdriver.common.by import By
 
 from project_globals import WDW
 
-
 #  VELOCITIES ARE DOWNLOADED, CALCULATED AND SAVE AS NAUTICAL MILES PER HOUR!
 
 logging.getLogger('WDM').setLevel(logging.NOTSET)
@@ -56,7 +55,7 @@ class VelocityJob:
             download_df = pd.concat([download_df, file_df])
         driver.quit()
         download_df.rename(columns={' Event': 'Event', ' Speed (knots)': 'Speed (knots)', 'Date_Time (LST/LDT)': 'date_time'}, inplace=True)
-        download_df['Event']= download_df['Event'].apply(lambda s: s.strip())
+        download_df['Event'] = download_df['Event'].apply(lambda s: s.strip())
         download_df['date_index'] = download_df['date_time'].apply(lambda x: dtt.int_timestamp(x))
         download_df['velocity'] = download_df['Speed (knots)'].apply(dash_to_zero)
         download_df = rm.shrink_dataframe(download_df)

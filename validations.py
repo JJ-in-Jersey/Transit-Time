@@ -2,7 +2,7 @@ from tt_file_tools import file_tools as ft
 
 class EastRiverValidation:
 
-    slack_sequence = {'flood_slack':'ebb_begins', 'slack_flood':'flood_begins', 'slack_ebb':'ebb_begins', 'ebb_slack':'flood_begins'}
+    slack_sequence = {'flood_slack': 'ebb_begins', 'slack_flood': 'flood_begins', 'slack_ebb': 'ebb_begins', 'ebb_slack': 'flood_begins'}
 
     def __init__(self, waypoints):
         hell_gate = list(filter(lambda wp: not bool(wp.unique_name.find('Hell_Gate')), waypoints))[0]

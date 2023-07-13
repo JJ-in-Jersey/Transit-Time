@@ -9,7 +9,6 @@ from tt_date_time_tools import date_time_tools as dtt
 
 from project_globals import TIMESTEP, boat_speeds, sign
 
-
 #  Elapsed times are reported in number of timesteps
 
 def distance(water_vf, water_vi, boat_speed, time): return ((water_vf + water_vi) / 2 + boat_speed)*time  # distance is nm
