@@ -17,7 +17,7 @@ from dataframe_merge import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
 from project_globals import TIMESTEP, boat_speeds, Environment, ChartYear
 
-# from validations import EastRiverValidation
+from validations import EastRiverValidation
 
 checkmark = u'\N{check mark}'
 
@@ -48,8 +48,6 @@ if __name__ == '__main__':
     print(f'length {round(route.elapsed_time_path.length,1)} nm')
     print(f'direction {route.elapsed_time_path.direction}')
     print(f'heading {route.elapsed_time_path.heading}\n')
-
-    # EastRiverValidation(route.waypoints)
 
     mgr = Manager()
     mpm.result_lookup = mgr.dict()
@@ -153,5 +151,7 @@ if __name__ == '__main__':
     ft.write_df(min_rotation_df, env.transit_folder.joinpath(file_name_header + 'minima'))
     arcs_df.drop(['date_time', 'min'], axis=1, inplace=True)
     ft.write_df(arcs_df, env.transit_folder.joinpath(file_name_header + 'arcs'))
+
+    EastRiverValidation(env, cy, route.waypoints)
 
     semaphore.off(mpm.job_manager_semaphore)
