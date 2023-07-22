@@ -22,4 +22,4 @@ class EastRiverValidation:
             slack_df = slack_df.filter(['date', 'angle'])
             slack_df = slack_df[slack_df['date'] >= cy.first_day.date()]
             slack_df = slack_df[slack_df['date'] <= cy.last_day.date()]
-            ft.write_df(slack_df, env.transit_folder.joinpath('hell_gate_validation'))
+            ft.write_df(slack_df, env.transit_folder.joinpath(str(cy.year()) + '_hell_gate_validation'))
