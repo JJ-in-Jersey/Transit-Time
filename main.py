@@ -49,6 +49,8 @@ if __name__ == '__main__':
     print(f'direction {route.elapsed_time_path.direction}')
     print(f'heading {route.elapsed_time_path.heading}\n')
 
+    env.transit_folder.joinpath(str(route.elapsed_time_path.heading) + '.heading').touch()
+
     mgr = Manager()
     mpm.result_lookup = mgr.dict()
     jm = mpm.WaitForProcess(target=mpm.JobManager, args=(mpm.job_queue, mpm.result_lookup))
@@ -123,15 +125,13 @@ if __name__ == '__main__':
     # tt.execute()
     mpm.job_queue.join()
 
-    file_name_header = str(cy.year()) + '_' + str(route.elapsed_time_path.heading) + '_'
-
     print(f'\nAdding transit time speed results to route')
     for speed in boat_speeds:
         route.transit_time_lookup[speed] = mpm.result_lookup[speed]
         if isinstance(route.transit_time_lookup[speed], dataframe): print(f'{checkmark}     tt {speed}', flush=True)
         else: print(f'X     tt {speed}', flush=True)
 
-    if not ft.csv_npy_file_exists(env.transit_folder.joinpath(file_name_header + 'text_rotation')):
+    if not ft.csv_npy_file_exists(env.transit_folder.joinpath('text_rotation')):
         text_rotation_df = pd.DataFrame(columns=['date', 'angle'])
         text_arcs_df = pd.concat([route.transit_time_lookup[7], route.transit_time_lookup[-7]])
         text_arcs_df.sort_values(['date', 'start'], ignore_index=True, inplace=True)
@@ -140,7 +140,7 @@ if __name__ == '__main__':
             angle = (date_df.loc[1, 'start'] + date_df.loc[0, 'end'])/2
             text_rotation_df = pd.concat([text_rotation_df, pd.DataFrame.from_dict({'date': [date], 'angle': [angle]})])
             text_arcs_df = text_arcs_df[text_arcs_df['date'] != date]
-        ft.write_df(text_rotation_df, env.transit_folder.joinpath(file_name_header + 'legend'))
+        ft.write_df(text_rotation_df, env.transit_folder.joinpath('legend'))
 
     arcs_df = pd.concat([route.transit_time_lookup[key] for key in route.transit_time_lookup])
     arcs_df.sort_values(['date'], ignore_index=True, inplace=True)
@@ -148,10 +148,11 @@ if __name__ == '__main__':
     min_rotation_df = min_rotation_df.rename(columns={'min': 'angle', 'name': 'base_name'})
     min_rotation_df['name'] = min_rotation_df['base_name'] + 'm'
     min_rotation_df = min_rotation_df.drop(['date_time', 'start', 'end'], axis=1)
-    ft.write_df(min_rotation_df, env.transit_folder.joinpath(file_name_header + 'minima'))
+    ft.write_df(min_rotation_df, env.transit_folder.joinpath('minima'))
     arcs_df.drop(['date_time', 'min'], axis=1, inplace=True)
-    ft.write_df(arcs_df, env.transit_folder.joinpath(file_name_header + 'arcs'))
+    ft.write_df(arcs_df, env.transit_folder.joinpath('arcs'))
 
-    EastRiverValidation(env, cy, route.waypoints)
+    erv = EastRiverValidation(cy, route.waypoints)
+    ft.write_df(erv.slack_df, env.transit_folder.joinpath('validation'))
 
     semaphore.off(mpm.job_manager_semaphore)

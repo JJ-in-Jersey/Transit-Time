@@ -28,7 +28,7 @@ class Environment:
             self.user_profile = environ['HOME']
         elif platform.system() == 'Windows':
             self.user_profile = environ['USERPROFILE']
-        project_folder = Path(self.user_profile + '/Developer Workspace/' + args['project_name']+'/')
+        project_folder = Path(self.user_profile + '/Developer Workspace/' + args['project_name'] + '_' + str(args['year']) + '/')
         self.velo_folder = project_folder.joinpath('Velocity')
         self.elapsed_folder = project_folder.joinpath('Elapsed Time')
         self.transit_folder = project_folder.joinpath('Transit Time')
