@@ -23,3 +23,19 @@ class EastRiverValidation:
             self.slack_df = self.slack_df.filter(['date', 'angle'])
             self.slack_df = self.slack_df[self.slack_df['date'] >= cy.first_day.date()]
             self.slack_df = self.slack_df[self.slack_df['date'] <= cy.last_day.date()]
+            self.index_slack_df(self.slack_df)
+            pass
+
+    def index_slack_df(self, slack_df):
+        date_dict = {}
+        date_keys = sorted(list(set(slack_df['date'])))
+        for date in date_keys:
+            date_dict[date] = []
+        for i, row in self.slack_df.iterrows():
+            date_dict[row[0]].append(row[1])
+        df = pd.DataFrame()
+        for item in date_dict.items():
+            for i, angle in enumerate(item[1]):
+                df.loc[len(df.index)] = [item[0], i, angle]
+        pass
+
