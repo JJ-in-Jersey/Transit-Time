@@ -32,8 +32,6 @@ if __name__ == '__main__':
     env = Environment(args)
     cy = ChartYear(args)
 
-    # cd.update_driver()  # update chrome driver before launching process that use it
-
     Waypoint.velocity_folder = env.velocity_folder()
     Edge.elapsed_time_folder = env.elapsed_time_folder()
 
