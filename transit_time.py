@@ -24,9 +24,9 @@ def total_transit_time(init_row, d_frame, cols):
 class TransitTimeMinimaJob:
 
     def __init__(self, env, cy, route, speed):
-        self.boat_direction = 'P' if speed/abs(speed) > 0 else 'N'
+        self.boat_direction = 'Pos' if speed/abs(speed) > 0 else 'Neg'
         self.boat_speed = abs(speed)
-        self.shape_base_name = self.boat_direction + str(self.boat_speed) + 'A'
+        self.shape_base_name = self.boat_direction + ' ' + str(self.boat_speed)
         file_header = str(cy.year()) + '_' + self.boat_direction + '_' + str(self.boat_speed)
         self.speed = speed
         self.first_day = cy.first_day
@@ -142,7 +142,7 @@ class TransitTimeMinimaJob:
         # add shape counts to shapes, last row doesn't matter, it will be trimmed away
         count = 1
         for row in arc_df.index[:-1]:
-            arc_df.loc[row, 'name'] = arc_df.loc[row, 'name'] + str(count)
+            arc_df.loc[row, 'name'] = arc_df.loc[row, 'name'] + ' '+ str(count)
             if arc_df.loc[row, 'date'] == arc_df.loc[row + 1, 'date']: count += 1
             else: count = 1
 
