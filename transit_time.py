@@ -142,7 +142,7 @@ class TransitTimeMinimaJob:
         # add shape counts to shapes, last row doesn't matter, it will be trimmed away
         count = 1
         for row in arc_df.index[:-1]:
-            arc_df.loc[row, 'name'] = arc_df.loc[row, 'name'] + ' '+ str(count)
+            arc_df.loc[row, 'name'] = arc_df.loc[row, 'name'] + ' ' + str(count)
             if arc_df.loc[row, 'date'] == arc_df.loc[row + 1, 'date']: count += 1
             else: count = 1
 
