@@ -58,11 +58,12 @@ if __name__ == '__main__':
     print(f'\nDownloading and processing currents at CURRENT and INTERPOLATION DATA waypoints (1st day-1 to last day+4)', flush=True)
 
     if is_chrome_installed():
-        print(f'Using Chrome version: {get_installed_chrome_version()}')
+        print(f'using chrome version: {get_installed_chrome_version()}')
     else:
-        raise Exception('Chrome is not installed')
+        raise Exception('chrome is not installed')
 
     if not get_installed_chrome_version() == get_latest_stable_chrome_version():
+        print(f'latest stable chrome version: {get_latest_stable_chrome_version()}')
         print(f'downloading latest stable chrome version: {download_latest_stable_chrome_version()}')
         print(f'downloading latest stable chromedriver version: {download_latest_stable_chromedriver_version()}')
 
