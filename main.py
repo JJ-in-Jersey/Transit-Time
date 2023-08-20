@@ -7,8 +7,8 @@ from pandas import DataFrame as dataframe
 
 from tt_gpx.gpx import Route, Waypoint, Edge, CurrentStationWP, InterpolationWP, DataWP
 from tt_semaphore import simple_semaphore as semaphore
-from tt_chrome_driver import chrome_driver as cd
 from tt_file_tools import file_tools as ft
+from tt_chrome_driver.chrome_driver import is_chrome_installed, get_installed_chrome_version, get_latest_stable_chrome_version, download_latest_stable_chrome_version, download_latest_stable_chromedriver_version
 
 import multiprocess as mpm
 from velocity import CurrentStationJob, InterpolationJob, InterpolationDataJob
@@ -56,6 +56,16 @@ if __name__ == '__main__':
 
     # Download noaa data and create velocity arrays for each CURRENT waypoint
     print(f'\nDownloading and processing currents at CURRENT and INTERPOLATION DATA waypoints (1st day-1 to last day+4)', flush=True)
+
+    if is_chrome_installed():
+        print(f'Using Chrome version: {get_installed_chrome_version()}')
+    else:
+        raise Exception('Chrome is not installed')
+
+    if not get_installed_chrome_version() == get_latest_stable_chrome_version():
+        print(f'downloading latest stable chrome version: {download_latest_stable_chrome_version()}')
+        print(f'downloading latest stable chromedriver version: {download_latest_stable_chromedriver_version()}')
+
     for wp in route.waypoints:
         if isinstance(wp, DataWP):  # DataWP must come before CurrentStationWP because DataWP IS A CurrentStationWP
             mpm.job_queue.put(InterpolationDataJob(args['year'], wp))

@@ -6,6 +6,7 @@ from scipy.interpolate import CubicSpline
 from sympy import Point
 
 from tt_chrome_driver import chrome_driver as cd
+# noinspection PyPep8Naming
 from tt_interpolation.velocity_interpolation import Interpolator as VI
 from tt_file_tools import file_tools as ft
 from tt_memory_helper import reduce_memory as rm
@@ -21,7 +22,9 @@ from project_globals import WDW
 
 logging.getLogger('WDM').setLevel(logging.NOTSET)
 
+
 def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
+
 
 # noinspection PyProtectedMember
 class VelocityJob:
@@ -34,6 +37,7 @@ class VelocityJob:
             sleep(0.1)
             newest_after = ft.newest_file(folder)
         return newest_after
+
     def velocity_page(self, y, driver, wdw):
         code_string = 'Annual?id=' + self.wp.code
         wdw.until(ec.element_to_be_clickable((By.CSS_SELECTOR, "a[href*='" + code_string + "']"))).click()
@@ -64,6 +68,7 @@ class VelocityJob:
     def __init__(self, year, waypoint):
         self.wp = waypoint
         self.year = year
+
 
 class CurrentStationJob(VelocityJob):
 
@@ -105,6 +110,7 @@ class CurrentStationJob(VelocityJob):
         self.result_key = id(waypoint)
         self.v_range = range(waypoint.start_index, waypoint.end_index, timestep)
 
+
 class InterpolationDataJob(CurrentStationJob):
 
     interpolation_timestep = 10800  # three hour timestep
@@ -112,6 +118,7 @@ class InterpolationDataJob(CurrentStationJob):
 
     def __init__(self, year, waypoint):
         super().__init__(year, waypoint, InterpolationDataJob.interpolation_timestep)
+
 
 class InterpolationJob:
 

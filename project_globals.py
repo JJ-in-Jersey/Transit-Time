@@ -1,6 +1,5 @@
 from pathlib import Path
-from os import environ, makedirs
-import platform
+from os import makedirs
 import shutil
 import pandas as pd
 import dateparser as dp
@@ -8,6 +7,7 @@ import warnings
 from datetime import timedelta as td
 
 from tt_date_time_tools import date_time_tools as dtt
+from tt_os_abstraction.os_abstraction import user_profile
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
@@ -21,13 +21,11 @@ WDW = 100
 boat_speeds = [v for v in range(-7, -2, 2)]+[v for v in range(3, 8, 2)]  # knots
 def sign(value): return value/abs(value)
 
+
 class Environment:
 
     def __init__(self, args):
-        if platform.system() == 'Darwin':
-            self.user_profile = environ['HOME']
-        elif platform.system() == 'Windows':
-            self.user_profile = environ['USERPROFILE']
+        self.user_profile = user_profile()
         project_folder = Path(self.user_profile + '/Developer Workspace/' + args['project_name'] + '_' + str(args['year']) + '/')
         self.velo_folder = project_folder.joinpath('Velocity')
         self.elapsed_folder = project_folder.joinpath('Elapsed Time')
@@ -53,6 +51,7 @@ class Environment:
         tt_folder = self.transit_folder.joinpath(name)
         makedirs(tt_folder, exist_ok=True)
         return tt_folder
+
 
 class ChartYear:
 
