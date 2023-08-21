@@ -2,6 +2,7 @@ import pandas as pd
 from tt_file_tools import file_tools as ft
 from tt_geometry.geometry import time_to_degrees
 
+
 class EastRiverValidation:
 
     first_slack_lookup = {'flood_slack': 'ebb_begins', 'slack_flood': 'flood_begins', 'slack_ebb': 'ebb_begins', 'ebb_slack': 'flood_begins'}
@@ -26,12 +27,11 @@ class EastRiverValidation:
             self.slack_df = self.index_slack_df(self.slack_df)
 
     def index_slack_df(self, slack_df):
-        date_dict = { key: [] for key in sorted(list(set(slack_df['date']))) }
+        date_dict = {key: [] for key in sorted(list(set(slack_df['date'])))}
         for i, row in self.slack_df.iterrows():
             date_dict[row[0]].append(row[1])
         df = pd.DataFrame(columns=['date', 'index', 'angle'])
         for item in date_dict.items():
             for i, angle in enumerate(item[1]):
-                df.loc[len(df.index)] = [item[0], i+1, angle]
+                df.loc[len(df.index)] = [item[0], 'Validation Line ' + str(i+1), angle]
         return df
-
