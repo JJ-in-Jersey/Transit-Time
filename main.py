@@ -4,7 +4,7 @@ from multiprocessing import Manager
 from numpy import ndarray as array
 import pandas as pd
 from pandas import DataFrame as dataframe
-from distutils.version import LooseVersion
+from packaging.version import Version
 
 from tt_gpx.gpx import Route, Waypoint, Edge, CurrentStationWP, InterpolationWP, DataWP
 from tt_semaphore import simple_semaphore as semaphore
@@ -62,12 +62,13 @@ if __name__ == '__main__':
         raise Exception('chrome is not installed')
 
     print(f'latest stable version: {cd.get_latest_stable_chrome_version()}')
-    print(f'installed chrome version: {cd.get_installed_chrome_version()}')
     print(f'installed driver version: {cd.get_installed_driver_version()}')
+    print(f'installed chrome version: {cd.get_installed_chrome_version()}')
 
     if not cd.get_installed_driver_version() == cd.get_latest_stable_chrome_version():
         print(f'downloading latest stable chromedriver version: {cd.download_latest_stable_chromedriver_version()}')
-    if not LooseVersion(cd.get_installed_chrome_version()) >= LooseVersion(cd.get_latest_stable_chrome_version()):
+
+    if not cd.get_installed_chrome_version() >= cd.get_latest_stable_chrome_version():
         print(f'downloading latest stable chrome version: {cd.download_latest_stable_chrome_version()}')
 
     for wp in route.waypoints:
