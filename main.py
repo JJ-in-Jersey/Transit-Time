@@ -2,9 +2,7 @@ from argparse import ArgumentParser as argParser
 from pathlib import Path
 from multiprocessing import Manager
 from numpy import ndarray as array
-import pandas as pd
-from pandas import DataFrame as dataframe
-from packaging.version import Version
+from pandas import DataFrame, concat as Concat
 
 from tt_gpx.gpx import Route, Waypoint, Edge, CurrentStationWP, InterpolationWP, DataWP
 from tt_semaphore import simple_semaphore as semaphore
@@ -66,7 +64,7 @@ if __name__ == '__main__':
     print(f'installed chrome version: {cd.get_installed_chrome_version()}')
 
     if not cd.get_installed_driver_version() == cd.get_latest_stable_chrome_version():
-        print(f'downloading latest stable chromedriver version: {cd.download_latest_stable_chromedriver_version()}')
+        print(f'downloading latest stable chromedriver version: {cd.download_latest_stable_driver_version()}')
 
     if not cd.get_installed_chrome_version() >= cd.get_latest_stable_chrome_version():
         print(f'downloading latest stable chrome version: {cd.download_latest_stable_chrome_version()}')
@@ -124,7 +122,7 @@ if __name__ == '__main__':
     print(f'\nAdding results to edges')
     for edge in route.elapsed_time_path.edges:
         edge.output_data = mpm.result_lookup[id(edge)]
-        if isinstance(edge.output_data, dataframe): print(f'{checkmark}     {edge.unique_name}', flush=True)
+        if isinstance(edge.output_data, DataFrame): print(f'{checkmark}     {edge.unique_name}', flush=True)
         else: print(f'X     {edge.unique_name}', flush=True)
 
     # combine elapsed times by speed
@@ -141,21 +139,21 @@ if __name__ == '__main__':
     print(f'\nAdding transit time speed results to route')
     for speed in boat_speeds:
         route.transit_time_lookup[speed] = mpm.result_lookup[speed]
-        if isinstance(route.transit_time_lookup[speed], dataframe): print(f'{checkmark}     tt {speed}', flush=True)
+        if isinstance(route.transit_time_lookup[speed], DataFrame): print(f'{checkmark}     tt {speed}', flush=True)
         else: print(f'X     tt {speed}', flush=True)
 
     if not ft.csv_npy_file_exists(env.transit_folder.joinpath('text_rotation')):
-        text_rotation_df = pd.DataFrame(columns=['date', 'angle'])
-        text_arcs_df = pd.concat([route.transit_time_lookup[7], route.transit_time_lookup[-7]])
+        text_rotation_df = DataFrame(columns=['date', 'angle'])
+        text_arcs_df = Concat([route.transit_time_lookup[7], route.transit_time_lookup[-7]])
         text_arcs_df.sort_values(['date', 'start'], ignore_index=True, inplace=True)
         for date in text_arcs_df['date'].drop_duplicates(ignore_index=True):
             date_df = text_arcs_df[text_arcs_df['date'] == date].sort_index().reset_index(drop=True)
             angle = (date_df.loc[1, 'start'] + date_df.loc[0, 'end'])/2
-            text_rotation_df = pd.concat([text_rotation_df, pd.DataFrame.from_dict({'date': [date], 'angle': [angle]})])
+            text_rotation_df = Concat([text_rotation_df, DataFrame.from_dict({'date': [date], 'angle': [angle]})])
             text_arcs_df = text_arcs_df[text_arcs_df['date'] != date]
         ft.write_df(text_rotation_df, env.transit_folder.joinpath('legend'))
 
-    arcs_df = pd.concat([route.transit_time_lookup[key] for key in route.transit_time_lookup])
+    arcs_df = Concat([route.transit_time_lookup[key] for key in route.transit_time_lookup])
     arcs_df.sort_values(['date'], ignore_index=True, inplace=True)
     min_rotation_df = arcs_df[arcs_df['min'].notna()]
     min_rotation_df = min_rotation_df.rename(columns={'min': 'angle'})
