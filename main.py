@@ -4,11 +4,12 @@ from multiprocessing import Manager
 from numpy import ndarray as array
 import pandas as pd
 from pandas import DataFrame as dataframe
+from distutils.version import LooseVersion
 
 from tt_gpx.gpx import Route, Waypoint, Edge, CurrentStationWP, InterpolationWP, DataWP
 from tt_semaphore import simple_semaphore as semaphore
 from tt_file_tools import file_tools as ft
-from tt_chrome_driver.chrome_driver import is_chrome_installed, get_installed_chrome_version, get_latest_stable_chrome_version, download_latest_stable_chrome_version, download_latest_stable_chromedriver_version
+import tt_chrome_driver.chrome_driver as cd
 
 import multiprocess as mpm
 from velocity import CurrentStationJob, InterpolationJob, InterpolationDataJob
@@ -57,15 +58,17 @@ if __name__ == '__main__':
     # Download noaa data and create velocity arrays for each CURRENT waypoint
     print(f'\nDownloading and processing currents at CURRENT and INTERPOLATION DATA waypoints (1st day-1 to last day+4)', flush=True)
 
-    if is_chrome_installed():
-        print(f'using chrome version: {get_installed_chrome_version()}')
-    else:
+    if not cd.is_chrome_installed():
         raise Exception('chrome is not installed')
 
-    if not get_installed_chrome_version() == get_latest_stable_chrome_version():
-        print(f'latest stable chrome version: {get_latest_stable_chrome_version()}')
-        print(f'downloading latest stable chrome version: {download_latest_stable_chrome_version()}')
-        print(f'downloading latest stable chromedriver version: {download_latest_stable_chromedriver_version()}')
+    print(f'latest stable version: {cd.get_latest_stable_chrome_version()}')
+    print(f'installed chrome version: {cd.get_installed_chrome_version()}')
+    print(f'installed driver version: {cd.get_installed_driver_version()}')
+
+    if not cd.get_installed_driver_version() == cd.get_latest_stable_chrome_version():
+        print(f'downloading latest stable chromedriver version: {cd.download_latest_stable_chromedriver_version()}')
+    if not LooseVersion(cd.get_installed_chrome_version()) >= LooseVersion(cd.get_latest_stable_chrome_version()):
+        print(f'downloading latest stable chrome version: {cd.download_latest_stable_chrome_version()}')
 
     for wp in route.waypoints:
         if isinstance(wp, DataWP):  # DataWP must come before CurrentStationWP because DataWP IS A CurrentStationWP
