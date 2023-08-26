@@ -3,7 +3,7 @@ from tt_file_tools import file_tools as ft
 from tt_geometry.geometry import time_to_degrees
 
 
-class EastRiverValidation:
+class HellGateSlackTimes:
 
     first_slack_lookup = {'flood_slack': 'ebb_begins', 'slack_flood': 'flood_begins', 'slack_ebb': 'ebb_begins', 'ebb_slack': 'flood_begins'}
 

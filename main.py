@@ -16,7 +16,7 @@ from dataframe_merge import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
 from project_globals import TIMESTEP, boat_speeds, Environment, ChartYear
 
-from validations import EastRiverValidation
+from validations import HellGateSlackTimes
 
 checkmark = u'\N{check mark}'
 
@@ -163,7 +163,7 @@ if __name__ == '__main__':
     arcs_df.drop(['date_time', 'min'], axis=1, inplace=True)
     ft.write_df(arcs_df, env.transit_folder.joinpath('arcs'))
 
-    erv = EastRiverValidation(cy, route.waypoints)
+    erv = HellGateSlackTimes(cy, route.waypoints)
     ft.write_df(erv.slack_df, env.transit_folder.joinpath('validation'))
 
     semaphore.off(mpm.job_manager_semaphore)
