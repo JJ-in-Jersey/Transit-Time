@@ -21,17 +21,22 @@ class EastRiverValidation:
             self.slack_df['date'] = self.slack_df['date_time'].apply(pd.to_datetime).dt.date
             self.slack_df['time'] = self.slack_df['date_time'].apply(pd.to_datetime).dt.time
             self.slack_df['angle'] = self.slack_df['time'].apply(time_to_degrees)
-            self.slack_df = self.slack_df.filter(['date', 'angle'])
+            self.slack_df = self.slack_df.filter(['date', 'time', 'angle'])
             self.slack_df = self.slack_df[self.slack_df['date'] >= cy.first_day.date()]
             self.slack_df = self.slack_df[self.slack_df['date'] <= cy.last_day.date()]
             self.slack_df = self.index_slack_df(self.slack_df)
 
     def index_slack_df(self, slack_df):
-        date_dict = {key: [] for key in sorted(list(set(slack_df['date'])))}
+        date_time_dict = {key: [] for key in sorted(list(set(slack_df['date'])))}
+        date_angle_dict = {key: [] for key in sorted(list(set(slack_df['date'])))}
         for i, row in self.slack_df.iterrows():
-            date_dict[row[0]].append(row[1])
-        df = pd.DataFrame(columns=['date', 'index', 'angle'])
-        for item in date_dict.items():
-            for i, angle in enumerate(item[1]):
-                df.loc[len(df.index)] = [item[0], 'Validation Line ' + str(i+1), angle]
+            date_time_dict[row[0]].append(row[1])
+            date_angle_dict[row[0]].append(row[2])
+        df = pd.DataFrame(columns=['date', 'name', 'time', 'angle'])
+
+        for key in date_time_dict.keys():
+            times = date_time_dict[key]
+            angles = date_angle_dict[key]
+            for i in range(len(times)):
+                df.loc[len(df.name)] = [key, 'Validation Line ' + str(i+1), times[i], angles[i]]
         return df
