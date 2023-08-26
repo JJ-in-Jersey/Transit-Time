@@ -144,7 +144,7 @@ if __name__ == '__main__':
 
     if not ft.csv_npy_file_exists(env.transit_folder.joinpath('text_rotation')):
         text_rotation_df = DataFrame(columns=['date', 'angle'])
-        text_arcs_df = Concat([route.transit_time_lookup[7], route.transit_time_lookup[-7]])
+        text_arcs_df = Concat([route.transit_time_lookup[boat_speeds[-1]], route.transit_time_lookup[boat_speeds[-1]]])
         text_arcs_df.sort_values(['date', 'start'], ignore_index=True, inplace=True)
         for date in text_arcs_df['date'].drop_duplicates(ignore_index=True):
             date_df = text_arcs_df[text_arcs_df['date'] == date].sort_index().reset_index(drop=True)
