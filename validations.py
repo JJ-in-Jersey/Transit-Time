@@ -38,5 +38,5 @@ class EastRiverValidation:
             times = date_time_dict[key]
             angles = date_angle_dict[key]
             for i in range(len(times)):
-                df.loc[len(df.name)] = [key, 'Validation Line ' + str(i+1), times[i], angles[i]]
+                df.loc[len(df.name)] = [key, 'Hell Gate Line ' + str(i+1), times[i], angles[i]]
         return df
