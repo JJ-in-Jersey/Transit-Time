@@ -2,6 +2,7 @@ from argparse import ArgumentParser as argParser
 from pathlib import Path
 from multiprocessing import Manager
 from numpy import ndarray as array
+# noinspection PyPep8Naming
 from pandas import DataFrame, concat as Concat
 
 from tt_gpx.gpx import Route, Waypoint, Edge, CurrentStationWP, InterpolationWP, DataWP
@@ -164,7 +165,8 @@ if __name__ == '__main__':
     arcs_df.drop(['date_time', 'min'], axis=1, inplace=True)
     ft.write_df(arcs_df, env.transit_folder.joinpath('arcs'))
 
-    erv = HellGateSlackTimes(cy, route.waypoints)
-    ft.write_df(erv.slack_df, env.transit_folder.joinpath('validation'))
+    erv = HellGateSlackTimes(cy, env, route.waypoints)
+    ft.write_df(erv.hell_gate_slack, env.transit_folder.joinpath('hell_gate_slack'))
+    ft.write_df(erv.hell_gate_3_slack, env.transit_folder.joinpath('hell_gate_3_slack'))
 
     semaphore.off(mpm.job_manager_semaphore)
