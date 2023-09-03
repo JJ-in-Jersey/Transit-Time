@@ -7,26 +7,25 @@ import warnings
 from datetime import timedelta as td
 
 from tt_date_time_tools import date_time_tools as dtt
-from tt_os_abstraction.os_abstraction import user_profile
+from tt_os_abstraction.os_abstraction import env
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
-TIMESTEP = 60  # seconds
+TIMESTEP = 15  # seconds
 TIME_RESOLUTION = 15  # rounded to minutes
-WINDOW_MARGIN = 30  # minutes
+WINDOW_MARGIN = 10  # minutes
 TIMESTEP_MARGIN = int(WINDOW_MARGIN * 60 / TIMESTEP)  # number of timesteps to add to minimum to find edges of time windows
 FIVE_HOURS_OF_TIMESTEPS = int(5*3600 / TIMESTEP)  # only consider windows of transit times less than the midline that are at least 5 ours long (6 hour tide change)
 WDW = 100
 
 boat_speeds = [v for v in range(-7, -2, 2)]+[v for v in range(3, 8, 2)]  # knots
-# boat_speeds = [3, 5]
 def sign(value): return value/abs(value)
 
 
 class Environment:
 
     def __init__(self, args):
-        self.user_profile = user_profile()
+        self.user_profile = env('user_profile')
         project_folder = Path(self.user_profile + '/Developer Workspace/' + args['project_name'] + '_' + str(args['year']) + '/')
         self.velo_folder = project_folder.joinpath('Velocity')
         self.elapsed_folder = project_folder.joinpath('Elapsed Time')
