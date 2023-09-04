@@ -38,7 +38,7 @@ if __name__ == '__main__':
     # Assemble route
     route = Route(args['filepath'], cy.waypoint_start_index(), cy.waypoint_end_index(), cy.edge_range())
 
-    print(f'\nCalculating route "{route.name}"')
+    print(f'\nCalculating route "{route.filepath.stem}"')
     print(f'total waypoints: {len(route.whole_path.edges)+1}')
     print(f'elapsed time waypoints: {len(route.elapsed_time_path.edges)+1}')
     print(f'timestep: {TIMESTEP}')
