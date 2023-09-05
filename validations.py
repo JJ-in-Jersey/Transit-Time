@@ -21,7 +21,7 @@ class HellGateSlackTimes:
                 slack_df['date'] = slack_df['date_time'].apply(pd.to_datetime).dt.date
                 slack_df['time'] = slack_df['date_time'].apply(pd.to_datetime).dt.time
                 slack_df['angle'] = slack_df['time'].apply(time_to_degrees)
-                slack_df = slack_df.filter(['date', 'time', 'angle'])
+                slack_df = slack_df.filter(['date_time', 'date', 'time', 'angle'])
                 slack_df = slack_df[slack_df['date'] >= cy.first_day.date()]
                 slack_df = slack_df[slack_df['date'] <= cy.last_day.date()]
                 ft.write_df(slack_df, env.transit_folder.joinpath('hell_gate_slack'))
@@ -38,9 +38,10 @@ class HellGateSlackTimes:
     def index_slack_df(frame, name):
         date_time_dict = {key: [] for key in sorted(list(set(frame['date'])))}
         date_angle_dict = {key: [] for key in sorted(list(set(frame['date'])))}
+        columns = frame.columns.to_list()
         for i, row in frame.iterrows():
-            date_time_dict[row[0]].append(row[1])
-            date_angle_dict[row[0]].append(row[2])
+            date_time_dict[row[columns.index('date')]].append(row[columns.index('time')])
+            date_angle_dict[row[columns.index('date')]].append(row[columns.index('angle')])
 
         df = pd.DataFrame(columns=['date', 'name', 'time', 'angle'])
         for key in date_time_dict.keys():
