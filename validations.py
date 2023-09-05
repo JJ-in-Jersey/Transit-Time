@@ -26,10 +26,12 @@ class HellGateSlackTimes:
                 slack_df = slack_df[slack_df['date'] <= cy.last_day.date()]
                 ft.write_df(slack_df, env.transit_folder.joinpath('hell_gate_slack'))
             else:
-                ft.read_df(env.transit_folder.joinpath('hell_gate_slack'))
+                slack_df = ft.read_df(env.transit_folder.joinpath('hell_gate_slack'))
 
             self.hell_gate_slack = self.index_slack_df(slack_df, 'Hell Gate Line')
-            self.slack_df['time'] = self.slack_df['time'] + pd.Timedelta(hours=3)
+
+            slack_df['time'] = slack_df['time'] + pd.Timedelta(hours=3)
+            slack_df['angle'] = slack_df['time'].apply(time_to_degrees)
             self.hell_gate_3_slack = self.index_slack_df(slack_df, 'Hell Gate Plus 3 Line')
 
     @staticmethod
