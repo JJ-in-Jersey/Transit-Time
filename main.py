@@ -166,7 +166,7 @@ if __name__ == '__main__':
     ft.write_df(arcs_df, env.transit_folder.joinpath('arcs'))
 
     erv = HellGateSlackTimes(cy, env, route.waypoints)
-    ft.write_df(erv.hell_gate_slack, env.transit_folder.joinpath('hell_gate_slack'))
-    ft.write_df(erv.hell_gate_3_slack, env.transit_folder.joinpath('hell_gate_3_slack'))
+    ft.write_df(erv.hell_gate_start_slack, env.transit_folder.joinpath('hell_gate_start_slack'))
+    ft.write_df(erv.hell_gate_end_slack, env.transit_folder.joinpath('hell_gate_end_slack'))
 
     semaphore.off(mpm.job_manager_semaphore)
