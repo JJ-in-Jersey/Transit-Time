@@ -20,7 +20,7 @@ class HellGateSlackTimes:
             slack_df['date'] = slack_df['date_time'].apply(pd.to_datetime).dt.date
             slack_df['time'] = slack_df['date_time'].apply(pd.to_datetime).dt.time
             slack_df['angle'] = slack_df['time'].apply(time_to_degrees)
-            slack_df = slack_df.filter(['date_time', 'date', 'time', 'angle'])
+            slack_df = slack_df.filter(['date', 'time', 'angle'])
             slack_df = slack_df[slack_df['date'] >= cy.first_day.date()]
             slack_df = slack_df[slack_df['date'] <= cy.last_day.date()]
             self.hell_gate_start_slack = self.index_slack_df(slack_df, 'Hell Gate Start Line')
@@ -31,7 +31,7 @@ class HellGateSlackTimes:
             slack_df['date'] = slack_df['date_time'].apply(pd.to_datetime).dt.date
             slack_df['time'] = slack_df['date_time'].apply(pd.to_datetime).dt.time
             slack_df['angle'] = slack_df['time'].apply(time_to_degrees)
-            slack_df = slack_df.filter(['date_time', 'date', 'time', 'angle'])
+            slack_df = slack_df.filter(['date', 'time', 'angle'])
             slack_df = slack_df[slack_df['date'] >= cy.first_day.date()]
             slack_df = slack_df[slack_df['date'] <= cy.last_day.date()]
             self.hell_gate_end_slack = self.index_slack_df(slack_df, 'Hell Gate End Line')
