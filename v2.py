@@ -39,7 +39,7 @@ class VelocityJob:
         return newest_after
 
     def velocity_page(self, y, driver, wdw):
-        https: // tidesandcurrents.noaa.gov / noaatideannual.html?id = 8518750
+        battery_url = 'https://tidesandcurrents.noaa.gov/noaatideannual.html?id = 8518750'
         code_string = 'Annual?id=' + self.wp.code
         wdw.until(ec.element_to_be_clickable((By.CSS_SELECTOR, "a[href*='" + code_string + "']"))).click()
         Select(driver.find_element(By.ID, 'fmt')).select_by_index(3)  # select format

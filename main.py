@@ -72,14 +72,14 @@ if __name__ == '__main__':
 
     for wp in route.waypoints:
         if isinstance(wp, DataWP):  # DataWP must come before CurrentStationWP because DataWP IS A CurrentStationWP
-            mpm.job_queue.put(InterpolationDataJob(args['year'], wp))
-            # idj = InterpolationDataJob(args['year'], wp)
-            # idj.execute()
+            # mpm.job_queue.put(InterpolationDataJob(args['year'], wp))
+            idj = InterpolationDataJob(args['year'], wp)
+            idj.execute()
             # pass
         elif isinstance(wp, CurrentStationWP):
-            mpm.job_queue.put(CurrentStationJob(args['year'], wp, TIMESTEP))
-            # csj = CurrentStationJob(args['year'], wp, TIMESTEP)
-            # csj.execute()
+            # mpm.job_queue.put(CurrentStationJob(args['year'], wp, TIMESTEP))
+            csj = CurrentStationJob(args['year'], wp, TIMESTEP)
+            csj.execute()
             # pass
     mpm.job_queue.join()
 
