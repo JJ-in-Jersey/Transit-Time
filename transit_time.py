@@ -35,13 +35,13 @@ class TransitTimeMinimaJob:
         self._end_index = cy.transit_end_index()
         self.transit_range = cy.transit_range()
         self._elapsed_times_df = route.elapsed_time_lookup[speed]
-        self._elapsed_time_table = env.transit_time_folder().joinpath('et_' + str(speed))  # elapsed times in table, sorted by speed
+        self._elapsed_time_table = env.transit_time_folder.joinpath('et_' + str(speed))  # elapsed times in table, sorted by speed
         self.speed_folder = env.speed_folder(num2words(speed))
         self.transit_timesteps = self.speed_folder.joinpath(file_header + '_timesteps')  # transit times column
         self.savgol_data = self.speed_folder.joinpath(file_header + '_savgol_data')  # savgol column
         self.plot_data = self.speed_folder.joinpath(file_header + '_plot_data')  # full data calculated for transit time, can be plotted
         self.debug_data = self.speed_folder.joinpath(file_header + '_debug_data')  # full data with rows for plotting removed and s, m, e added
-        self.transit_time_values = env.transit_time_folder().joinpath(file_header + '_')  # final results table
+        self.transit_time_values = env.transit_time_folder.joinpath(file_header + '_')  # final results table
 
     def execute(self):
         init_time = perf_counter()

@@ -41,12 +41,12 @@ class Environment:
         makedirs(self.transit_time_folder, exist_ok=True)
 
     def edge_folder(self, name):
-        path = self.elapsed_folder.joinpath(name)
+        path = self.elapsed_time_folder.joinpath(name)
         makedirs(path, exist_ok=True)
         return path
 
     def speed_folder(self, name):
-        tt_folder = self.transit_folder.joinpath(name)
+        tt_folder = self.transit_time_folder.joinpath(name)
         makedirs(tt_folder, exist_ok=True)
         return tt_folder
 
