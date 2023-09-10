@@ -26,21 +26,19 @@ class Environment:
 
     def __init__(self, args):
         self.user_profile = env('user_profile')
-        project_folder = Path(self.user_profile + '/Developer Workspace/' + args['project_name'] + '_' + str(args['year']) + '/')
-        self.velo_folder = project_folder.joinpath('Velocity')
-        self.elapsed_folder = project_folder.joinpath('Elapsed Time')
-        self.transit_folder = project_folder.joinpath('Transit Time')
+        self.project_folder = Path(self.user_profile + '/Developer Workspace/' + args['project_name'] + '_' + str(args['year']) + '/')
+        self.velocity_folder = self.project_folder.joinpath('Velocity')
+        self.current_folder = self.project_folder.joinpath('Current')
+        self.elapsed_time_folder = self.project_folder.joinpath('Elapsed Time')
+        self.transit_time_folder = self.project_folder.joinpath('Transit Time')
 
-        if args['delete_data']: shutil.rmtree(project_folder, ignore_errors=True)
+        if args['delete_data']: shutil.rmtree(self.project_folder, ignore_errors=True)
 
-        makedirs(project_folder, exist_ok=True)
-        makedirs(self.velo_folder, exist_ok=True)
-        makedirs(self.elapsed_folder, exist_ok=True)
-        makedirs(self.transit_folder, exist_ok=True)
-
-    def velocity_folder(self): return self.velo_folder
-    def elapsed_time_folder(self): return self.elapsed_folder
-    def transit_time_folder(self): return self.transit_folder
+        makedirs(self.project_folder, exist_ok=True)
+        makedirs(self.velocity_folder, exist_ok=True)
+        makedirs(self.current_folder, exist_ok=True)
+        makedirs(self.elapsed_time_folder, exist_ok=True)
+        makedirs(self.transit_time_folder, exist_ok=True)
 
     def edge_folder(self, name):
         path = self.elapsed_folder.joinpath(name)

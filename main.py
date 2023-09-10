@@ -32,8 +32,8 @@ if __name__ == '__main__':
     env = Environment(args)
     cy = ChartYear(args)
 
-    Waypoint.velocity_folder = env.velocity_folder()
-    Edge.elapsed_time_folder = env.elapsed_time_folder()
+    Waypoint.velocity_folder = env.velocity_folder
+    Edge.elapsed_time_folder = env.elapsed_time_folder
 
     # Assemble route
     route = Route(args['filepath'], cy.waypoint_start_index(), cy.waypoint_end_index(), cy.edge_range())
@@ -47,7 +47,7 @@ if __name__ == '__main__':
     print(f'direction {route.elapsed_time_path.direction}')
     print(f'heading {route.elapsed_time_path.heading}\n')
 
-    env.transit_folder.joinpath(str(route.elapsed_time_path.heading) + '.heading').touch()
+    env.transit_time_folder.joinpath(str(route.elapsed_time_path.heading) + '.heading').touch()
 
     mgr = Manager()
     mpm.result_lookup = mgr.dict()
@@ -72,14 +72,14 @@ if __name__ == '__main__':
 
     for wp in route.waypoints:
         if isinstance(wp, DataWP):  # DataWP must come before CurrentStationWP because DataWP IS A CurrentStationWP
-            # mpm.job_queue.put(InterpolationDataJob(args['year'], wp))
-            idj = InterpolationDataJob(args['year'], wp)
-            idj.execute()
-            # pass
+            mpm.job_queue.put(InterpolationDataJob(args['year'], wp))
+            # idj = InterpolationDataJob(args['year'], wp)
+            # idj.execute()
+            pass
         elif isinstance(wp, CurrentStationWP):
-            # mpm.job_queue.put(CurrentStationJob(args['year'], wp, TIMESTEP))
-            csj = CurrentStationJob(args['year'], wp, TIMESTEP)
-            csj.execute()
+            mpm.job_queue.put(CurrentStationJob(args['year'], wp, TIMESTEP))
+            # csj = CurrentStationJob(args['year'], wp, TIMESTEP)
+            # csj.execute()
             # pass
     mpm.job_queue.join()
 
@@ -144,7 +144,7 @@ if __name__ == '__main__':
         if isinstance(route.transit_time_lookup[speed], DataFrame): print(f'{checkmark}     tt {speed}', flush=True)
         else: print(f'X     tt {speed}', flush=True)
 
-    if not ft.csv_npy_file_exists(env.transit_folder.joinpath('text_rotation')):
+    if not ft.csv_npy_file_exists(env.transit_time_folder.joinpath('text_rotation')):
         text_rotation_df = DataFrame(columns=['date', 'angle'])
         text_arcs_df = Concat([route.transit_time_lookup[boat_speeds[-1]], route.transit_time_lookup[boat_speeds[-1]]])
         text_arcs_df.sort_values(['date', 'start'], ignore_index=True, inplace=True)
@@ -153,7 +153,7 @@ if __name__ == '__main__':
             angle = (date_df.loc[1, 'start'] + date_df.loc[0, 'end'])/2
             text_rotation_df = Concat([text_rotation_df, DataFrame.from_dict({'date': [date], 'angle': [angle]})])
             text_arcs_df = text_arcs_df[text_arcs_df['date'] != date]
-        ft.write_df(text_rotation_df, env.transit_folder.joinpath('legend'))
+        ft.write_df(text_rotation_df, env.transit_time_folder.joinpath('legend'))
 
     arcs_df = Concat([route.transit_time_lookup[key] for key in route.transit_time_lookup])
     arcs_df.sort_values(['date'], ignore_index=True, inplace=True)
@@ -161,12 +161,12 @@ if __name__ == '__main__':
     min_rotation_df = min_rotation_df.rename(columns={'min': 'angle'})
     min_rotation_df['name'] = min_rotation_df['name'].apply(lambda s: s.replace('Arc', 'Min Arrow'))
     min_rotation_df = min_rotation_df.drop(['date_time', 'start', 'end'], axis=1)
-    ft.write_df(min_rotation_df, env.transit_folder.joinpath('minima'))
+    ft.write_df(min_rotation_df, env.transit_time_folder.joinpath('minima'))
     arcs_df.drop(['date_time', 'min'], axis=1, inplace=True)
-    ft.write_df(arcs_df, env.transit_folder.joinpath('arcs'))
+    ft.write_df(arcs_df, env.transit_time_folder.joinpath('arcs'))
 
     erv = HellGateSlackTimes(cy, env, route.waypoints)
-    ft.write_df(erv.hell_gate_start_slack, env.transit_folder.joinpath('hell_gate_start_slack'))
-    ft.write_df(erv.hell_gate_end_slack, env.transit_folder.joinpath('hell_gate_end_slack'))
+    ft.write_df(erv.hell_gate_start_slack, env.transit_time_folder.joinpath('hell_gate_start_slack'))
+    ft.write_df(erv.hell_gate_end_slack, env.transit_time_folder.joinpath('hell_gate_end_slack'))
 
     semaphore.off(mpm.job_manager_semaphore)
