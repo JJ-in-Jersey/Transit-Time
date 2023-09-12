@@ -29,14 +29,11 @@ def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 # noinspection PyProtectedMember
 class VelocityJob:
 
+
     @staticmethod
-    def velocity_download(folder, wdw):
-        newest_before = newest_after = ft.newest_file(folder)
-        wdw.until(ec.element_to_be_clickable((By.ID, 'generatePDF'))).click()
-        while newest_before == newest_after:
-            sleep(0.1)
-            newest_after = ft.newest_file(folder)
-        return newest_after
+    def download_event(wdw):
+        wdw[0].until(ec.element_to_be_clickable((By.ID, 'generatePDF'))).click()
+
 
     def velocity_page(self, y, driver, wdw):
         code_string = 'Annual?id=' + self.wp.code
@@ -54,7 +51,7 @@ class VelocityJob:
             driver.get(self.wp.noaa_url)
             wdw = WebDriverWait(driver, WDW)
             self.velocity_page(y, driver, wdw)
-            downloaded_file = VelocityJob.velocity_download(self.wp.folder, wdw)
+            downloaded_file = ft.wait_for_new_file(self.wp.folder, self.download_event, wdw)
             file_df = pd.read_csv(downloaded_file, parse_dates=['Date_Time (LST/LDT)'])
             download_df = pd.concat([download_df, file_df])
         driver.quit()

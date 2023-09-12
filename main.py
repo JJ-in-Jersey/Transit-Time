@@ -57,22 +57,11 @@ if __name__ == '__main__':
     # Download noaa data and create velocity arrays for each CURRENT waypoint
     print(f'\nDownloading and processing currents at CURRENT and INTERPOLATION DATA waypoints (1st day-1 to last day+4)', flush=True)
 
-    if not cd.is_chrome_installed():
-        raise Exception('chrome is not installed')
-
-    print(f'latest stable version: {cd.get_latest_stable_chrome_version()}')
-    print(f'installed driver version: {cd.get_installed_driver_version()}')
-    print(f'installed chrome version: {cd.get_installed_chrome_version()}')
-
-    if not cd.get_installed_driver_version() == cd.get_latest_stable_chrome_version():
-        print(f'downloading latest stable chromedriver version: {cd.download_latest_stable_driver_version()}')
-
-    if not cd.get_installed_chrome_version() >= cd.get_latest_stable_chrome_version():
-        print(f'downloading latest stable chrome version: {cd.download_latest_stable_chrome_version()}')
+    cd.check_driver()
 
     for wp in route.waypoints:
         if isinstance(wp, DataWP):  # DataWP must come before CurrentStationWP because DataWP IS A CurrentStationWP
-            mpm.job_queue.put(InterpolationDataJob(args['year'], wp))
+            # mpm.job_queue.put(InterpolationDataJob(args['year'], wp))
             # idj = InterpolationDataJob(args['year'], wp)
             # idj.execute()
             pass

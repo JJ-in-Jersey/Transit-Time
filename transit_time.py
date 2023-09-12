@@ -10,9 +10,12 @@ from tt_geometry.geometry import Arc, RoundedArc, FractionalArcStartDay, Fractio
 
 from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS
 
+
 def none_row(row, df):
     for c in range(len(df.columns)):
         df.iloc[row, c] = None
+
+
 def total_transit_time(init_row, d_frame, cols):
     row = init_row
     tt = 0
@@ -21,6 +24,8 @@ def total_transit_time(init_row, d_frame, cols):
         tt += val
         row += val
     return tt
+
+
 class TransitTimeMinimaJob:
 
     def __init__(self, env, cy, route, speed):
@@ -76,6 +81,7 @@ class TransitTimeMinimaJob:
 
     def execute_callback(self, result):
         print(f'-     Transit time ({self.speed}) {dtt.mins_secs(perf_counter() - result[2])} minutes', flush=True)
+
     def error_callback(self, result):
         print(f'!     Transit time ({self.speed}) process has raised an error: {result}', flush=True)
 

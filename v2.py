@@ -27,7 +27,8 @@ def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 
 
 # noinspection PyProtectedMember
-class VelocityJob:
+class BatteryValidation:
+    battery_url = 'https://tidesandcurrents.noaa.gov/noaatideannual.html?id=8518750'
 
     @staticmethod
     def velocity_download(folder, wdw):
@@ -39,7 +40,6 @@ class VelocityJob:
         return newest_after
 
     def velocity_page(self, y, driver, wdw):
-        battery_url = 'https://tidesandcurrents.noaa.gov/noaatideannual.html?id = 8518750'
         code_string = 'Annual?id=' + self.wp.code
         wdw.until(ec.element_to_be_clickable((By.CSS_SELECTOR, "a[href*='" + code_string + "']"))).click()
         Select(driver.find_element(By.ID, 'fmt')).select_by_index(3)  # select format
@@ -66,9 +66,9 @@ class VelocityJob:
         download_df = rm.shrink_dataframe(download_df)
         return download_df
 
-    def __init__(self, year, waypoint):
-        self.wp = waypoint
+    def __init__(self, year, download_folder):
         self.year = year
+        self.battery_folder = download_folder
 
 
 class CurrentStationJob(VelocityJob):
