@@ -29,13 +29,13 @@ def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 # noinspection PyProtectedMember
 class VelocityJob:
 
+    @staticmethod
+    def download_event(wdw): wdw[0].until(ec.element_to_be_clickable((By.ID, 'generatePDF'))).click()
 
     @staticmethod
-    def download_event(wdw):
-        wdw[0].until(ec.element_to_be_clickable((By.ID, 'generatePDF'))).click()
+    def load_page(driver, url): driver.get(url)
 
-
-    def velocity_page(self, y, driver, wdw):
+    def set_up_download(self, y, driver, wdw):
         code_string = 'Annual?id=' + self.wp.code
         wdw.until(ec.element_to_be_clickable((By.CSS_SELECTOR, "a[href*='" + code_string + "']"))).click()
         Select(driver.find_element(By.ID, 'fmt')).select_by_index(3)  # select format
@@ -47,10 +47,10 @@ class VelocityJob:
     def velocity_aggregate(self):
         download_df = pd.DataFrame()
         driver = cd.get_driver(self.wp.folder)
+        wdw = WebDriverWait(driver, WDW)
         for y in range(self.year - 1, self.year + 2):  # + 2 because of range behavior
-            driver.get(self.wp.noaa_url)
-            wdw = WebDriverWait(driver, WDW)
-            self.velocity_page(y, driver, wdw)
+            self.load_page(driver, self.wp.noaa_url)
+            self.set_up_download(y, driver, wdw)
             downloaded_file = ft.wait_for_new_file(self.wp.folder, self.download_event, wdw)
             file_df = pd.read_csv(downloaded_file, parse_dates=['Date_Time (LST/LDT)'])
             download_df = pd.concat([download_df, file_df])
