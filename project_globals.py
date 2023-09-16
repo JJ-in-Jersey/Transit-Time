@@ -11,9 +11,9 @@ from tt_os_abstraction.os_abstraction import env
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
-TIMESTEP = 15  # seconds
-TIME_RESOLUTION = 15  # rounded to minutes
-WINDOW_MARGIN = 10  # minutes
+TIMESTEP = 15  # time steps used to calculate, seconds
+TIME_RESOLUTION = 15  # time shown on chart, rounded to minutes
+WINDOW_MARGIN = 20  # time on either side of best, minutes
 TIMESTEP_MARGIN = int(WINDOW_MARGIN * 60 / TIMESTEP)  # number of timesteps to add to minimum to find edges of time windows
 FIVE_HOURS_OF_TIMESTEPS = int(5*3600 / TIMESTEP)  # only consider windows of transit times less than the midline that are at least 5 ours long (6 hour tide change)
 WDW = 100
