@@ -1,7 +1,8 @@
 from argparse import ArgumentParser as argParser
 from pathlib import Path
 from multiprocessing import Manager
-from numpy import ndarray as array
+from numpy import ndarray
+
 # noinspection PyPep8Naming
 from pandas import DataFrame, concat as Concat
 
@@ -75,8 +76,8 @@ if __name__ == '__main__':
     print(f'\nAdding results to waypoints', flush=True)
     for wp in route.waypoints:
         if isinstance(wp, CurrentStationWP) or isinstance(wp, DataWP):
-            wp.output_data = mpm.result_lookup[id(wp)]
-            if isinstance(wp.output_data, array): print(f'{checkmark}     {wp.unique_name}', flush=True)
+            wp.velocity_data = mpm.result_lookup[id(wp)]
+            if isinstance(wp.velocity_data, ndarray): print(f'{checkmark}     {wp.unique_name}', flush=True)
             else: print(f'X     {wp.unique_name}', flush=True)
 
     # Calculate the approximation of the velocity at interpolation points
@@ -98,15 +99,15 @@ if __name__ == '__main__':
 
             if isinstance(interpolation_pt, InterpolationWP):
                 interpolation_pt.output_data = mpm.result_lookup[id(interpolation_pt)]
-                if isinstance(interpolation_pt.output_data, array): print(f'{checkmark}     {interpolation_pt.unique_name}', flush=True)
+                if isinstance(interpolation_pt.output_data, ndarray): print(f'{checkmark}     {interpolation_pt.unique_name}', flush=True)
                 else: print(f'X     {interpolation_pt.unique_name}', flush=True)
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for edges (1st day-1 to last day+3)')
     for edge in route.elapsed_time_path.edges:
-        mpm.job_queue.put(ElapsedTimeJob(edge))
-        # etj = ElapsedTimeJob(edge)
-        # etj.execute()
+        # mpm.job_queue.put(ElapsedTimeJob(edge))
+        etj = ElapsedTimeJob(edge)
+        etj.execute()
     mpm.job_queue.join()
 
     print(f'\nAdding results to edges')

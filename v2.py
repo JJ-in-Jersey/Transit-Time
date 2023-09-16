@@ -40,13 +40,13 @@ class BatteryValidation:
         return newest_after
 
     def velocity_page(self, y, driver, wdw):
-        code_string = 'Annual?id=' + self.wp.code
-        wdw.until(ec.element_to_be_clickable((By.CSS_SELECTOR, "a[href*='" + code_string + "']"))).click()
-        Select(driver.find_element(By.ID, 'fmt')).select_by_index(3)  # select format
-        Select(driver.find_element(By.ID, 'timeunits')).select_by_index(1)  # select 24 hour time
-        dropdown = Select(driver.find_element(By.ID, 'year'))
-        options = [int(o.text) for o in dropdown.options]
-        dropdown.select_by_index(options.index(y))
+        # code_string = 'Annual?id=' + self.wp.code
+        # wdw.until(ec.element_to_be_clickable((By.CSS_SELECTOR, "a[href*='" + code_string + "']"))).click()
+        # Select(driver.find_element(By.ID, 'fmt')).select_by_index(3)  # select format
+        # Select(driver.find_element(By.ID, 'timeunits')).select_by_index(1)  # select 24 hour time
+        # dropdown = Select(driver.find_element(By.ID, 'year'))
+        # options = [int(o.text) for o in dropdown.options]
+        # dropdown.select_by_index(options.index(y))
 
     def velocity_aggregate(self):
         download_df = pd.DataFrame()
