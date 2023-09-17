@@ -84,7 +84,7 @@ if __name__ == '__main__':
             else: print(f'X     {wp.unique_name}', flush=True)
 
     # Calculate the approximation of the velocity at interpolation points
-    if route.interpolation_groups is not None:
+    if len(route.interpolation_groups):
         print(f'\nApproximating the velocity at INTERPOLATION waypoints (1st day-1 to last day+4)', flush=True)
         init_time = perf_counter()
         for group in route.interpolation_groups:
