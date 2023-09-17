@@ -14,8 +14,8 @@ class HellGateSlackTimes:
 
         print('\nCalculating slack water times at Hell Gate')
         hell_gate = list(filter(lambda wp: not bool(wp.unique_name.find('Hell_Gate')), waypoints))[0]
-        if ft.csv_npy_file_exists(hell_gate.interpolation_data_file):
-            slack_df = ft.read_df(hell_gate.interpolation_data_file)
+        if ft.csv_npy_file_exists(hell_gate.downloaded_data_filepath):
+            slack_df = ft.read_df(hell_gate.downloaded_data_filepath)
             slack_df = slack_df[slack_df['Event'] == 'slack'].copy()
             slack_df['date'] = slack_df['date_time'].apply(pd.to_datetime).dt.date
             slack_df['time'] = slack_df['date_time'].apply(pd.to_datetime).dt.time
@@ -25,7 +25,7 @@ class HellGateSlackTimes:
             slack_df = slack_df[slack_df['date'] <= cy.last_day.date()]
             self.hell_gate_start_slack = self.index_slack_df(slack_df, 'Hell Gate Start Line')
 
-            slack_df = ft.read_df(hell_gate.interpolation_data_file)
+            slack_df = ft.read_df(hell_gate.interpolated_data_filepath)
             slack_df = slack_df[slack_df['Event'] == 'slack'].copy()
             slack_df['date_time'] = slack_df['date_time'].apply(pd.to_datetime) + pd.Timedelta(hours=3)
             slack_df['date'] = slack_df['date_time'].apply(pd.to_datetime).dt.date
