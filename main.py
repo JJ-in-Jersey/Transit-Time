@@ -2,6 +2,7 @@ from argparse import ArgumentParser as argParser
 from pathlib import Path
 from multiprocessing import Manager
 from numpy import ndarray
+from time import perf_counter
 
 # noinspection PyPep8Naming
 from pandas import DataFrame, concat as Concat
@@ -10,6 +11,7 @@ from tt_gpx.gpx import Route, Waypoint, Edge, CurrentStationWP, InterpolationWP,
 from tt_semaphore import simple_semaphore as semaphore
 from tt_file_tools import file_tools as ft
 import tt_chrome_driver.chrome_driver as cd
+from tt_date_time_tools import date_time_tools as dt
 
 import multiprocess as mpm
 from velocity import CurrentStationJob, InterpolationJob, InterpolationDataJob
@@ -59,7 +61,7 @@ if __name__ == '__main__':
 
     # Download noaa data and create velocity arrays for each CURRENT waypoint
     print(f'\nDownloading and processing currents at CURRENT and INTERPOLATION DATA waypoints (1st day-1 to last day+4)', flush=True)
-
+    init_time = perf_counter()
     for wp in route.waypoints:
         if isinstance(wp, DataWP):  # DataWP must come before CurrentStationWP because DataWP IS A CurrentStationWP
             # mpm.job_queue.put(InterpolationDataJob(args['year'], wp))
@@ -72,6 +74,7 @@ if __name__ == '__main__':
             # csj.execute()
             # pass
     mpm.job_queue.join()
+    print(f' Multi-process time {dt.mins_secs(perf_counter()-init_time)}')
 
     print(f'\nAdding results to waypoints', flush=True)
     for wp in route.waypoints:
@@ -83,6 +86,7 @@ if __name__ == '__main__':
     # Calculate the approximation of the velocity at interpolation points
     if route.interpolation_groups is not None:
         print(f'\nApproximating the velocity at INTERPOLATION waypoints (1st day-1 to last day+4)', flush=True)
+        init_time = perf_counter()
         for group in route.interpolation_groups:
             interpolation_pt = group[0]
 
@@ -101,14 +105,17 @@ if __name__ == '__main__':
                 interpolation_pt.output_data = mpm.result_lookup[id(interpolation_pt)]
                 if isinstance(interpolation_pt.output_data, ndarray): print(f'{checkmark}     {interpolation_pt.unique_name}', flush=True)
                 else: print(f'X     {interpolation_pt.unique_name}', flush=True)
+        print(f'Multi-process time {dt.mins_secs(perf_counter()-init_time)}')
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for edges (1st day-1 to last day+3)')
+    init_time = perf_counter()
     for edge in route.elapsed_time_path.edges:
         mpm.job_queue.put(ElapsedTimeJob(edge))
         # etj = ElapsedTimeJob(edge)
         # etj.execute()
     mpm.job_queue.join()
+    print(f'Multi-process time {dt.mins_secs(perf_counter() - init_time)}')
 
     print(f'\nAdding results to edges')
     for edge in route.elapsed_time_path.edges:
@@ -122,11 +129,13 @@ if __name__ == '__main__':
 
     # calculate the number of timesteps from first node to last node
     print(f'\nCalculating transit times (1st day-1 to last day+2)')
+    init_time = perf_counter()
     for speed in boat_speeds:
         mpm.job_queue.put(TransitTimeMinimaJob(env, cy, route, speed))
     # tt = TransitTimeMinimaJob(env, cy, route, speed)
     # tt.execute()
     mpm.job_queue.join()
+    print(f'Multi-process time {dt.mins_secs(perf_counter() - init_time)}')
 
     print(f'\nAdding transit time speed results to route')
     for speed in boat_speeds:
