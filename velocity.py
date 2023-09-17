@@ -27,6 +27,7 @@ def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 def download_event(wdw): wdw[0].until(ec.element_to_be_clickable((By.ID, 'generatePDF'))).click()
 def load_page(driver, url): driver.get(url)
 
+
 def set_up_download(year, driver, wdw, waypoint):
     code_string = 'Annual?id=' + waypoint.code
     wdw.until(ec.element_to_be_clickable((By.CSS_SELECTOR, "a[href*='" + code_string + "']"))).click()
@@ -36,13 +37,14 @@ def set_up_download(year, driver, wdw, waypoint):
     options = [int(o.text) for o in dropdown.options]
     dropdown.select_by_index(options.index(year))
 
+
 class DownloadedDataframe:
 
     def __init__(self, year, waypoint):
         self.dataframe = None
 
-        if ft.csv_npy_file_exists(waypoint.downloaded_data_file):
-            self.dataframe = ft.read_df(waypoint.downloaded_data_file)
+        if ft.csv_npy_file_exists(waypoint.downloaded_data_filepath):
+            self.dataframe = ft.read_df(waypoint.downloaded_data_filepath)
         else:
             self.dataframe = pd.DataFrame()
             driver = cd.get_driver(waypoint.folder)
@@ -63,15 +65,16 @@ class DownloadedDataframe:
             self.dataframe['velocity'] = self.dataframe['Speed (knots)'].apply(dash_to_zero)
             self.dataframe = rm.shrink_dataframe(self.dataframe)
             self.dataframe = self.dataframe[(waypoint.start_index <= self.dataframe['date_index']) & (self.dataframe['date_index'] <= waypoint.end_index)]
-            ft.write_df(self.dataframe, waypoint.downloaded_data_file)
+            ft.write_df(self.dataframe, waypoint.downloaded_data_filepath)
+
 
 class InterpolatedArray:
 
     def __init__(self, waypoint, timestep, downloaded_dataframe):
         self.velocity_array = None
 
-        if ft.csv_npy_file_exists(waypoint.interpolated_data_file):
-            self.velocity_array = ft.read_arr(waypoint.interpolated_data_file)
+        if ft.csv_npy_file_exists(waypoint.interpolated_data_filepath):
+            self.velocity_array = ft.read_arr(waypoint.interpolated_data_filepath)
         else:
             dataframe = downloaded_dataframe.dataframe
             cs = CubicSpline(dataframe['date_index'], dataframe['velocity'])
@@ -79,9 +82,10 @@ class InterpolatedArray:
             df['date_index'] = range(waypoint.start_index, waypoint.end_index, timestep)
             df['date_time'] = pd.to_datetime(df['date_index'], unit='s').round('min')
             df['velocity'] = df['date_index'].apply(cs)
-            ft.write_df(df, waypoint.interpolated_data_file)
+            ft.write_df(df, waypoint.interpolated_data_filepath)
             self.velocity_array = np.array(df['velocity'].to_list(), dtype=np.half)
-            ft.write_arr(self.velocity_array, waypoint.interpolated_data_file)
+            ft.write_arr(self.velocity_array, waypoint.interpolated_data_filepath)
+
 
 class CurrentStationJob:
 
