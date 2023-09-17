@@ -40,9 +40,9 @@ class ElapsedTimeJob:
 
     def execute(self):
         init_time = perf_counter()
-        if ft.csv_npy_file_exists(self.edge.output_data_file):
+        if ft.csv_npy_file_exists(self.edge.elapsed_time_data_filepath):
             print(f'+     {self.unique_name} ({round(self.length, 2)} nm)', flush=True)
-            elapsed_times_df = ft.read_df(self.edge.output_data_file)
+            elapsed_times_df = ft.read_df(self.edge.elapsed_time_data_filepath)
             return tuple([self.result_key, elapsed_times_df, init_time])
         else:
             print(f'+     {self.unique_name} ({round(self.length, 2)} nm)', flush=True)
@@ -55,7 +55,7 @@ class ElapsedTimeJob:
                 elapsed_times_df[col_name] = [elapsed_time(i, dist, sign(s)*self.length) for i in range(len(self.edge.edge_range))]
             elapsed_times_df.fillna(0, inplace=True)
             elapsed_times_df = rm.shrink_dataframe(elapsed_times_df)
-            ft.write_df(elapsed_times_df, self.edge.output_data_file)
+            ft.write_df(elapsed_times_df, self.edge.elapsed_time_data_filepath)
 
         return tuple([self.result_key, elapsed_times_df, init_time])  # elapsed times are reported in number of timesteps
 

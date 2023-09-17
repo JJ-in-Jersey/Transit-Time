@@ -55,10 +55,10 @@ if __name__ == '__main__':
     jm = mpm.WaitForProcess(target=mpm.JobManager, args=(mpm.job_queue, mpm.result_lookup))
     jm.start()
 
+    cd.check_driver()
+
     # Download noaa data and create velocity arrays for each CURRENT waypoint
     print(f'\nDownloading and processing currents at CURRENT and INTERPOLATION DATA waypoints (1st day-1 to last day+4)', flush=True)
-
-    cd.check_driver()
 
     for wp in route.waypoints:
         if isinstance(wp, DataWP):  # DataWP must come before CurrentStationWP because DataWP IS A CurrentStationWP
@@ -105,9 +105,9 @@ if __name__ == '__main__':
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for edges (1st day-1 to last day+3)')
     for edge in route.elapsed_time_path.edges:
-        # mpm.job_queue.put(ElapsedTimeJob(edge))
-        etj = ElapsedTimeJob(edge)
-        etj.execute()
+        mpm.job_queue.put(ElapsedTimeJob(edge))
+        # etj = ElapsedTimeJob(edge)
+        # etj.execute()
     mpm.job_queue.join()
 
     print(f'\nAdding results to edges')
