@@ -7,7 +7,7 @@ from time import perf_counter
 # noinspection PyPep8Naming
 from pandas import DataFrame, concat as Concat
 
-from tt_gpx.gpx import Route, Waypoint, Edge, CurrentStationWP, InterpolationWP, DataWP
+from tt_gpx.gpx import Route, Waypoint, FileWaypoint, Edge, CurrentStationWP, InterpolationWP, DataWP
 from tt_semaphore import simple_semaphore as semaphore
 from tt_file_tools import file_tools as ft
 import tt_chrome_driver.chrome_driver as cd
@@ -15,6 +15,7 @@ from tt_date_time_tools import date_time_tools as dt
 
 import multiprocess as mpm
 from velocity import CurrentStationJob, InterpolationJob, InterpolationDataJob
+from current import TideStationJob
 from elapsed_time import ElapsedTimeJob
 from dataframe_merge import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
@@ -167,5 +168,9 @@ if __name__ == '__main__':
     erv = HellGateSlackTimes(cy, env, route.waypoints)
     ft.write_df(erv.hell_gate_start_slack, env.transit_time_folder.joinpath('hell_gate_start_slack'))
     ft.write_df(erv.hell_gate_end_slack, env.transit_time_folder.joinpath('hell_gate_end_slack'))
+
+    battery_wp = FileWaypoint(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
+    tsj = TideStationJob(cy.year(), battery_wp, TIMESTEP)
+    tsj.execute()
 
     semaphore.off(mpm.job_manager_semaphore)
