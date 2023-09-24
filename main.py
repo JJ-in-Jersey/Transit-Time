@@ -7,7 +7,7 @@ from time import perf_counter
 # noinspection PyPep8Naming
 from pandas import DataFrame, concat as Concat
 
-from tt_gpx.gpx import Route, Waypoint, FileWaypoint, Edge, CurrentStationWP, InterpolationWP, DataWP
+from tt_gpx.gpx import Route, Waypoint, Edge, TideWP, InterpolationWP, DataWP, CurrentStationWP
 from tt_semaphore import simple_semaphore as semaphore
 from tt_file_tools import file_tools as ft
 import tt_chrome_driver.chrome_driver as cd
@@ -37,6 +37,7 @@ if __name__ == '__main__':
     cy = ChartYear(args)
 
     Waypoint.velocity_folder = env.velocity_folder
+    Waypoint.current_folder = env.current_folder
     Edge.elapsed_time_folder = env.elapsed_time_folder
 
     # Assemble route
@@ -52,6 +53,10 @@ if __name__ == '__main__':
     print(f'heading {route.elapsed_time_path.heading}\n')
 
     env.transit_time_folder.joinpath(str(route.elapsed_time_path.heading) + '.heading').touch()
+
+    battery_wp = TideWP(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
+    tsj = TideStationJob(cy.year(), battery_wp, TIMESTEP)
+    # tsj.execute()
 
     mgr = Manager()
     mpm.result_lookup = mgr.dict()
@@ -169,8 +174,8 @@ if __name__ == '__main__':
     ft.write_df(erv.hell_gate_start_slack, env.transit_time_folder.joinpath('hell_gate_start_slack'))
     ft.write_df(erv.hell_gate_end_slack, env.transit_time_folder.joinpath('hell_gate_end_slack'))
 
-    battery_wp = FileWaypoint(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
-    tsj = TideStationJob(cy.year(), battery_wp, TIMESTEP)
-    tsj.execute()
+    # battery_wp = FileWaypoint(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
+    # tsj = TideStationJob(cy.year(), battery_wp, TIMESTEP)
+    # tsj.execute()
 
     semaphore.off(mpm.job_manager_semaphore)
