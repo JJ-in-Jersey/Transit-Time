@@ -22,7 +22,6 @@ from project_globals import WDW
 
 def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 def download_event(wdw): wdw[0].until(ec.element_to_be_clickable((By.ID, 'generatePDF'))).click()
-def load_page(driver, url): driver.get(url)
 
 
 def set_up_download(year, driver, wdw, waypoint):
@@ -35,20 +34,21 @@ def set_up_download(year, driver, wdw, waypoint):
     dropdown.select_by_index(options.index(year))
 
 
-class DownloadedDataframe:
+class VelocityDownloadedDataframe:
 
-    def __init__(self, year, waypoint):
+    def __init__(self, year, waypoint, headless=False):
+        self.headless = headless
         self.dataframe = None
 
         if ft.csv_npy_file_exists(waypoint.downloaded_data_filepath):
             self.dataframe = ft.read_df(waypoint.downloaded_data_filepath)
         else:
             self.dataframe = pd.DataFrame()
-            driver = cd.get_driver(waypoint.folder)
+            driver = cd.get_driver(waypoint.folder, headless)
             wdw = WebDriverWait(driver, WDW)
 
             for y in range(year - 1, year + 2):  # + 2 because of range behavior
-                load_page(driver, waypoint.noaa_url)
+                driver.get(waypoint.noaa_url)
                 set_up_download(y, driver, wdw, waypoint)
                 downloaded_file = ft.wait_for_new_file(waypoint.folder, download_event, wdw)
                 file_df = pd.read_csv(downloaded_file, parse_dates=['Date_Time (LST/LDT)'])
@@ -65,7 +65,7 @@ class DownloadedDataframe:
             ft.write_df(self.dataframe, waypoint.downloaded_data_filepath)
 
 
-class InterpolatedArray:
+class VelocityInterpolatedArray:
 
     def __init__(self, waypoint, timestep, downloaded_dataframe):
         self.velocity_array = None
@@ -89,8 +89,8 @@ class CurrentStationJob:
     def execute(self):
         init_time = perf_counter()
         print(f'+     {self.waypoint.unique_name}', flush=True)
-        downloaded_dataframe = DownloadedDataframe(self.year, self.waypoint)
-        interpolated_array = InterpolatedArray(self.waypoint, self.timestep, downloaded_dataframe)
+        downloaded_dataframe = VelocityDownloadedDataframe(self.year, self.waypoint, self.headless)
+        interpolated_array = VelocityInterpolatedArray(self.waypoint, self.timestep, downloaded_dataframe)
         return tuple([self.result_key, interpolated_array.velocity_array, init_time])
 
     def execute_callback(self, result):
@@ -99,7 +99,8 @@ class CurrentStationJob:
     def error_callback(self, result):
         print(f'!     {self.waypoint.unique_name} process has raised an error: {result}', flush=True)
 
-    def __init__(self, year, waypoint, timestep):
+    def __init__(self, year, waypoint, timestep, headless=False):
+        self.headless = headless
         self.year = year
         self.waypoint = waypoint
         self.timestep = timestep

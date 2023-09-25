@@ -55,8 +55,8 @@ if __name__ == '__main__':
     env.transit_time_folder.joinpath(str(route.elapsed_time_path.heading) + '.heading').touch()
 
     battery_wp = TideWP(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
-    tsj = TideStationJob(cy.year(), battery_wp, TIMESTEP)
-    # tsj.execute()
+    tsj = TideStationJob(cy.year(), battery_wp, TIMESTEP, False)
+    tsj.execute()
 
     mgr = Manager()
     mpm.result_lookup = mgr.dict()
@@ -75,7 +75,7 @@ if __name__ == '__main__':
             # idj.execute()
             pass
         elif isinstance(wp, CurrentStationWP):
-            mpm.job_queue.put(CurrentStationJob(args['year'], wp, TIMESTEP))
+            mpm.job_queue.put(CurrentStationJob(args['year'], wp, TIMESTEP, False))
             # csj = CurrentStationJob(args['year'], wp, TIMESTEP)
             # csj.execute()
             # pass
