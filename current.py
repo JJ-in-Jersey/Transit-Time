@@ -12,6 +12,7 @@ from tt_file_tools import file_tools as ft
 from tt_memory_helper import reduce_memory as rm
 from tt_date_time_tools import date_time_tools as dtt
 from tt_gpx.gpx import Waypoint
+from tt_geometry.geometry import time_to_degrees
 
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as ec
@@ -68,7 +69,7 @@ class DownloadedDataframe:
             self.downloaded_df = pd.read_csv(waypoint.downloaded_data_filepath.with_suffix('.csv'))
             self.downloaded_df['date'] = pd.to_datetime(self.downloaded_df['date'], format='%Y/%m/%d')
             self.downloaded_df['time'] = pd.to_datetime(self.downloaded_df['time'], format='%I:%M %p')
-            self.downloaded_df['datetime'] = pd.to_datetime(self.downloaded_df['datetime'], format='%Y/%m/%d %I:%M %p')
+            self.downloaded_df['datetime'] = pd.to_datetime(self.downloaded_df['datetime'])
         else:
             self.downloaded_df = pd.DataFrame()
             driver = cd.get_driver(waypoint.folder, headless)
@@ -103,10 +104,10 @@ class TideStationJob:
         self.best_df = north_df.drop(['date', 'time', 'HL', 'datetime'], axis=1)
         self.best_df = pd.concat([self.best_df, south_df.drop(['date', 'time', 'HL', 'datetime'], axis=1)], ignore_index=True)
 
-        self.best_df['date'] = self.best_df['datetime'].apply(pd.to_datetime).dt.date
-        self.best_df['time'] = self.best_df['datetime'].apply(pd.to_datetime).dt.time
+        self.best_df['date'] = self.best_df['best_time'].dt.date
+        self.best_df['time'] = self.best_df['best_time'].dt.time
         self.best_df['angle'] = self.best_df['time'].apply(time_to_degrees)
-        self.best_df = self.best_df.filter(['date', 'time', 'angle'])
+        self.best_df = self.best_df.drop(['best_time'], axis=1)
         self.best_df = slack_df[slack_df['date'] >= cy.first_day.date()]
         self.best_df = slack_df[slack_df['date'] <= cy.last_day.date()]
         self.best_df = self.index_arc_df(self.best_df, 'Battery Best Time')
