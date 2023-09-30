@@ -30,24 +30,15 @@ class HellGateSlackTimes:
         hell_gate = list(filter(lambda wp: not bool(wp.unique_name.find('Hell_Gate')), waypoints))[0]
         if ft.csv_npy_file_exists(hell_gate.downloaded_data_filepath):
             slack_df = ft.read_df(hell_gate.downloaded_data_filepath)
-            slack_df = slack_df[slack_df['Event'] == 'slack'].copy()
-            # for row in slack_df.iterrows():
-            #     slack_df.loc[row.index + 0.5, 'date_time'] = pd.to_datetime(row['datetime']) + pd.Timedelta(hours=3)
+            slack_df = slack_df[slack_df['Event'] == 'slack']
+            slack_df.drop(columns=['Event', 'Speed (knots)', 'date_index', 'velocity'], inplace=True)
+            slack_df = pd.concat([slack_df, pd.DataFrame(columns=['date_time'], data=slack_df['date_time'].apply(pd.to_datetime) + pd.Timedelta(hours=3))])
+            slack_df['date_time'] = slack_df['date_time'].apply(pd.to_datetime)
+            slack_df.sort_values('date_time')
             slack_df['date'] = slack_df['date_time'].apply(pd.to_datetime).dt.date
             slack_df['time'] = slack_df['date_time'].apply(pd.to_datetime).dt.time
             slack_df['angle'] = slack_df['time'].apply(time_to_degrees)
             slack_df = slack_df.filter(['date', 'time', 'angle'])
             slack_df = slack_df[slack_df['date'] >= cy.first_day.date()]
             slack_df = slack_df[slack_df['date'] <= cy.last_day.date()]
-            self.hell_gate_start_slack = index_arc_df(slack_df, 'Hell Gate Start Line')
-
-            slack_df = ft.read_df(hell_gate.downloaded_data_filepath)
-            slack_df = slack_df[slack_df['Event'] == 'slack'].copy()
-            slack_df['date_time'] = slack_df['date_time'].apply(pd.to_datetime) + pd.Timedelta(hours=3)
-            slack_df['date'] = slack_df['date_time'].apply(pd.to_datetime).dt.date
-            slack_df['time'] = slack_df['date_time'].apply(pd.to_datetime).dt.time
-            slack_df['angle'] = slack_df['time'].apply(time_to_degrees)
-            slack_df = slack_df.filter(['date', 'time', 'angle'])
-            slack_df = slack_df[slack_df['date'] >= cy.first_day.date()]
-            slack_df = slack_df[slack_df['date'] <= cy.last_day.date()]
-            self.hell_gate_end_slack = index_arc_df(slack_df, 'Hell Gate End Line')
+            self.hell_gate_slack = index_arc_df(slack_df, 'Hell Gate Line')

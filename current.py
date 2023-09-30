@@ -103,18 +103,18 @@ class TideStationJob:
         south_df.insert(len(south_df.columns), 'best_time', south_df['datetime'] + pd.Timedelta(hours=4))
         north_df = dataframe[dataframe['HL'] == 'L']
         north_df.insert(len(north_df.columns), 'best_time', north_df['datetime'] + pd.Timedelta(hours=4.5))
-        self.best_df = north_df.drop(['date', 'time', 'HL', 'datetime'], axis=1)
-        self.best_df = pd.concat([self.best_df, south_df.drop(['date', 'time', 'HL', 'datetime'], axis=1)], ignore_index=True)
+        best_df = north_df.drop(['date', 'time', 'HL', 'datetime'], axis=1)
+        best_df = pd.concat([best_df, south_df.drop(['date', 'time', 'HL', 'datetime'], axis=1)], ignore_index=True)
 
-        self.best_df['date'] = self.best_df['best_time'].dt.date
-        self.best_df['time'] = self.best_df['best_time'].dt.time
-        self.best_df['angle'] = self.best_df['time'].apply(time_to_degrees)
-        self.best_df = self.best_df.drop(['best_time'], axis=1)
-        self.best_df = self.best_df[self.best_df['date'] >= self.first_day]
-        self.best_df = self.best_df[self.best_df['date'] <= self.last_day]
-        self.best_df = index_arc_df(self.best_df, 'Battery Best Time')
+        best_df['date'] = best_df['best_time'].dt.date
+        best_df['time'] = best_df['best_time'].dt.time
+        best_df['angle'] = best_df['time'].apply(time_to_degrees)
+        best_df = best_df.drop(['best_time'], axis=1)
+        best_df = best_df[best_df['date'] >= self.first_day]
+        best_df = best_df[best_df['date'] <= self.last_day]
+        self.battery_lines = index_arc_df(best_df, 'Battery Line')
 
-        ft.write_df(self.best_df, self.waypoint.final_data_filepath)
+        ft.write_df(self.battery_lines, self.waypoint.final_data_filepath)
 
     def execute_callback(self, result):
         print(f'-     {self.waypoint.unique_name} {dtt.mins_secs(perf_counter() - result[2])} minutes', flush=True)
@@ -130,4 +130,4 @@ class TideStationJob:
         self.last_day = cy.last_day.date()
         self.timestep = timestep
         self.result_key = id(waypoint)
-        self.best_df = None
+        self.battery_lines = None

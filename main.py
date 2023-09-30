@@ -167,9 +167,9 @@ if __name__ == '__main__':
     ft.write_df(arcs_df, env.transit_time_folder.joinpath('arcs'))
 
     erv = HellGateSlackTimes(cy, route.waypoints)
-    ft.write_df(erv.hell_gate_start_slack, env.transit_time_folder.joinpath('hell_gate_start_slack'))
-    ft.write_df(erv.hell_gate_end_slack, env.transit_time_folder.joinpath('hell_gate_end_slack'))
+    ft.write_df(erv.hell_gate_slack, env.transit_time_folder.joinpath('hell_gate_slack'))
 
+    print(f'\nCreating Battery tide arcs')
     battery_wp = TideWP(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
     battery_job = TideStationJob(cy, battery_wp, TIMESTEP, False)
     battery_job.execute()
