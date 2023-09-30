@@ -173,6 +173,6 @@ if __name__ == '__main__':
     battery_wp = TideWP(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
     battery_job = TideStationJob(cy, battery_wp, TIMESTEP, False)
     battery_job.execute()
-    ft.write_df(battery_job.best_df, env.transit_time_folder.joinpath('battery_tide'))
+    ft.write_df(battery_job.battery_lines, env.transit_time_folder.joinpath('battery_tide'))
 
     semaphore.off(mpm.job_manager_semaphore)
