@@ -15,13 +15,13 @@ from tt_date_time_tools import date_time_tools as dt
 
 import multiprocess as mpm
 from velocity import CurrentStationJob, InterpolationJob, InterpolationDataJob
-from current import TideStationJob
+from battery_validation import TideStationJob
 from elapsed_time import ElapsedTimeJob
 from dataframe_merge import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
 from project_globals import TIMESTEP, boat_speeds, Environment, ChartYear
 
-from validations import HellGateSlackTimes
+from hell_gate_validation import HellGateSlackTimes
 
 checkmark = u'\N{check mark}'
 
