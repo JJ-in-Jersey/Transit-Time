@@ -54,10 +54,6 @@ if __name__ == '__main__':
 
     env.transit_time_folder.joinpath(str(route.elapsed_time_path.heading) + '.heading').touch()
 
-    battery_wp = TideWP(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
-    tsj = TideStationJob(cy.year(), battery_wp, TIMESTEP, False)
-    tsj.execute()
-
     mgr = Manager()
     mpm.result_lookup = mgr.dict()
     jm = mpm.WaitForProcess(target=mpm.JobManager, args=(mpm.job_queue, mpm.result_lookup))
@@ -174,8 +170,9 @@ if __name__ == '__main__':
     ft.write_df(erv.hell_gate_start_slack, env.transit_time_folder.joinpath('hell_gate_start_slack'))
     ft.write_df(erv.hell_gate_end_slack, env.transit_time_folder.joinpath('hell_gate_end_slack'))
 
-    # battery_wp = FileWaypoint(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
-    # tsj = TideStationJob(cy.year(), battery_wp, TIMESTEP)
-    # tsj.execute()
+    battery_wp = TideWP(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
+    battery_job = TideStationJob(cy, battery_wp, TIMESTEP, False)
+    battery_job.execute()
+    ft.write_df(battery_job.best_df, env.transit_time_folder.joinpath('battery_tide'))
 
     semaphore.off(mpm.job_manager_semaphore)

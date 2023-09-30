@@ -14,6 +14,8 @@ from tt_date_time_tools import date_time_tools as dtt
 from tt_gpx.gpx import Waypoint
 from tt_geometry.geometry import time_to_degrees
 
+from project_globals import ChartYear as cy
+
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.by import By
@@ -108,9 +110,11 @@ class TideStationJob:
         self.best_df['time'] = self.best_df['best_time'].dt.time
         self.best_df['angle'] = self.best_df['time'].apply(time_to_degrees)
         self.best_df = self.best_df.drop(['best_time'], axis=1)
-        self.best_df = slack_df[slack_df['date'] >= cy.first_day.date()]
-        self.best_df = slack_df[slack_df['date'] <= cy.last_day.date()]
-        self.best_df = self.index_arc_df(self.best_df, 'Battery Best Time')
+        self.best_df = self.best_df[self.best_df['date'] >= self.first_day]
+        self.best_df = self.best_df[self.best_df['date'] <= self.last_day]
+        self.best_df = index_arc_df(self.best_df, 'Battery Best Time')
+
+        ft.write_df(self.best_df, self.waypoint.final_data_filepath)
 
     def execute_callback(self, result):
         print(f'-     {self.waypoint.unique_name} {dtt.mins_secs(perf_counter() - result[2])} minutes', flush=True)
@@ -118,10 +122,12 @@ class TideStationJob:
     def error_callback(self, result):
         print(f'!     {self.waypoint.unique_name} process has raised an error: {result}', flush=True)
 
-    def __init__(self, year, waypoint, timestep, headless=False):
+    def __init__(self, cy, waypoint, timestep, headless=False):
         self.headless = headless
-        self.year = year
+        self.year = cy.year()
         self.waypoint = waypoint
+        self.first_day = cy.first_day.date()
+        self.last_day = cy.last_day.date()
         self.timestep = timestep
         self.result_key = id(waypoint)
         self.best_df = None

@@ -70,8 +70,8 @@ class VelocityInterpolatedArray:
     def __init__(self, waypoint, timestep, downloaded_dataframe):
         self.velocity_array = None
 
-        if ft.csv_npy_file_exists(waypoint.interpolated_data_filepath):
-            self.velocity_array = ft.read_arr(waypoint.interpolated_data_filepath)
+        if ft.csv_npy_file_exists(waypoint.final_data_filepath):
+            self.velocity_array = ft.read_arr(waypoint.final_data_filepath)
         else:
             dataframe = downloaded_dataframe.dataframe
             cs = CubicSpline(dataframe['date_index'], dataframe['velocity'])
@@ -79,9 +79,9 @@ class VelocityInterpolatedArray:
             df['date_index'] = range(waypoint.start_index, waypoint.end_index, timestep)
             df['date_time'] = pd.to_datetime(df['date_index'], unit='s').round('min')
             df['velocity'] = df['date_index'].apply(cs)
-            ft.write_df(df, waypoint.interpolated_data_filepath)
+            ft.write_df(df, waypoint.final_data_filepath)
             self.velocity_array = np.array(df['velocity'].to_list(), dtype=np.half)
-            ft.write_arr(self.velocity_array, waypoint.interpolated_data_filepath)
+            ft.write_arr(self.velocity_array, waypoint.final_data_filepath)
 
 
 class CurrentStationJob:
