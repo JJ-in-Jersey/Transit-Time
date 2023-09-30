@@ -166,7 +166,7 @@ if __name__ == '__main__':
     arcs_df.drop(['date_time', 'min'], axis=1, inplace=True)
     ft.write_df(arcs_df, env.transit_time_folder.joinpath('arcs'))
 
-    erv = HellGateSlackTimes(cy, env, route.waypoints)
+    erv = HellGateSlackTimes(cy, route.waypoints)
     ft.write_df(erv.hell_gate_start_slack, env.transit_time_folder.joinpath('hell_gate_start_slack'))
     ft.write_df(erv.hell_gate_end_slack, env.transit_time_folder.joinpath('hell_gate_end_slack'))
 

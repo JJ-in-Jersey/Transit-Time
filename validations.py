@@ -39,7 +39,7 @@ class HellGateSlackTimes:
             slack_df = slack_df.filter(['date', 'time', 'angle'])
             slack_df = slack_df[slack_df['date'] >= cy.first_day.date()]
             slack_df = slack_df[slack_df['date'] <= cy.last_day.date()]
-            self.hell_gate_start_slack = self.index_arc_df(slack_df, 'Hell Gate Start Line')
+            self.hell_gate_start_slack = index_arc_df(slack_df, 'Hell Gate Start Line')
 
             slack_df = ft.read_df(hell_gate.downloaded_data_filepath)
             slack_df = slack_df[slack_df['Event'] == 'slack'].copy()
@@ -50,4 +50,4 @@ class HellGateSlackTimes:
             slack_df = slack_df.filter(['date', 'time', 'angle'])
             slack_df = slack_df[slack_df['date'] >= cy.first_day.date()]
             slack_df = slack_df[slack_df['date'] <= cy.last_day.date()]
-            self.hell_gate_end_slack = self.index_arc_df(slack_df, 'Hell Gate End Line')
+            self.hell_gate_end_slack = index_arc_df(slack_df, 'Hell Gate End Line')
