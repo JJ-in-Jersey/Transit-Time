@@ -4,7 +4,6 @@ from time import perf_counter
 from num2words import num2words
 
 from tt_file_tools import file_tools as ft
-from tt_memory_helper import reduce_memory as rm
 from tt_date_time_tools import date_time_tools as dtt
 from tt_geometry.geometry import Arc, RoundedArc, FractionalArcStartDay, FractionalArcEndDay
 
@@ -125,7 +124,6 @@ class TransitTimeMinimaJob:
                     tt_df.at[tt_df_end_row, 'plot'] = max(transit_array)
                 clump = []
         tt_df['transit_time'] = pd.to_timedelta(tt_df['tts']*TIMESTEP, unit='s').round('min')
-        tt_df = rm.shrink_dataframe(tt_df)
         return tt_df
 
     def create_arcs(self, input_frame):

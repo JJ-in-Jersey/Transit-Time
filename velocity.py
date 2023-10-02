@@ -1,5 +1,4 @@
-# import logging
-from time import sleep, perf_counter
+from time import perf_counter
 import pandas as pd
 import numpy as np
 from scipy.interpolate import CubicSpline
@@ -9,7 +8,6 @@ from tt_chrome_driver import chrome_driver as cd
 # noinspection PyPep8Naming
 from tt_interpolation.velocity_interpolation import Interpolator as VI
 from tt_file_tools import file_tools as ft
-from tt_memory_helper import reduce_memory as rm
 from tt_date_time_tools import date_time_tools as dtt
 
 from selenium.webdriver.support.ui import WebDriverWait, Select
@@ -20,7 +18,10 @@ from project_globals import WDW
 
 #  VELOCITIES ARE DOWNLOADED, CALCULATED AND SAVE AS NAUTICAL MILES PER HOUR!
 
+
 def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
+
+
 def download_event(wdw): wdw[0].until(ec.element_to_be_clickable((By.ID, 'generatePDF'))).click()
 
 
@@ -60,7 +61,6 @@ class VelocityDownloadedDataframe:
             self.dataframe['Event'] = self.dataframe['Event'].apply(lambda s: s.strip())
             self.dataframe['date_index'] = self.dataframe['date_time'].apply(lambda x: dtt.int_timestamp(x))
             self.dataframe['velocity'] = self.dataframe['Speed (knots)'].apply(dash_to_zero)
-            self.dataframe = rm.shrink_dataframe(self.dataframe)
             self.dataframe = self.dataframe[(waypoint.start_index <= self.dataframe['date_index']) & (self.dataframe['date_index'] <= waypoint.end_index)]
             ft.write_df(self.dataframe, waypoint.downloaded_data_filepath)
 
@@ -106,6 +106,7 @@ class CurrentStationJob:
         self.timestep = timestep
         self.result_key = id(waypoint)
 
+
 class InterpolationDataJob(CurrentStationJob):
 
     interpolation_timestep = 10800  # three hour timestep
@@ -121,7 +122,7 @@ class InterpolationJob:
     def write_dataframe(wp, velocities):
         download_df = pd.DataFrame(data={'date_index': range(wp.start_index, wp.end_index, InterpolationDataJob.interpolation_timestep), 'velocity': velocities})
         download_df['date_time'] = pd.to_datetime(download_df['date_index']).round('min')
-        ft.write_df(download_df, wp.interpolation_data_file)
+        ft.write_df(download_df, wp.final_data_filepath)
 
     def execute(self):
         init_time = perf_counter()

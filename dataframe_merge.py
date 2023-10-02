@@ -7,6 +7,7 @@ from tt_date_time_tools import date_time_tools as dtt
 
 from project_globals import boat_speeds
 
+
 def elapsed_time_reduce(folder, route):
 
     init_time = perf_counter()

@@ -1,20 +1,12 @@
-import logging
-from time import sleep, perf_counter
+from time import perf_counter
 import pandas as pd
-import numpy as np
-from scipy.interpolate import CubicSpline
-from sympy import Point
+
 
 from tt_chrome_driver import chrome_driver as cd
 # noinspection PyPep8Naming
-from tt_interpolation.velocity_interpolation import Interpolator as VI
 from tt_file_tools import file_tools as ft
-from tt_memory_helper import reduce_memory as rm
 from tt_date_time_tools import date_time_tools as dtt
-from tt_gpx.gpx import Waypoint
 from tt_geometry.geometry import time_to_degrees
-
-from project_globals import ChartYear as cy
 
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as ec
@@ -23,6 +15,7 @@ from selenium.webdriver.common.by import By
 from project_globals import WDW
 
 #  VELOCITIES ARE DOWNLOADED, CALCULATED AND SAVE AS NAUTICAL MILES PER HOUR!
+
 
 class TideXMLFile(ft.XMLFile):
     def __init__(self, filepath):
@@ -38,13 +31,16 @@ class TideXMLFile(ft.XMLFile):
 
 def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 
+
 def download_event(wdw): wdw[0].until(ec.element_to_be_clickable((By.ID, 'create_annual_tide_tables'))).click()
 
-def set_up_download(year, driver, wdw, waypoint):
+
+def set_up_download(year, driver):
     dropdown = Select(driver.find_element(By.ID, 'year'))
     options = [int(o.text) for o in dropdown.options]
     dropdown.select_by_index(options.index(year))
     Select(driver.find_element(By.ID, 'format')).select_by_index(2)
+
 
 def index_arc_df(frame, name):
     date_time_dict = {key: [] for key in sorted(list(set(frame['date'])))}
@@ -61,6 +57,7 @@ def index_arc_df(frame, name):
         for i in range(len(times)):
             df.loc[len(df.name)] = [key, name + ' ' + str(i + 1), times[i], angles[i]]
     return df
+
 
 class DownloadedDataframe:
 
@@ -81,7 +78,7 @@ class DownloadedDataframe:
             wdw.until(ec.element_to_be_clickable((By.CSS_SELECTOR, "a[href*='" + code_string + "']"))).click()
 
             for y in range(year - 1, year + 2):  # + 2 because of range behavior
-                set_up_download(y, driver, wdw, waypoint)
+                set_up_download(y, driver)
                 downloaded_file = ft.wait_for_new_file(waypoint.folder, download_event, wdw)
                 file_df = TideXMLFile(downloaded_file).dataframe
                 self.downloaded_df = pd.concat([self.downloaded_df, file_df])
@@ -89,10 +86,10 @@ class DownloadedDataframe:
             driver.quit()
             ft.write_df(self.downloaded_df, waypoint.downloaded_data_filepath)
 
+
 class TideStationJob:
 
     def execute(self):
-        init_time = perf_counter()
         print(f'+     {self.waypoint.unique_name}', flush=True)
         ddf = DownloadedDataframe(self.year, self.waypoint, self.headless)
         dataframe = ddf.downloaded_df

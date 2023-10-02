@@ -2,7 +2,10 @@ from time import sleep
 from multiprocessing import Pool, Process, cpu_count, JoinableQueue
 from tt_semaphore import simple_semaphore as semaphore
 
+
 def pm_init(): print(f'+   multiprocessing shared object manager', flush=True)
+
+
 pool_notice = '(Pool)'
 job_queue = JoinableQueue()
 result_lookup = None
@@ -11,6 +14,7 @@ environs = None
 jm = None
 
 job_manager_semaphore = 'job_manager_semaphore'
+
 
 class JobManager:
 
