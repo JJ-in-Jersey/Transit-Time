@@ -93,7 +93,7 @@ if __name__ == '__main__':
             interpolation_pt = group[0]
 
             if not ft.csv_npy_file_exists(interpolation_pt.final_data_filepath):
-                group_range = range(len(group[1].output_data))
+                group_range = range(len(group[1].velocity_data))
                 for i in group_range: mpm.job_queue.put(InterpolationJob(group, i))  # (group, i, True) to display results
                 mpm.job_queue.join()
 

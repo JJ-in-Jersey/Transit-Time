@@ -144,9 +144,9 @@ class InterpolationJob:
     def __init__(self, waypoints, index: int, display=False):
         self.display = display
         interpolation_point = waypoints[0]
-        self.size = len(waypoints[1].output_data)
+        self.size = len(waypoints[1].velocity_data)
         self.wp = interpolation_point
         self.index = index
         self.input_point = Point(interpolation_point.lat, interpolation_point.lon, 0)
         self.result_key = str(id(interpolation_point))+'_'+str(index)
-        self.surface_points = [Point(wp.lat, wp.lon, wp.output_data[index]) for wp in waypoints[1:]]
+        self.surface_points = [Point(wp.lat, wp.lon, wp.velocity_data[index]) for wp in waypoints[1:]]
