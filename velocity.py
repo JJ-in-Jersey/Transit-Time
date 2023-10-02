@@ -47,9 +47,9 @@ class VelocityDownloadedDataframe:
             self.dataframe = pd.DataFrame()
             driver = cd.get_driver(waypoint.folder, headless)
             wdw = WebDriverWait(driver, WDW)
-            driver.get(waypoint.noaa_url)
 
             for y in range(year - 1, year + 2):  # + 2 because of range behavior
+                driver.get(waypoint.noaa_url)
                 set_up_download(y, driver, wdw, waypoint)
                 downloaded_file = ft.wait_for_new_file(waypoint.folder, download_event, wdw)
                 file_df = pd.read_csv(downloaded_file, parse_dates=['Date_Time (LST/LDT)'])
