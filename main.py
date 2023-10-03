@@ -96,10 +96,13 @@ if __name__ == '__main__':
 
             if not ft.csv_npy_file_exists(interpolation_pt.final_data_filepath):
                 group_range = range(len(group[1].current_data))
+                print(f'     adding {len(group_range)} jobs to queue')
                 for i in group_range:
                     mpm.job_queue.put(InterpolationJob(group, i))  # (group, i, True) to display results
                     # ij = InterpolationJob(group, i)
                     # ij.execute()
+
+                print(f'     joining queue')
                 mpm.job_queue.join()
 
                 wp_data = [mpm.result_lookup[str(id(interpolation_pt)) + '_' + str(i)][2].evalf() for i in group_range]

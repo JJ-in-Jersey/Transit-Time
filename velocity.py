@@ -115,11 +115,11 @@ class InterpolationDataJob(CurrentStationJob):
 
 class InterpolationJob:
 
-    @staticmethod
-    def write_dataframe(wp, velocities):
-        download_df = pd.DataFrame(data={'date_index': range(wp.start_index, wp.end_index, InterpolationDataJob.interpolation_timestep), 'velocity': velocities})
-        download_df['date_time'] = pd.to_datetime(download_df['date_index']).round('min')
-        ft.write_df(download_df, wp.final_data_filepath)
+    # @staticmethod
+    # def write_dataframe(wp, velocities):
+    #     download_df = pd.DataFrame(data={'date_index': range(wp.start_index, wp.end_index, InterpolationDataJob.interpolation_timestep), 'velocity': velocities})
+    #     download_df['date_time'] = pd.to_datetime(download_df['date_index']).round('min')
+    #     ft.write_df(download_df, wp.final_data_filepath)
 
     def execute(self):
         init_time = perf_counter()
