@@ -34,7 +34,7 @@ class JobManager:
                         lookup[result[0]] = result[1]
                         del results[job]
                         q.task_done()
-                sleep(0.1)
+                sleep(0.25)
         p.close()
 
     def __del__(self): print(f'-     job manager exiting', flush=True)

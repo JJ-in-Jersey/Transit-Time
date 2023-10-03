@@ -124,11 +124,12 @@ class InterpolationJob:
     def execute(self):
         init_time = perf_counter()
         print(f'+     {self.wp.unique_name} {self.index} of {self.size}', flush=True)
-        interpolator = VI(self.surface_points)
-        interpolator.set_interpolation_point(self.input_point)
+        surface_points = [Point(wp.lat, wp.lon, wp.current_data.at[self.index,'velocity']) for wp in self.waypoints[1:]]
+        interpolator = VI(surface_points)
+        interpolator.set_interpolation_point(Point(self.waypoints[0].lat, self.waypoints[0].lon, 0))
         output = interpolator.get_interpolated_point()
         if self.display:
-            interpolator.set_interpolation_point(self.input_point)
+            # interpolator.set_interpolation_point(input_point)
             interpolator.show_axes()
         return tuple([self.result_key, output, init_time])
 
@@ -140,10 +141,8 @@ class InterpolationJob:
 
     def __init__(self, waypoints, index: int, display=False):
         self.display = display
-        interpolation_point = waypoints[0]
-        self.size = len(waypoints[1].velocity_data)
-        self.wp = interpolation_point
+        self.waypoints = waypoints
+        self.wp = waypoints[0]
+        self.size = len(waypoints[1].current_data)
         self.index = index
-        self.input_point = Point(interpolation_point.lat, interpolation_point.lon, 0)
-        self.result_key = str(id(interpolation_point))+'_'+str(index)
-        self.surface_points = [Point(wp.lat, wp.lon, wp.velocity_data[index]) for wp in waypoints[1:]]
+        self.result_key = str(id(waypoints[0]))+'_'+str(index)

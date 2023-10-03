@@ -36,8 +36,8 @@ class ElapsedTimeJob:
         self.edge = edge
         self.result_key = id(edge)
         self.length = edge.length
-        self.init_velo = edge.start.velocity_data
-        self.final_velo = edge.end.velocity_data
+        self.init_velo = edge.start.current_data
+        self.final_velo = edge.end.current_data
         self.unique_name = edge.unique_name
 
     def execute(self):
