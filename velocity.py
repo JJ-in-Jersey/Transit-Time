@@ -47,9 +47,9 @@ class VelocityDownloadedDataframe:
             self.dataframe = pd.DataFrame()
             driver = cd.get_driver(waypoint.folder, headless)
             wdw = WebDriverWait(driver, WDW)
-            driver.get(waypoint.noaa_url)
 
             for y in range(year - 1, year + 2):  # + 2 because of range behavior
+                driver.get(waypoint.noaa_url)
                 set_up_download(y, driver, wdw, waypoint)
                 downloaded_file = ft.wait_for_new_file(waypoint.folder, download_event, wdw)
                 file_df = pd.read_csv(downloaded_file, parse_dates=['Date_Time (LST/LDT)'])
@@ -65,23 +65,20 @@ class VelocityDownloadedDataframe:
             ft.write_df(self.dataframe, waypoint.downloaded_data_filepath)
 
 
-class VelocityInterpolatedArray:
+class VelocityInterpolatedDataframe:
 
     def __init__(self, waypoint, timestep, downloaded_dataframe):
-        self.velocity_array = None
+        self.dataframe = None
 
         if ft.csv_npy_file_exists(waypoint.final_data_filepath):
-            self.velocity_array = ft.read_arr(waypoint.final_data_filepath)
+            self.dataframe = ft.read_df(waypoint.final_data_filepath)
         else:
-            dataframe = downloaded_dataframe.dataframe
-            cs = CubicSpline(dataframe['date_index'], dataframe['velocity'])
-            df = pd.DataFrame()
-            df['date_index'] = range(waypoint.start_index, waypoint.end_index, timestep)
-            df['date_time'] = pd.to_datetime(df['date_index'], unit='s').round('min')
-            df['velocity'] = df['date_index'].apply(cs)
-            ft.write_df(df, waypoint.final_data_filepath)
-            self.velocity_array = np.array(df['velocity'].to_list(), dtype=np.half)
-            ft.write_arr(self.velocity_array, waypoint.final_data_filepath)
+            cs = CubicSpline(downloaded_dataframe.dataframe['date_index'], downloaded_dataframe.dataframe['velocity'])
+            self.dataframe = pd.DataFrame()
+            self.dataframe['date_index'] = range(waypoint.start_index, waypoint.end_index, timestep)
+            self.dataframe['date_time'] = pd.to_datetime(self.dataframe['date_index'], unit='s').round('min')
+            self.dataframe['velocity'] = self.dataframe['date_index'].apply(cs)
+            ft.write_df(self.dataframe, waypoint.final_data_filepath)
 
 
 class CurrentStationJob:
@@ -90,8 +87,8 @@ class CurrentStationJob:
         init_time = perf_counter()
         print(f'+     {self.waypoint.unique_name}', flush=True)
         downloaded_dataframe = VelocityDownloadedDataframe(self.year, self.waypoint, self.headless)
-        interpolated_array = VelocityInterpolatedArray(self.waypoint, self.timestep, downloaded_dataframe)
-        return tuple([self.result_key, interpolated_array.velocity_array, init_time])
+        interpolated_dataframe = VelocityInterpolatedDataframe(self.waypoint, self.timestep, downloaded_dataframe)
+        return tuple([self.result_key, interpolated_dataframe.dataframe, init_time])
 
     def execute_callback(self, result):
         print(f'-     {self.waypoint.unique_name} {dtt.mins_secs(perf_counter() - result[2])} minutes', flush=True)

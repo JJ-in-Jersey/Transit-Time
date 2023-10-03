@@ -1,6 +1,8 @@
 from argparse import ArgumentParser as argParser
 from pathlib import Path
 from multiprocessing import Manager
+
+import pandas as pd
 from numpy import ndarray
 from time import perf_counter
 
@@ -81,8 +83,8 @@ if __name__ == '__main__':
     print(f'\nAdding results to waypoints', flush=True)
     for wp in route.waypoints:
         if isinstance(wp, CurrentStationWP) or isinstance(wp, DataWP):
-            wp.velocity_data = mpm.result_lookup[id(wp)]
-            if isinstance(wp.velocity_data, ndarray): print(f'{checkmark}     {wp.unique_name}', flush=True)
+            wp.current_data = mpm.result_lookup[id(wp)]
+            if isinstance(wp.current_data, pd.DataFrame): print(f'{checkmark}     {wp.unique_name}', flush=True)
             else: print(f'X     {wp.unique_name}', flush=True)
 
     # Calculate the approximation of the velocity at interpolation points
@@ -94,7 +96,8 @@ if __name__ == '__main__':
 
             if not ft.csv_npy_file_exists(interpolation_pt.final_data_filepath):
                 group_range = range(len(group[1].velocity_data))
-                for i in group_range: mpm.job_queue.put(InterpolationJob(group, i))  # (group, i, True) to display results
+                for i in group_range:
+                    mpm.job_queue.put(InterpolationJob(group, i))  # (group, i, True) to display results
                 mpm.job_queue.join()
 
                 wp_data = [mpm.result_lookup[str(id(interpolation_pt)) + '_' + str(i)][2].evalf() for i in group_range]
