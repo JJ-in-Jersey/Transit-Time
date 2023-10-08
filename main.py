@@ -12,7 +12,7 @@ from pandas import DataFrame, concat as Concat
 from tt_gpx.gpx import Route, Waypoint, Edge, TideWP, InterpolationWP, DataWP, CurrentStationWP
 from tt_semaphore import simple_semaphore as semaphore
 from tt_file_tools import file_tools as ft
-import tt_chrome_driver.chrome_driver as cd
+from tt_chrome_driver import chrome_driver
 from tt_date_time_tools import date_time_tools as dt
 
 import multiprocess as mpm
@@ -61,7 +61,9 @@ if __name__ == '__main__':
     jm = mpm.WaitForProcess(target=mpm.JobManager, args=(mpm.job_queue, mpm.result_lookup))
     jm.start()
 
-    cd.check_driver()
+    chrome_driver.check_driver()
+    if chrome_driver.latest_stable_version > chrome_driver.installed_driver_version:
+        chrome_driver.install_stable_driver()
 
     # Download noaa data and create velocity arrays for each CURRENT waypoint
     print(f'\nDownloading and processing currents at CURRENT and INTERPOLATION DATA waypoints (1st day-1 to last day+4)', flush=True)
