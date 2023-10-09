@@ -1,10 +1,9 @@
 from time import perf_counter
 import pandas as pd
-import numpy as np
 from scipy.interpolate import CubicSpline
 from sympy import Point
 
-from tt_chrome_driver import chrome_driver as cd
+from tt_chrome_driver import chrome_driver
 # noinspection PyPep8Naming
 from tt_interpolation.velocity_interpolation import Interpolator as VI
 from tt_file_tools import file_tools as ft
@@ -45,7 +44,7 @@ class VelocityDownloadedDataframe:
             self.dataframe = ft.read_df(waypoint.downloaded_data_filepath)
         else:
             self.dataframe = pd.DataFrame()
-            driver = cd.get_driver(waypoint.folder, headless)
+            driver = chrome_driver.get_driver(waypoint.folder, headless)
             wdw = WebDriverWait(driver, WDW)
 
             for y in range(year - 1, year + 2):  # + 2 because of range behavior
@@ -115,34 +114,34 @@ class InterpolationDataJob(CurrentStationJob):
 
 class InterpolationJob:
 
-    # @staticmethod
-    # def write_dataframe(wp, velocities):
-    #     download_df = pd.DataFrame(data={'date_index': range(wp.start_index, wp.end_index, InterpolationDataJob.interpolation_timestep), 'velocity': velocities})
-    #     download_df['date_time'] = pd.to_datetime(download_df['date_index']).round('min')
-    #     ft.write_df(download_df, wp.final_data_filepath)
+    @staticmethod
+    def write_dataframe(wp, velocities):
+        download_df = pd.DataFrame(data={'date_index': range(wp.start_index, wp.end_index, InterpolationDataJob.interpolation_timestep), 'velocity': velocities})
+        download_df['date_time'] = pd.to_datetime(download_df['date_index']).round('min')
+        ft.write_df(download_df, wp.final_data_filepath)
 
     def execute(self):
+
         init_time = perf_counter()
-        print(f'+     {self.wp.unique_name} {self.index} of {self.size}', flush=True)
-        surface_points = [Point(wp.lat, wp.lon, wp.current_data.at[self.index,'velocity']) for wp in self.waypoints[1:]]
-        interpolator = VI(surface_points)
-        interpolator.set_interpolation_point(Point(self.waypoints[0].lat, self.waypoints[0].lon, 0))
+        print(f'+     {self.interpolation_pt_data[0]} {self.index} of {self.size}', flush=True)
+        interpolator = VI(self.surface_points)
+        interpolator.set_interpolation_point(Point(self.interpolation_pt_data[1], self.interpolation_pt_data[2], 0))
         output = interpolator.get_interpolated_point()
-        if self.display:
-            # interpolator.set_interpolation_point(input_point)
-            interpolator.show_axes()
+        # if self.display:
+        #     # interpolator.set_interpolation_point(input_point)
+        #     interpolator.show_axes()
         return tuple([self.result_key, output, init_time])
 
     def execute_callback(self, result):
-        print(f'-     {self.wp.unique_name} {self.index} {dtt.mins_secs(perf_counter() - result[2])} minutes', flush=True)
+        print(f'-     {self.interpolation_pt_data[0]} {self.index} {dtt.mins_secs(perf_counter() - result[2])} minutes', flush=True)
 
     def error_callback(self, result):
-        print(f'!     {self.wp.unique_name} process has raised an error: {result}', flush=True)
+        print(f'!     {self.interpolation_pt_data[0]} process has raised an error: {result}', flush=True)
 
-    def __init__(self, waypoints, index: int, display=False):
-        self.display = display
-        self.waypoints = waypoints
-        self.wp = waypoints[0]
-        self.size = len(waypoints[1].current_data)
+    def __init__(self, interpolation_pt, data_waypoints, data_size: int, index: int, display=False):
+        self.interpolation_pt_data = tuple([interpolation_pt.unique_name, interpolation_pt.lat, interpolation_pt.lon])
+        self.surface_points = [Point(wp.lat, wp.lon, wp.current_data.at[index, 'velocity']) for wp in data_waypoints]
+        self.size = data_size
+        self.result_key = str(id(interpolation_pt))+'_'+str(index)
         self.index = index
-        self.result_key = str(id(waypoints[0]))+'_'+str(index)
+        self.display = display
