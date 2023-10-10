@@ -104,15 +104,21 @@ class CurrentStationJob:
 
 
 class InterpolationDataJob(CurrentStationJob):
+    # downloads data from NOAA
+    # uses large timestep for spline to create exact same times across waypoints
+    # downloaded_data.csv is the original data from NOAA
+    # final_data.csv is 3 hour timestep, spline interpolation
 
-    interpolation_timestep = 10800  # three hour timestep
-    # interpolation_timestep = 600000  # three hour timestep
+    interpolation_timestep = 10800  # three hour timestep (3 hours * 60 mins * 60 seconds = 10800)
 
     def __init__(self, year, waypoint):
-        super().__init__(year, waypoint, InterpolationDataJob.interpolation_timestep)
+        super().__init__(year, waypoint, InterpolationDataJob.interpolation_timestep, headless=False)
 
 
 class InterpolationJob:
+    # For each data point in interpolation data waypoint (3 hr timestep, same time point across all data waypoints)
+    #      calculate the interpolated value of velocity at the interpolation waypoint
+    # Write data from above as downloaded_data.csv. CurrentDataJob will read it and process the spline.
 
     @staticmethod
     def write_dataframe(wp, velocities):
@@ -121,12 +127,11 @@ class InterpolationJob:
         ft.write_df(download_df, wp.final_data_filepath)
 
     def execute(self):
-
         init_time = perf_counter()
         print(f'+     {self.interpolation_pt_data[0]} {self.index} of {self.size}', flush=True)
         interpolator = VI(self.surface_points)
         interpolator.set_interpolation_point(Point(self.interpolation_pt_data[1], self.interpolation_pt_data[2], 0))
-        output = interpolator.get_interpolated_point()
+        output = [self.date_index, interpolator.get_interpolated_point().z.evalf()]
         # if self.display:
         #     # interpolator.set_interpolation_point(input_point)
         #     interpolator.show_axes()
@@ -138,10 +143,11 @@ class InterpolationJob:
     def error_callback(self, result):
         print(f'!     {self.interpolation_pt_data[0]} process has raised an error: {result}', flush=True)
 
-    def __init__(self, interpolation_pt, data_waypoints, data_size: int, index: int, display=False):
+    def __init__(self, interpolation_pt, data_waypoints, data_size, index, display=False):
         self.interpolation_pt_data = tuple([interpolation_pt.unique_name, interpolation_pt.lat, interpolation_pt.lon])
         self.surface_points = [Point(wp.lat, wp.lon, wp.current_data.at[index, 'velocity']) for wp in data_waypoints]
         self.size = data_size
         self.result_key = str(id(interpolation_pt))+'_'+str(index)
         self.index = index
+        self.date_index = data_waypoints[0].current_data.loc[index, 'date_index']
         self.display = display

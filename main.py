@@ -95,27 +95,25 @@ if __name__ == '__main__':
         init_time = perf_counter()
         for group in route.interpolation_groups:
             interpolation_pt = group[0]
-
+            data_waypoints = group[1:]
             if not ft.csv_npy_file_exists(interpolation_pt.final_data_filepath):
-                group_range = range(len(group[1].current_data))
-                print(f'     adding {len(group_range)} jobs to queue')
+                group_range = range(len(data_waypoints[0].current_data))
+                print(f'adding {len(group_range)} jobs to queue')
                 for i in group_range:
-                    mpm.job_queue.put(InterpolationJob(group, i))  # (group, i, True) to display results
+                    mpm.job_queue.put(InterpolationJob(interpolation_pt, data_waypoints, len(group_range), i))  # (group, i, True) to display results
                     # ij = InterpolationJob(group, i)
                     # ij.execute()
-
-                print(f'     joining queue')
                 mpm.job_queue.join()
 
-                wp_data = [mpm.result_lookup[str(id(interpolation_pt)) + '_' + str(i)][2].evalf() for i in group_range]
-                InterpolationJob.write_dataframe(interpolation_pt, wp_data)
+                df = pd.DataFrame([mpm.result_lookup[str(id(interpolation_pt)) + '_' + str(i)] for i in group_range], columns=['date_index', 'velocity'])
+                interpolation_pt.set_current_data(df)
 
             mpm.job_queue.put(CurrentStationJob(args['year'], interpolation_pt, TIMESTEP))
             mpm.job_queue.join()
 
             if isinstance(interpolation_pt, InterpolationWP):
-                interpolation_pt.output_data = mpm.result_lookup[id(interpolation_pt)]
-                if isinstance(interpolation_pt.output_data, ndarray): print(f'{checkmark}     {interpolation_pt.unique_name}', flush=True)
+                interpolation_pt.current_data = mpm.result_lookup[id(interpolation_pt)]
+                if isinstance(interpolation_pt.current_data, ndarray): print(f'{checkmark}     {interpolation_pt.unique_name}', flush=True)
                 else: print(f'X     {interpolation_pt.unique_name}', flush=True)
         print(f'Multi-process time {dt.mins_secs(perf_counter()-init_time)}')
 
