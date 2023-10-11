@@ -113,7 +113,7 @@ if __name__ == '__main__':
 
             if isinstance(interpolation_pt, InterpolationWP):
                 interpolation_pt.current_data = mpm.result_lookup[id(interpolation_pt)]
-                if isinstance(interpolation_pt.current_data, ndarray): print(f'{checkmark}     {interpolation_pt.unique_name}', flush=True)
+                if isinstance(interpolation_pt.current_data, pd.DataFrame): print(f'{checkmark}     {interpolation_pt.unique_name}', flush=True)
                 else: print(f'X     {interpolation_pt.unique_name}', flush=True)
         print(f'Multi-process time {dt.mins_secs(perf_counter()-init_time)}')
 
