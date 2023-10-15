@@ -3,7 +3,6 @@ from pathlib import Path
 from multiprocessing import Manager
 
 import pandas as pd
-from numpy import ndarray
 from time import perf_counter
 
 # noinspection PyPep8Naming
@@ -21,7 +20,7 @@ from battery_validation import TideStationJob
 from elapsed_time import ElapsedTimeJob
 from dataframe_merge import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
-from project_globals import TIMESTEP, boat_speeds, Environment, ChartYear
+from project_globals import TIMESTEP, TIME_RESOLUTION, WINDOW_MARGIN, boat_speeds, Environment, ChartYear
 
 from hell_gate_validation import HellGateSlackTimes
 
@@ -49,8 +48,10 @@ if __name__ == '__main__':
     print(f'total waypoints: {len(route.whole_path.edges)+1}')
     print(f'elapsed time waypoints: {len(route.elapsed_time_path.edges)+1}')
     print(f'timestep: {TIMESTEP}')
+    print(f'chart resolution: {TIME_RESOLUTION}')
+    print(f'transit time window: {WINDOW_MARGIN}')
     print(f'boat speeds: {boat_speeds}')
-    print(f'length {round(route.elapsed_time_path.length,1)} nm')
+    print(f'length {round(route.elapsed_time_path.length, 1)} nm')
     print(f'direction {route.elapsed_time_path.direction}')
     print(f'heading {route.elapsed_time_path.heading}\n')
 
