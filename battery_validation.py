@@ -47,8 +47,8 @@ def index_arc_df(frame, name):
     date_angle_dict = {key: [] for key in sorted(list(set(frame['date'])))}
     columns = frame.columns.to_list()
     for i, row in frame.iterrows():
-        date_time_dict[row[columns.index('date')]].append(row[columns.index('time')])
-        date_angle_dict[row[columns.index('date')]].append(row[columns.index('angle')])
+        date_time_dict[row.iloc[columns.index('date')]].append(row.iloc[columns.index('time')])
+        date_angle_dict[row.iloc[columns.index('date')]].append(row.iloc[columns.index('angle')])
 
     df = pd.DataFrame(columns=['date', 'name', 'time', 'angle'])
     for key in date_time_dict.keys():
