@@ -59,11 +59,6 @@ if __name__ == '__main__':
 
     job_manager = JobManager()
 
-    # mgr = Manager()
-    # mpm.result_lookup = mgr.dict()
-    # jm = mpm.WaitForProcess(target=mpm.JobManager, args=(mpm.job_queue, mpm.result_lookup))
-    # jm.start()
-
     chrome_driver.check_driver()
     if chrome_driver.latest_stable_version > chrome_driver.installed_driver_version:
         chrome_driver.install_stable_driver()
