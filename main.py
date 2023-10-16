@@ -12,6 +12,7 @@ from tt_gpx.gpx import Route, Waypoint, Edge, TideWP, InterpolationWP, DataWP, C
 from tt_file_tools import file_tools as ft
 from tt_chrome_driver import chrome_driver
 from tt_date_time_tools import date_time_tools as dt
+from tt_job_manager.job_manager import JobManager
 
 # import multiprocess as mpm
 from velocity import CurrentStationJob, InterpolationJob, InterpolationDataJob
@@ -22,8 +23,6 @@ from transit_time import TransitTimeMinimaJob
 from project_globals import TIMESTEP, TIME_RESOLUTION, WINDOW_MARGIN, boat_speeds, Environment, ChartYear
 
 from hell_gate_validation import HellGateSlackTimes
-
-from job_manager import JobManager
 
 checkmark = u'\N{check mark}'
 
