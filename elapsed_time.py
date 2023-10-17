@@ -36,8 +36,8 @@ class ElapsedTimeJob:
         self.edge = edge
         self.result_key = id(edge)
         self.length = edge.length
-        self.init_velo = edge.start.current_data
-        self.final_velo = edge.end.current_data
+        self.init_velo = edge.start.current_data['velocity']
+        self.final_velo = edge.end.current_data['velocity']
         self.unique_name = edge.unique_name
 
     def execute(self):
@@ -52,7 +52,7 @@ class ElapsedTimeJob:
             ts_in_hr = TIMESTEP / 3600  # in hours because NOAA speeds are in knots (nautical miles per hour)
             for s in boat_speeds:
                 col_name = str(s) + ' ' + self.unique_name
-                dist = ElapsedTimeJob.distance(self.final_velo[1:]['velocity'], self.init_velo[:-1]['velocity'], s, ts_in_hr)  # distance in nm
+                dist = ElapsedTimeJob.distance(self.final_velo[1:], self.init_velo[:-1], s, ts_in_hr)  # distance in nm
                 dist = np.insert(dist, 0, 0.0)  # because distance uses an offset calculation VIx VFx+1, we need to add a zero to the beginning
                 elapsed_times_df[col_name] = [elapsed_time(i, dist, sign(s)*self.length) for i in range(len(self.edge.edge_range))]
             elapsed_times_df.fillna(0, inplace=True)
