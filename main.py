@@ -13,6 +13,7 @@ from tt_file_tools import file_tools as ft
 from tt_chrome_driver import chrome_driver
 from tt_date_time_tools import date_time_tools as dt
 from tt_job_manager.job_manager import JobManager
+# from tt_job_manager import job_manager
 
 # import multiprocess as mpm
 from velocity import CurrentStationJob, InterpolationJob, InterpolationDataJob
@@ -87,9 +88,6 @@ if __name__ == '__main__':
             if isinstance(wp.current_data, pd.DataFrame): print(f'{checkmark}     {wp.unique_name}', flush=True)
             else: print(f'X     {wp.unique_name}', flush=True)
 
-    # del job_manager
-    # job_manager = JobManager()
-
     # Calculate the approximation of the velocity at interpolation points
     if len(route.interpolation_groups):
         print(f'\nApproximating the velocity at INTERPOLATION waypoints (1st day-1 to last day+4)', flush=True)
@@ -117,6 +115,8 @@ if __name__ == '__main__':
                 if isinstance(interpolation_pt.current_data, pd.DataFrame): print(f'{checkmark}     {interpolation_pt.unique_name}', flush=True)
                 else: print(f'X     {interpolation_pt.unique_name}', flush=True)
         print(f'Multi-process time {dt.mins_secs(perf_counter()-init_time)}')
+
+    # job_manager = JobManager()
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for edges (1st day-1 to last day+3)')
@@ -171,7 +171,7 @@ if __name__ == '__main__':
     min_rotation_df = arcs_df[arcs_df['min'].notna()]
     min_rotation_df = min_rotation_df.rename(columns={'min': 'angle'})
     min_rotation_df['name'] = min_rotation_df['name'].apply(lambda s: s.replace('Arc', 'Min Arrow'))
-    min_rotation_df = min_rotation_df.drop(['date_time', 'start', 'end'], axis=1)
+    # min_rotation_df = min_rotation_df.drop(['date_time', 'start', 'end'], axis=1)
     ft.write_df(min_rotation_df, env.transit_time_folder.joinpath('minima'))
     arcs_df.drop(['date_time', 'min'], axis=1, inplace=True)
     ft.write_df(arcs_df, env.transit_time_folder.joinpath('arcs'))
@@ -185,4 +185,4 @@ if __name__ == '__main__':
     battery_job.execute()
     ft.write_df(battery_job.battery_lines, env.transit_time_folder.joinpath('battery_tide'))
 
-    del job_manager
+    # del job_manager
