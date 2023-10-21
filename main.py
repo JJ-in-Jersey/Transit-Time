@@ -83,26 +83,28 @@ if __name__ == '__main__':
     # Calculate the approximation of the velocity at each timestep of the interpolation waypoint
     if len(route.interpolation_groups):
         print(f'\nApproximating the velocity at INTERPOLATION waypoints (1st day-1 to last day+4)', flush=True)
-        init_time = perf_counter()
         for group in route.interpolation_groups:
             interpolation_pt = group[0]
             data_waypoints = group[1:]
-            if not ft.csv_npy_file_exists(interpolation_pt.final_data_filepath):
+            if not ft.csv_npy_file_exists(interpolation_pt.downloaded_data_filepath):
                 group_range = range(len(data_waypoints[0].current_data))
                 print(f'adding {len(group_range)} jobs to queue')
+                init_time = perf_counter()
                 for i in group_range:
                     job_manager.put(InterpolatePointJob(interpolation_pt, data_waypoints, len(group_range), i))  # (group, i, True) to display results
                 job_manager.wait()
+                print(f' Multi-process time {dt.mins_secs(perf_counter() - init_time)}')
 
                 df = pd.DataFrame([job_manager.get(str(id(interpolation_pt)) + '_' + str(i)) for i in group_range], columns=['date_index', 'velocity'])
                 interpolation_pt.set_downloaded_data(df)
+            else:
+                interpolation_pt.set_downloaded_data(ft.read_df(interpolation_pt.downloaded_data_filepath))
 
             job_manager.put(InterpolationPointJob(args['year'], interpolation_pt, TIMESTEP))
             job_manager.wait()
 
-            if isinstance(interpolation_pt, InterpolationWP):
-                interpolation_pt.current_data = job_manager.get(id(interpolation_pt))
-                print(f'{checkmark}     {interpolation_pt.unique_name}', flush=True)
+            interpolation_pt.current_data = job_manager.get(id(interpolation_pt))
+            print(f'{checkmark}     {interpolation_pt.unique_name}', flush=True)
         print(f'Multi-process time {dt.mins_secs(perf_counter()-init_time)}')
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
