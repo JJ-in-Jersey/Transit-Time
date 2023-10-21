@@ -85,8 +85,8 @@ if __name__ == '__main__':
         print(f'\nApproximating the velocity at INTERPOLATION waypoints (1st day-1 to last day+4)', flush=True)
         for group in route.interpolation_groups:
             interpolation_pt = group[0]
-            data_waypoints = group[1:]
             if not ft.csv_npy_file_exists(interpolation_pt.downloaded_data_filepath):
+                data_waypoints = group[1:]
                 group_range = range(len(data_waypoints[0].current_data))
                 print(f'adding {len(group_range)} jobs to queue')
                 init_time = perf_counter()
@@ -108,23 +108,29 @@ if __name__ == '__main__':
         print(f'Multi-process time {dt.mins_secs(perf_counter()-init_time)}')
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
-    print(f'\nCalculating elapsed times for edges (1st day-1 to last day+3)')
     init_time = perf_counter()
     for s in boat_speeds:
+        print(f'\nCalculating elapsed times for edges {s} (1st day-1 to last day+3)')
         for edge in route.elapsed_time_path.edges:
             job_manager.put(ElapsedTimeJob(edge, s))
         job_manager.wait()
-        df = pd.DataFrame([job_manager.get(str(id(interpolation_pt)) + '_' + str(i)) for i in group_range], columns=['date_index', edge.name])
+
+        elapsed_time_df = pd.DataFrame(data={'departure_index': edge.edge_range})
+        print(f'\nAdding elapsed times to dataframe', flush=True)
+        for edge in route.elapsed_time_path.edges:
+            print(f'{checkmark}     {edge.unique_name}', flush=True)
+            elapsed_time_df = elapsed_time_df.merge(job_manager.get(edge.unique_name), on='departure_index')
+        ft.write_df(elapsed_time_df, env.elapsed_time_folder.joinpath('elapsed_time_'+str(s)))
     print(f'Multi-process time {dt.mins_secs(perf_counter() - init_time)}')
 
-    # Calculate the number of timesteps to get from the start of the edge to the end of the edge
-    print(f'\nCalculating elapsed times for edges (1st day-1 to last day+3)')
-    init_time = perf_counter()
-    for edge in route.elapsed_time_path.edges:
-        for s in boat_speeds:
-            job_manager.put(ElapsedTimeJob(edge, s))
-    job_manager.wait()
-    print(f'Multi-process time {dt.mins_secs(perf_counter() - init_time)}')
+    # # Calculate the number of timesteps to get from the start of the edge to the end of the edge
+    # print(f'\nCalculating elapsed times for edges (1st day-1 to last day+3)')
+    # init_time = perf_counter()
+    # for edge in route.elapsed_time_path.edges:
+    #     for s in boat_speeds:
+    #         job_manager.put(ElapsedTimeJob(edge, s))
+    # job_manager.wait()
+    # print(f'Multi-process time {dt.mins_secs(perf_counter() - init_time)}')
 
     # Aggregate the elapsed time data by route@speed
     print(f'\nAggregating data by route')
