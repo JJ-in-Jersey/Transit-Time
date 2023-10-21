@@ -8,15 +8,14 @@ from time import perf_counter
 from pandas import DataFrame, concat as Concat
 
 from tt_gpx.gpx import Route, Waypoint, Edge, TideWP, InterpolationWP, DataWP, CurrentStationWP
-# from tt_semaphore import simple_semaphore as semaphore
 from tt_file_tools import file_tools as ft
 from tt_chrome_driver import chrome_driver
 from tt_date_time_tools import date_time_tools as dt
 from tt_job_manager.job_manager import JobManager
-# from tt_job_manager import job_manager
 
 # import multiprocess as mpm
-from velocity import CurrentStationJob, InterpolationJob, InterpolationDataJob
+from velocity import CurrentStationJob, InterpolationStationJob
+from velocity import InterpolatePointJob, InterpolationPointJob
 from battery_validation import TideStationJob
 from elapsed_time import ElapsedTimeJob
 from dataframe_merge import elapsed_time_reduce
@@ -69,15 +68,9 @@ if __name__ == '__main__':
     init_time = perf_counter()
     for wp in route.waypoints:
         if isinstance(wp, DataWP):  # DataWP must come before CurrentStationWP because DataWP IS A CurrentStationWP
-            job_manager.put(InterpolationDataJob(args['year'], wp))
-            # idj = InterpolationDataJob(args['year'], wp)
-            # idj.execute()
-            # pass
+            job_manager.put(InterpolationStationJob(args['year'], wp))
         elif isinstance(wp, CurrentStationWP):
             job_manager.put(CurrentStationJob(args['year'], wp, TIMESTEP, False))
-            # csj = CurrentStationJob(args['year'], wp, TIMESTEP)
-            # csj.execute()
-            # pass
     job_manager.wait()
     print(f' Multi-process time {dt.mins_secs(perf_counter()-init_time)}')
 
@@ -85,10 +78,9 @@ if __name__ == '__main__':
     for wp in route.waypoints:
         if isinstance(wp, CurrentStationWP) or isinstance(wp, DataWP):
             wp.current_data = job_manager.get(id(wp))
-            if isinstance(wp.current_data, pd.DataFrame): print(f'{checkmark}     {wp.unique_name}', flush=True)
-            else: print(f'X     {wp.unique_name}', flush=True)
+            print(f'{checkmark}     {wp.unique_name}', flush=True)
 
-    # Calculate the approximation of the velocity at interpolation points
+    # Calculate the approximation of the velocity at each timestep of the interpolation waypoint
     if len(route.interpolation_groups):
         print(f'\nApproximating the velocity at INTERPOLATION waypoints (1st day-1 to last day+4)', flush=True)
         init_time = perf_counter()
@@ -99,34 +91,44 @@ if __name__ == '__main__':
                 group_range = range(len(data_waypoints[0].current_data))
                 print(f'adding {len(group_range)} jobs to queue')
                 for i in group_range:
-                    job_manager.put(InterpolationJob(interpolation_pt, data_waypoints, len(group_range), i))  # (group, i, True) to display results
-                    # ij = InterpolationJob(group, i)
-                    # ij.execute()
+                    job_manager.put(InterpolatePointJob(interpolation_pt, data_waypoints, len(group_range), i))  # (group, i, True) to display results
                 job_manager.wait()
 
                 df = pd.DataFrame([job_manager.get(str(id(interpolation_pt)) + '_' + str(i)) for i in group_range], columns=['date_index', 'velocity'])
-                interpolation_pt.set_current_data(df)
+                interpolation_pt.set_downloaded_data(df)
 
-            job_manager.put(CurrentStationJob(args['year'], interpolation_pt, TIMESTEP))
+            job_manager.put(InterpolationPointJob(args['year'], interpolation_pt, TIMESTEP))
             job_manager.wait()
 
             if isinstance(interpolation_pt, InterpolationWP):
                 interpolation_pt.current_data = job_manager.get(id(interpolation_pt))
-                if isinstance(interpolation_pt.current_data, pd.DataFrame): print(f'{checkmark}     {interpolation_pt.unique_name}', flush=True)
-                else: print(f'X     {interpolation_pt.unique_name}', flush=True)
+                print(f'{checkmark}     {interpolation_pt.unique_name}', flush=True)
         print(f'Multi-process time {dt.mins_secs(perf_counter()-init_time)}')
 
-    # job_manager = JobManager()
+    # Calculate the number of timesteps to get from the start of the edge to the end of the edge
+    print(f'\nCalculating elapsed times for edges (1st day-1 to last day+3)')
+    init_time = perf_counter()
+    for s in boat_speeds:
+        for edge in route.elapsed_time_path.edges:
+            job_manager.put(ElapsedTimeJob(edge, s))
+        job_manager.wait()
+        df = pd.DataFrame([job_manager.get(str(id(interpolation_pt)) + '_' + str(i)) for i in group_range], columns=['date_index', edge.name])
+    print(f'Multi-process time {dt.mins_secs(perf_counter() - init_time)}')
 
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     print(f'\nCalculating elapsed times for edges (1st day-1 to last day+3)')
     init_time = perf_counter()
     for edge in route.elapsed_time_path.edges:
-        job_manager.put(ElapsedTimeJob(edge))
-        # etj = ElapsedTimeJob(edge)
-        # etj.execute()
+        for s in boat_speeds:
+            job_manager.put(ElapsedTimeJob(edge, s))
     job_manager.wait()
     print(f'Multi-process time {dt.mins_secs(perf_counter() - init_time)}')
+
+    # Aggregate the elapsed time data by route@speed
+    print(f'\nAggregating data by route')
+    for s in boat_speeds:
+        for edge in route.elapsed_time_path.edges:
+            df = pd.DataFrame()
 
     print(f'\nAdding results to edges')
     for edge in route.elapsed_time_path.edges:
@@ -170,7 +172,7 @@ if __name__ == '__main__':
     arcs_df.sort_values(['date'], ignore_index=True, inplace=True)
     min_rotation_df = arcs_df[arcs_df['min'].notna()]
     min_rotation_df = min_rotation_df.rename(columns={'min': 'angle'})
-    min_rotation_df['name'] = min_rotation_df['name'].apply(lambda s: s.replace('Arc', 'Min Arrow'))
+    min_rotation_df['name'] = min_rotation_df['name'].apply(lambda name_string: name_string.replace('Arc', 'Min Arrow'))
     # min_rotation_df = min_rotation_df.drop(['date_time', 'start', 'end'], axis=1)
     ft.write_df(min_rotation_df, env.transit_time_folder.joinpath('minima'))
     arcs_df.drop(['date_time', 'min'], axis=1, inplace=True)
