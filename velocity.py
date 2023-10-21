@@ -72,7 +72,7 @@ class VelocitySplineFitDataframe:
         if ft.csv_npy_file_exists(lookup['final_filepath']):
             self.dataframe = ft.read_df(lookup['final_filepath'])
         else:
-            cs = CubicSpline(downloaded_dataframe.dataframe['date_index'], downloaded_dataframe.dataframe['velocity'])
+            cs = CubicSpline(downloaded_dataframe['date_index'], downloaded_dataframe['velocity'])
             self.dataframe = pd.DataFrame()
             self.dataframe['date_index'] = range(lookup['start'], lookup['end'], timestep)
             self.dataframe['date_time'] = pd.to_datetime(self.dataframe['date_index'], unit='s').round('min')
@@ -87,8 +87,8 @@ class CurrentStationJob:
         init_time = perf_counter()
         print(f'+     {self.lookup['name']}', flush=True)
         downloaded_dataframe = VelocityDownloadedDataframe(self.year, self.lookup, self.headless)
-        interpolated_dataframe = VelocitySplineFitDataframe(self.lookup, self.timestep, downloaded_dataframe)
-        return tuple([self.result_key, interpolated_dataframe.dataframe, init_time])
+        spline_fit_dataframe = VelocitySplineFitDataframe(self.lookup, self.timestep, downloaded_dataframe.dataframe)
+        return tuple([self.result_key, spline_fit_dataframe.dataframe, init_time])
 
     def execute_callback(self, result):
         print(f'-     {self.lookup['name']} {dtt.mins_secs(perf_counter() - result[2])} minutes', flush=True)
@@ -163,7 +163,11 @@ class InterpolationPointJob:
     def execute(self):
         init_time = perf_counter()
         print(f'+     {self.lookup['name']}', flush=True)
-        interpolated_dataframe = VelocitySplineFitDataframe(self.lookup, self.timestep, ft.read_df('downloaded_filepath'))
+        if ft.csv_npy_file_exists(self.lookup['final_filepath']):
+            return tuple([self.result_key, ft.read_df(self.lookup['final_filepath']), init_time])
+        else:
+            interpolated_dataframe = VelocitySplineFitDataframe(self.lookup, self.timestep, ft.read_df(self.lookup['downloaded_filepath']))
+            ft.write_df(interpolated_dataframe.dataframe, self.lookup['final_filepath'])
         return tuple([self.result_key, interpolated_dataframe.dataframe, init_time])
 
     def execute_callback(self, result):
@@ -177,4 +181,6 @@ class InterpolationPointJob:
         self.timestep = timestep
         self.result_key = id(waypoint)
         self.lookup = {'final_filepath': waypoint.final_data_filepath, 'name': waypoint.unique_name,
-                       'start': waypoint.start_index, 'end': waypoint.end_index, 'downloaded_filepath': waypoint.downloaded_data_filepath}
+                       'start': waypoint.start_index, 'end': waypoint.end_index,
+                       'downloaded_filepath': waypoint.downloaded_data_filepath,
+                       'final_filepath': waypoint.final_data_filepath}
