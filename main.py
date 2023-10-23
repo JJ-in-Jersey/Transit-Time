@@ -7,7 +7,7 @@ from time import perf_counter
 # noinspection PyPep8Naming
 from pandas import DataFrame, concat as Concat
 
-from tt_gpx.gpx import Route, Waypoint, Edge, TideWP, InterpolationWP, DataWP, CurrentStationWP
+from tt_gpx.gpx import Route, Waypoint, Edge, TideWP, DataWP, CurrentStationWP
 from tt_file_tools import file_tools as ft
 from tt_chrome_driver import chrome_driver
 from tt_date_time_tools import date_time_tools as dt
@@ -18,7 +18,6 @@ from velocity import CurrentStationJob, InterpolationStationJob
 from velocity import InterpolatePointJob, InterpolationPointJob
 from battery_validation import TideStationJob
 from elapsed_time import ElapsedTimeJob
-from dataframe_merge import elapsed_time_reduce
 from transit_time import TransitTimeMinimaJob
 from project_globals import TIMESTEP, TIME_RESOLUTION, WINDOW_MARGIN, boat_speeds, Environment, ChartYear
 
@@ -110,51 +109,30 @@ if __name__ == '__main__':
     # Calculate the number of timesteps to get from the start of the edge to the end of the edge
     init_time = perf_counter()
     for s in boat_speeds:
-        print(f'\nCalculating elapsed times for edges {s} (1st day-1 to last day+3)')
+        print(f'\nCalculating elapsed timesteps for edges {s} (1st day-1 to last day+3)')
         for edge in route.elapsed_time_path.edges:
             job_manager.put(ElapsedTimeJob(edge, s))
         job_manager.wait()
+        print(f'Multi-process time {dt.mins_secs(perf_counter()-init_time)}')
 
-        elapsed_time_df = pd.DataFrame(data={'departure_index': edge.edge_range})
-        print(f'\nAdding elapsed times to dataframe', flush=True)
+        print(f'\nAdding elapsed timesteps to dataframe', flush=True)
+        elapsed_time_df = pd.DataFrame(data={'departure_index': cy.edge_range()})  # add departure_index as the join column
         for edge in route.elapsed_time_path.edges:
-            print(f'{checkmark}     {edge.unique_name}', flush=True)
-            elapsed_time_df = elapsed_time_df.merge(job_manager.get(edge.unique_name), on='departure_index')
-        ft.write_df(elapsed_time_df, env.elapsed_time_folder.joinpath('elapsed_time_'+str(s)))
+            elapsed_time_df = elapsed_time_df.merge(job_manager.get(edge.unique_name + '_' + str(s)), on='departure_index')
+            print(f'{checkmark}     {edge.unique_name} {s}', flush=True)
+        print(f'\nAdding elapsed timesteps to route', flush=True)
+        elapsed_time_df.drop(['departure_index'], axis=1, inplace=True)
+        ft.write_df(elapsed_time_df, env.elapsed_time_folder.joinpath('elapsed_timesteps_'+str(s)))
+        route.elapsed_time_lookup[s] = elapsed_time_df
     print(f'Multi-process time {dt.mins_secs(perf_counter() - init_time)}')
-
-    # # Calculate the number of timesteps to get from the start of the edge to the end of the edge
-    # print(f'\nCalculating elapsed times for edges (1st day-1 to last day+3)')
-    # init_time = perf_counter()
-    # for edge in route.elapsed_time_path.edges:
-    #     for s in boat_speeds:
-    #         job_manager.put(ElapsedTimeJob(edge, s))
-    # job_manager.wait()
-    # print(f'Multi-process time {dt.mins_secs(perf_counter() - init_time)}')
-
-    # Aggregate the elapsed time data by route@speed
-    print(f'\nAggregating data by route')
-    for s in boat_speeds:
-        for edge in route.elapsed_time_path.edges:
-            df = pd.DataFrame()
-
-    print(f'\nAdding results to edges')
-    for edge in route.elapsed_time_path.edges:
-        edge.output_data = job_manager.get(id(edge))
-        if isinstance(edge.output_data, DataFrame): print(f'{checkmark}     {edge.unique_name}', flush=True)
-        else: print(f'X     {edge.unique_name}', flush=True)
-
-    # combine elapsed times by speed
-    print(f'\nSorting elapsed times by speed', flush=True)
-    elapsed_time_reduce(env.elapsed_time_folder, route)
 
     # calculate the number of timesteps from first node to last node
     print(f'\nCalculating transit times (1st day-1 to last day+2)')
     init_time = perf_counter()
     for speed in boat_speeds:
         job_manager.put(TransitTimeMinimaJob(env, cy, route, speed))
-    # tt = TransitTimeMinimaJob(env, cy, route, speed)
-    # tt.execute()
+        # tt = TransitTimeMinimaJob(env, cy, route, speed)
+        # tt.execute()
     job_manager.wait()
     print(f'Multi-process time {dt.mins_secs(perf_counter() - init_time)}')
 

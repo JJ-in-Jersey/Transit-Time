@@ -37,7 +37,7 @@ class ElapsedTimeJob:
         # always minimize the amount of stuff to be pickled
         self.name = edge.unique_name
         self.speed = speed
-        self.result_key = edge.unique_name
+        self.result_key = edge.unique_name + '_' + str(speed)
         edge.final_data_filepath = edge.folder.joinpath(self.result_key)
         self.final_data_filepath = edge.folder.joinpath(self.result_key)
         self.length = edge.length

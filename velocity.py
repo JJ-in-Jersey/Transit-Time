@@ -165,9 +165,9 @@ class InterpolationPointJob:
         print(f'+     {self.lookup['name']}', flush=True)
         if ft.csv_npy_file_exists(self.lookup['final_filepath']):
             return tuple([self.result_key, ft.read_df(self.lookup['final_filepath']), init_time])
-        else:
-            interpolated_dataframe = VelocitySplineFitDataframe(self.lookup, self.timestep, ft.read_df(self.lookup['downloaded_filepath']))
-            ft.write_df(interpolated_dataframe.dataframe, self.lookup['final_filepath'])
+
+        interpolated_dataframe = VelocitySplineFitDataframe(self.lookup, self.timestep, ft.read_df(self.lookup['downloaded_filepath']))
+        ft.write_df(interpolated_dataframe.dataframe, self.lookup['final_filepath'])
         return tuple([self.result_key, interpolated_dataframe.dataframe, init_time])
 
     def execute_callback(self, result):
@@ -180,7 +180,5 @@ class InterpolationPointJob:
         self.year = year
         self.timestep = timestep
         self.result_key = id(waypoint)
-        self.lookup = {'final_filepath': waypoint.final_data_filepath, 'name': waypoint.unique_name,
-                       'start': waypoint.start_index, 'end': waypoint.end_index,
-                       'downloaded_filepath': waypoint.downloaded_data_filepath,
-                       'final_filepath': waypoint.final_data_filepath}
+        self.lookup = {'name': waypoint.unique_name, 'start': waypoint.start_index, 'end': waypoint.end_index,
+                       'downloaded_filepath': waypoint.downloaded_data_filepath, 'final_filepath': waypoint.final_data_filepath}

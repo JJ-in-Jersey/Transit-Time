@@ -35,11 +35,9 @@ class TransitTimeMinimaJob:
         self.speed = speed
         self.first_day = cy.first_day
         self.last_day = cy.last_day
-        self._start_index = cy.transit_start_index()
-        self._end_index = cy.transit_end_index()
         self.transit_range = cy.transit_range()
-        self._elapsed_times_df = route.elapsed_time_lookup[speed]
-        self._elapsed_time_table = env.transit_time_folder.joinpath('et_' + str(speed))  # elapsed times in table, sorted by speed
+        self.elapsed_times_df = route.elapsed_time_lookup[speed]
+        self.elapsed_time_table = env.transit_time_folder.joinpath('elapsed_timesteps_' + str(speed))  # elapsed timesteps in table, sorted by speed
         self.speed_folder = env.speed_folder(num2words(speed))
         self.transit_timesteps = self.speed_folder.joinpath(file_header + '_timesteps')  # transit times column
         self.savgol_data = self.speed_folder.joinpath(file_header + '_savgol_data')  # savgol column
@@ -59,7 +57,7 @@ class TransitTimeMinimaJob:
             transit_timesteps_arr = ft.read_arr(self.transit_timesteps)
         else:
             row_range = range(len(self.transit_range))
-            transit_timesteps_arr = [total_transit_time(row, self._elapsed_times_df, self._elapsed_times_df.columns.to_list()) for row in row_range]
+            transit_timesteps_arr = [total_transit_time(row, self.elapsed_times_df, self.elapsed_times_df.columns.to_list()) for row in row_range]
             ft.write_arr(transit_timesteps_arr, self.transit_timesteps)
 
         if ft.csv_npy_file_exists(self.plot_data):
