@@ -132,8 +132,6 @@ if __name__ == '__main__':
     init_time = perf_counter()
     for speed in boat_speeds:
         job_manager.put(TransitTimeMinimaJob(env, cy, route, speed))
-        # tt = TransitTimeMinimaJob(env, cy, route, speed)
-        # tt.execute()
     job_manager.wait()
     print(f'Multi-process time {dt.mins_secs(perf_counter() - init_time)}')
 
@@ -148,7 +146,6 @@ if __name__ == '__main__':
     min_rotation_df = arcs_df[arcs_df['min'].notna()]
     min_rotation_df = min_rotation_df.rename(columns={'min': 'angle'})
     min_rotation_df['name'] = min_rotation_df['name'].apply(lambda name_string: name_string.replace('Arc', 'Min Arrow'))
-    # min_rotation_df = min_rotation_df.drop(['date_time', 'start', 'end'], axis=1)
     ft.write_df(min_rotation_df, env.transit_time_folder.joinpath('minima'))
     arcs_df.drop(['date_time', 'min'], axis=1, inplace=True)
     ft.write_df(arcs_df, env.transit_time_folder.joinpath('arcs'))
