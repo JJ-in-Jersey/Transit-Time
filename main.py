@@ -143,18 +143,6 @@ if __name__ == '__main__':
         if isinstance(route.transit_time_lookup[speed], DataFrame): print(f'{checkmark}     tt {speed}', flush=True)
         else: print(f'X     tt {speed}', flush=True)
 
-    if not ft.csv_npy_file_exists(env.transit_time_folder.joinpath('text_rotation')):
-        # text_rotation_df = DataFrame(columns=['date', 'angle'])
-        text_rotation_df = pd.DataFrame({'date': pd.Series(dtype='datetime64[ns]'), 'angle': pd.Series(dtype='float')})
-        text_arcs_df = Concat([route.transit_time_lookup[boat_speeds[-1]], route.transit_time_lookup[boat_speeds[-1]]])
-        text_arcs_df.sort_values(['date', 'start'], ignore_index=True, inplace=True)
-        for date in text_arcs_df['date'].drop_duplicates(ignore_index=True):
-            date_df = text_arcs_df[text_arcs_df['date'] == date].sort_index().reset_index(drop=True)
-            angle = (date_df.loc[1, 'start'] + date_df.loc[0, 'end'])/2
-            text_rotation_df = Concat([text_rotation_df, DataFrame.from_dict({'date': [date], 'angle': [angle]})])
-            text_arcs_df = text_arcs_df[text_arcs_df['date'] != date]
-        ft.write_df(text_rotation_df, env.transit_time_folder.joinpath('legend'))
-
     arcs_df = Concat([route.transit_time_lookup[key] for key in route.transit_time_lookup])
     arcs_df.sort_values(['date'], ignore_index=True, inplace=True)
     min_rotation_df = arcs_df[arcs_df['min'].notna()]
