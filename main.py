@@ -1,3 +1,4 @@
+import time
 from argparse import ArgumentParser as argParser
 from pathlib import Path
 
@@ -172,5 +173,9 @@ if __name__ == '__main__':
     battery_job = TideStationJob(cy, battery_wp, TIMESTEP, False)
     battery_job.execute()
     ft.write_df(battery_job.battery_lines, env.transit_time_folder.joinpath('battery_tide'))
+
+    print(f'\nProcess Complete')
+
+    job_manager.stop_queue()
 
     # del job_manager

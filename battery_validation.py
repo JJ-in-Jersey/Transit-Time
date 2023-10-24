@@ -65,7 +65,7 @@ class DownloadedDataframe:
         self.headless = headless
 
         if ft.csv_npy_file_exists(waypoint.downloaded_data_filepath):
-            self.downloaded_df = pd.read_csv(waypoint.downloaded_data_filepath.with_suffix('.csv'))
+            self.downloaded_df = ft.read_df(waypoint.downloaded_data_filepath)
             self.downloaded_df['date'] = pd.to_datetime(self.downloaded_df['date'], format='%Y/%m/%d')
             self.downloaded_df['time'] = pd.to_datetime(self.downloaded_df['time'], format='%I:%M %p')
             self.downloaded_df['datetime'] = pd.to_datetime(self.downloaded_df['datetime'])
