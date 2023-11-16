@@ -36,15 +36,14 @@ def set_up_download(year, driver, wdw, code):
 
 class VelocityDownloadedDataframe:
 
-    def __init__(self, year, lookup, headless=False):
-        self.headless = headless
+    def __init__(self, year, lookup):
         self.dataframe = None
 
         if ft.csv_npy_file_exists(lookup['downloaded_filepath']):
             self.dataframe = ft.read_df(lookup['downloaded_filepath'])
         else:
             self.dataframe = pd.DataFrame()
-            driver = chrome_driver.get_driver(lookup['folder'], headless)
+            driver = chrome_driver.get_driver(lookup['folder'])
             wdw = WebDriverWait(driver, WDW)
 
             for y in range(year - 1, year + 2):  # + 2 because of range behavior
@@ -86,7 +85,7 @@ class CurrentStationJob:
     def execute(self):
         init_time = perf_counter()
         print(f'+     {self.lookup['name']}', flush=True)
-        downloaded_dataframe = VelocityDownloadedDataframe(self.year, self.lookup, self.headless)
+        downloaded_dataframe = VelocityDownloadedDataframe(self.year, self.lookup)
         spline_fit_dataframe = VelocitySplineFitDataframe(self.lookup, self.timestep, downloaded_dataframe.dataframe)
         return tuple([self.result_key, spline_fit_dataframe.dataframe, init_time])
 
@@ -96,8 +95,7 @@ class CurrentStationJob:
     def error_callback(self, result):
         print(f'!     {self.lookup['name']} process has raised an error: {result}', flush=True)
 
-    def __init__(self, year, waypoint, timestep, headless=False):
-        self.headless = headless
+    def __init__(self, year, waypoint, timestep):
         self.year = year
         self.timestep = timestep
         self.result_key = id(waypoint)
@@ -116,7 +114,7 @@ class InterpolationStationJob(CurrentStationJob):
     interpolation_timestep = 10800  # three hour timestep (3 hours * 60 mins * 60 seconds = 10800)
 
     def __init__(self, year, waypoint):
-        super().__init__(year, waypoint, InterpolationStationJob.interpolation_timestep, headless=False)
+        super().__init__(year, waypoint, InterpolationStationJob.interpolation_timestep)
 
 
 class InterpolatePointJob:

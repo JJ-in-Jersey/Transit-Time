@@ -61,8 +61,7 @@ def index_arc_df(frame, name):
 
 class DownloadedDataframe:
 
-    def __init__(self, year, waypoint, headless=False):
-        self.headless = headless
+    def __init__(self, year, waypoint):
 
         if ft.csv_npy_file_exists(waypoint.downloaded_data_filepath):
             self.downloaded_df = ft.read_df(waypoint.downloaded_data_filepath)
@@ -71,7 +70,7 @@ class DownloadedDataframe:
             self.downloaded_df['datetime'] = pd.to_datetime(self.downloaded_df['datetime'])
         else:
             self.downloaded_df = pd.DataFrame()
-            driver = cd.get_driver(waypoint.folder, headless)
+            driver = cd.get_driver(waypoint.folder)
             wdw = WebDriverWait(driver, WDW)
             driver.get(waypoint.noaa_url)
             code_string = '/noaatideannual.html?id=' + waypoint.code
@@ -91,7 +90,7 @@ class TideStationJob:
 
     def execute(self):
         print(f'+     {self.waypoint.unique_name}', flush=True)
-        ddf = DownloadedDataframe(self.year, self.waypoint, self.headless)
+        ddf = DownloadedDataframe(self.year, self.waypoint)
         dataframe = ddf.downloaded_df
 
         # northbound depart 4.5 hours after low water at the battery
@@ -119,8 +118,7 @@ class TideStationJob:
     def error_callback(self, result):
         print(f'!     {self.waypoint.unique_name} process has raised an error: {result}', flush=True)
 
-    def __init__(self, cy, waypoint, timestep, headless=False):
-        self.headless = headless
+    def __init__(self, cy, waypoint, timestep):
         self.year = cy.year()
         self.waypoint = waypoint
         self.first_day = cy.first_day.date()
