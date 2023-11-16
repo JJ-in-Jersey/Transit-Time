@@ -70,7 +70,7 @@ if __name__ == '__main__':
         if isinstance(wp, DataWP):  # DataWP must come before CurrentStationWP because DataWP IS A CurrentStationWP
             job_manager.put(InterpolationStationJob(args['year'], wp))
         elif isinstance(wp, CurrentStationWP):
-            job_manager.put(CurrentStationJob(args['year'], wp, TIMESTEP, False))
+            job_manager.put(CurrentStationJob(args['year'], wp, TIMESTEP))
     job_manager.wait()
     print(f' Multi-process time {dt.mins_secs(perf_counter()-init_time)}')
 
