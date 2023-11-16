@@ -128,7 +128,7 @@ if __name__ == '__main__':
     print(f'Multi-process time {dt.mins_secs(perf_counter() - init_time)}')
 
     # calculate the number of timesteps from first node to last node
-    print(f'\nCalculating transit times (1st day-1 to last day+2)')
+    print(f'\nCalculating transit timesteps (1st day-1 to last day+2)')
     init_time = perf_counter()
     for speed in boat_speeds:
         job_manager.put(TransitTimeMinimaJob(env, cy, route, speed))

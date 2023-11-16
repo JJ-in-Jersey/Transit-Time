@@ -25,8 +25,8 @@ def sign(value): return value/abs(value)
 class Environment:
 
     def __init__(self, args):
-        self.user_profile = env('user_profile')
-        self.project_folder = Path(self.user_profile + '/Developer Workspace/' + args['project_name'] + '_' + str(args['year']) + '/')
+        folder_suffix = 'Developer Workspace/' + args['project_name'] + '_' + str(args['year']) + '/'
+        self.project_folder = env('user_profile').joinpath(folder_suffix)
         self.velocity_folder = self.project_folder.joinpath('Velocity')
         self.current_folder = self.project_folder.joinpath('Current')
         self.elapsed_time_folder = self.project_folder.joinpath('Elapsed Time')
