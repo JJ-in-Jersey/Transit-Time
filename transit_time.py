@@ -28,9 +28,10 @@ def total_transit_time(init_row, d_frame, cols):
 class TransitTimeMinimaJob:
 
     def __init__(self, env, cy, route, speed):
-        self.boat_direction = 'Pos' if speed/abs(speed) > 0 else 'Neg'
+        self.boat_direction = '+' if speed/abs(speed) > 0 else '-'
         self.boat_speed = abs(speed)
-        self.shape_base_name = self.boat_direction + ' ' + str(self.boat_speed) + ' Arc'
+        # self.shape_base_name = self.boat_direction + ' ' + str(self.boat_speed) + ' Arc'
+        self.shape_base_name = 'arc ' + self.boat_direction + str(self.boat_speed)
         file_header = str(cy.year()) + '_' + self.boat_direction + '_' + str(self.boat_speed)
         self.speed = speed
         self.first_day = cy.first_day

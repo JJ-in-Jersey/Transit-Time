@@ -155,7 +155,7 @@ if __name__ == '__main__':
 
     print(f'\nCreating Battery tide arcs')
     battery_wp = TideWP(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
-    battery_job = TideStationJob(cy, battery_wp, TIMESTEP, False)
+    battery_job = TideStationJob(cy, battery_wp, TIMESTEP)
     battery_job.execute()
     ft.write_df(battery_job.battery_lines, env.transit_time_folder.joinpath('battery_tide'))
 
