@@ -1,4 +1,3 @@
-import time
 from argparse import ArgumentParser as argParser
 from pathlib import Path
 
