@@ -68,8 +68,12 @@ if __name__ == '__main__':
     for wp in route.waypoints:
         if isinstance(wp, DataWP):  # DataWP must come before CurrentStationWP because DataWP IS A CurrentStationWP
             job_manager.put(InterpolationStationJob(args['year'], wp))
+            # isj = InterpolationStationJob(args['year'], wp)
+            # result = isj.execute()
         elif isinstance(wp, CurrentStationWP):
             job_manager.put(CurrentStationJob(args['year'], wp, TIMESTEP))
+            # csj = CurrentStationJob(args['year'], wp, TIMESTEP)
+            # result = csj.execute()
     job_manager.wait()
     print(f' Multi-process time {dt.mins_secs(perf_counter()-init_time)}')
 
@@ -150,14 +154,14 @@ if __name__ == '__main__':
     ft.write_df(arcs_df, env.transit_time_folder.joinpath('arcs'))
     ft.write_df(min_rotation_df, env.transit_time_folder.joinpath('minima'))
 
-    erv = HellGateSlackTimes(cy, route.waypoints)
-    ft.write_df(erv.hell_gate_slack, env.transit_time_folder.joinpath('hell_gate_slack'))
-
-    print(f'\nCreating Battery tide arcs')
-    battery_wp = TideWP(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
-    battery_job = TideStationJob(cy, battery_wp, TIMESTEP)
-    battery_job.execute()
-    ft.write_df(battery_job.battery_lines, env.transit_time_folder.joinpath('battery_tide'))
+    # erv = HellGateSlackTimes(cy, route.waypoints)
+    # ft.write_df(erv.hell_gate_slack, env.transit_time_folder.joinpath('hell_gate_slack'))
+    #
+    # print(f'\nCreating Battery tide arcs')
+    # battery_wp = TideWP(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
+    # battery_job = TideStationJob(cy, battery_wp, TIMESTEP)
+    # battery_job.execute()
+    # ft.write_df(battery_job.battery_lines, env.transit_time_folder.joinpath('battery_tide'))
 
     print(f'\nProcess Complete')
 
