@@ -7,7 +7,7 @@ from time import perf_counter
 # noinspection PyPep8Naming
 from pandas import DataFrame, concat as Concat
 
-from tt_gpx.gpx import Route, Waypoint, Edge, TideWP, DataWP, CurrentStationWP
+from tt_gpx.gpx import Route, Waypoint, Edge, TideWP, InterpolatedDataWP, CurrentCalculationWP
 from tt_file_tools import file_tools as ft
 from tt_chrome_driver import chrome_driver
 from tt_date_time_tools import date_time_tools as dt
@@ -41,11 +41,11 @@ if __name__ == '__main__':
     Edge.elapsed_time_folder = env.elapsed_time_folder
 
     # Assemble route
-    route = Route(args['filepath'], cy.waypoint_start_index(), cy.waypoint_end_index(), cy.edge_range())
+    route = Route(args['filepath'], cy.edge_range())
 
     print(f'\nCalculating route "{route.filepath.stem}"')
-    print(f'total waypoints: {len(route.whole_path.edges)+1}')
-    print(f'elapsed time waypoints: {len(route.elapsed_time_path.edges)+1}')
+    print(f'total waypoints: {len(route.elapsed_time_wps)}')
+    print(f'elapsed time waypoints: {len(route.elapsed_time_edges)}')
     print(f'timestep: {TIMESTEP}')
     print(f'chart resolution: {TIME_RESOLUTION}')
     print(f'transit time window: {WINDOW_MARGIN}')
@@ -66,12 +66,12 @@ if __name__ == '__main__':
     print(f'\nDownloading and processing currents at CURRENT and INTERPOLATION DATA waypoints (1st day-1 to last day+4)', flush=True)
     init_time = perf_counter()
     for wp in route.waypoints:
-        if isinstance(wp, DataWP):  # DataWP must come before CurrentStationWP because DataWP IS A CurrentStationWP
+        if isinstance(wp, InterpolatedDataWP):  # DataWP must come before CurrentCalculationWP because DataWP IS A CurrentStationWP
             job_manager.put(InterpolationStationJob(args['year'], wp))
             # isj = InterpolationStationJob(args['year'], wp)
             # result = isj.execute()
-        elif isinstance(wp, CurrentStationWP):
-            job_manager.put(CurrentStationJob(args['year'], wp, TIMESTEP))
+        elif isinstance(wp, CurrentCalculationWP):
+            job_manager.put(CurrentStationJob(args['year'], wp, cy.waypoint_start_index(), cy.waypoint_end_index(), TIMESTEP))
             # csj = CurrentStationJob(args['year'], wp, TIMESTEP)
             # result = csj.execute()
     job_manager.wait()
@@ -79,7 +79,7 @@ if __name__ == '__main__':
 
     print(f'\nAdding results to waypoints', flush=True)
     for wp in route.waypoints:
-        if isinstance(wp, CurrentStationWP) or isinstance(wp, DataWP):
+        if isinstance(wp, CurrentCalculationWP) or isinstance(wp, InterpolatedDataWP):
             wp.current_data = job_manager.get(id(wp))
             print(f'{checkmark}     {wp.unique_name}', flush=True)
 
