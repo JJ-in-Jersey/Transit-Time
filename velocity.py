@@ -95,13 +95,13 @@ class CurrentStationJob:
     def error_callback(self, result):
         print(f'!     {self.lookup['name']} process has raised an error: {result}', flush=True)
 
-    def __init__(self, year, waypoint, timestep):
+    def __init__(self, year, waypoint, data_table_start_index, data_table_end_index, timestep):
         self.year = year
         self.timestep = timestep
         self.result_key = id(waypoint)
         self.lookup = {'url': waypoint.noaa_url, 'code': waypoint.code, 'name': waypoint.unique_name,
                        'downloaded_filepath': waypoint.downloaded_data_filepath, 'final_filepath': waypoint.final_data_filepath,
-                       'start': waypoint.start_index, 'end': waypoint.end_index, 'folder': waypoint.folder}
+                       'start': data_table_start_index, 'end': data_table_end_index, 'folder': waypoint.folder}
 
 
 # For one of the waypoints used for interpolation download and curve fit the results with a different timestep
