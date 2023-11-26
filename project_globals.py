@@ -1,4 +1,5 @@
 from os import makedirs
+from num2words import num2words
 import shutil
 import pandas as pd
 import dateparser as dp
@@ -38,6 +39,9 @@ class Environment:
         makedirs(self.current_folder, exist_ok=True)
         makedirs(self.elapsed_time_folder, exist_ok=True)
         makedirs(self.transit_time_folder, exist_ok=True)
+
+        for s in boat_speeds:
+            makedirs(self.transit_time_folder.joinpath(num2words(s)), exist_ok=True)
 
     def edge_folder(self, name):
         path = self.elapsed_time_folder.joinpath(name)
