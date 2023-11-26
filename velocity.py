@@ -64,7 +64,7 @@ class VelocityDownloadedDataframe:
 
 class VelocitySplineFitDataframe:
 
-    def __init__(self, spline_fit_data_path, downloaded_dataframe, start, end):
+    def __init__(self, spline_fit_data_path, downloaded_dataframe, start, end, timestep):
         self.dataframe = None
 
         if ft.csv_npy_file_exists(spline_fit_data_path):
@@ -72,7 +72,7 @@ class VelocitySplineFitDataframe:
         else:
             cs = CubicSpline(downloaded_dataframe['date_index'], downloaded_dataframe['velocity'])
             self.dataframe = pd.DataFrame()
-            self.dataframe['date_index'] = range(start, end, TIMESTEP)
+            self.dataframe['date_index'] = range(start, end, timestep)
             self.dataframe['date_time'] = pd.to_datetime(self.dataframe['date_index'], unit='s').round('min')
             self.dataframe['velocity'] = self.dataframe['date_index'].apply(cs)
             ft.write_df(self.dataframe, spline_fit_data_path)
@@ -106,9 +106,9 @@ class SplineFitCurrentDataJob(Job):  # super -> job name, result key, function/o
     def execute_callback(self, result): return super().execute_callback(result)
     def error_callback(self, result): return super().error_callback(result)
 
-    def __init__(self, waypoint, start, end):
+    def __init__(self, waypoint, start, end, timestep=TIMESTEP):
         result_key = id(waypoint)
-        arguments = tuple([waypoint.spline_fit_current_path, waypoint.downloaded_current_data, start, end])
+        arguments = tuple([waypoint.spline_fit_current_path, waypoint.downloaded_current_data, start, end, timestep])
         super().__init__(waypoint.unique_name, result_key, VelocitySplineFitDataframe, arguments)
 
 
@@ -132,10 +132,10 @@ def interpolate_group(group, job_manager):
     interpolation_pt = group[0]
     data_waypoints = group[1:]
 
-    if ft.csv_npy_file_exists(interpolation_pt.spline_fit_current_path):
-        interpolation_pt.spline_fit_current_data = ft.read_df(interpolation_pt.spline_fit_current_path)
+    if ft.csv_npy_file_exists(interpolation_pt.downloaded_current_path):
+        interpolation_pt.downloaded_current_data = ft.read_df(interpolation_pt.downloaded_current_path)
     else:
-        group_range = range(len(data_waypoints[0].downloaded_current_data))
+        group_range = range(len(data_waypoints[0].spline_fit_current_data))
         for i in group_range:
             job_manager.put(InterpolatePointJob(interpolation_pt, data_waypoints, i))
         job_manager.wait()
@@ -145,5 +145,5 @@ def interpolate_group(group, job_manager):
         frame.sort_values('date_index', inplace=True)
         frame['date_time'] = pd.to_datetime(frame['date_index'], unit='s')
         frame.reset_index(drop=True, inplace=True)
-        interpolation_pt.spline_fit_current_data = frame
-        ft.write_df(frame, interpolation_pt.spline_fit_current_path)
+        interpolation_pt.downloaded_current_data = frame
+        ft.write_df(frame, interpolation_pt.downloaded_current_path)
