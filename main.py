@@ -14,12 +14,13 @@ from tt_job_manager.job_manager import JobManager
 
 # import multiprocess as mpm
 from velocity import NoaaCurrentDownloadJob, SplineFitCurrentDataJob, interpolate_group
+from hell_gate_validation import HellGateValidationJob
 from battery_validation import TideStationJob
 from elapsed_time import ElapsedTimeJob
 from transit_time import TransitTimeJob
 from project_globals import TIMESTEP, TIME_RESOLUTION, WINDOW_MARGIN, boat_speeds, Environment, ChartYear
 
-from hell_gate_validation import HellGateSlackTimes
+from hell_gate_validation import HellGateSlackTimesDataframe
 
 checkmark = u'\N{check mark}'
 
@@ -32,6 +33,8 @@ if __name__ == '__main__':
     ap.add_argument('filepath', type=Path, help='path to gpx file')
     ap.add_argument('year', type=int, help='calendar year for analysis')
     ap.add_argument('-dd', '--delete_data', action='store_true')
+    ap.add_argument( '--hell_gate', action='store_true')
+    ap.add_argument( '--battery', action='store_true')
     args = vars(ap.parse_args())
 
     # ---------- SET UP GLOBALS ----------
@@ -192,17 +195,23 @@ if __name__ == '__main__':
 
     arcs_df.drop(['date_time', 'min'], axis=1, inplace=True)
     min_rotation_df.drop(['date_time', 'start', 'end'], axis=1, inplace=True)
-    ft.write_df(arcs_df, env.transit_time_folder.joinpath('arcs'))
     ft.write_df(min_rotation_df, env.transit_time_folder.joinpath('minima'))
+    ft.write_df(arcs_df, env.transit_time_folder.joinpath('arcs'))
 
-    # erv = HellGateSlackTimes(cy, route.waypoints)
-    # ft.write_df(erv.hell_gate_slack, env.transit_time_folder.joinpath('hell_gate_slack'))
-    #
-    # print(f'\nCreating Battery tide arcs')
-    # battery_wp = TideWP(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
-    # battery_job = TideStationJob(cy, battery_wp, TIMESTEP)
-    # battery_job.execute()
-    # ft.write_df(battery_job.battery_lines, env.transit_time_folder.joinpath('battery_tide'))
+    if args['--hell_gate']:
+        print(f'\nBuilding East River Hell Gate validation data')
+        frame = list(filter(lambda wp: not bool(wp.unique_name.find('Hell_Gate')), route.waypoints))[0].downloaded_current_path
+        job_manager.put(HellGateValidationJob(cy.first_day.date(), cy.last_day.date(), frame))
+        job_manager.wait()
+        hell_gate_df = job_manager.get('hgv')
+        ft.write_df(hell_gate_df.dataframe, env.transit_time_folder.joinpath('hell_gate_slack'))
+
+    if args['--battery']:
+        print(f'\nCreating East River Battery validation tide arcs')
+        battery_wp = TideWP(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
+        battery_job = TideStationJob(cy, battery_wp, TIMESTEP)
+        battery_job.execute()
+        ft.write_df(battery_job.battery_lines, env.transit_time_folder.joinpath('battery_tide'))
 
     print(f'\nProcess Complete')
 
