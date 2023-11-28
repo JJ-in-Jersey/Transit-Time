@@ -33,8 +33,8 @@ if __name__ == '__main__':
     ap.add_argument('filepath', type=Path, help='path to gpx file')
     ap.add_argument('year', type=int, help='calendar year for analysis')
     ap.add_argument('-dd', '--delete_data', action='store_true')
-    ap.add_argument( '--hell_gate', action='store_true')
-    ap.add_argument( '--battery', action='store_true')
+    ap.add_argument( '-hg', '--hell_gate', action='store_true')
+    ap.add_argument( '-bat', '--battery', action='store_true')
     args = vars(ap.parse_args())
 
     # ---------- SET UP GLOBALS ----------
@@ -198,7 +198,7 @@ if __name__ == '__main__':
     ft.write_df(min_rotation_df, env.transit_time_folder.joinpath('minima'))
     ft.write_df(arcs_df, env.transit_time_folder.joinpath('arcs'))
 
-    if args['--hell_gate']:
+    if args['hell_gate']:
         print(f'\nBuilding East River Hell Gate validation data')
         frame = list(filter(lambda wp: not bool(wp.unique_name.find('Hell_Gate')), route.waypoints))[0].downloaded_current_path
         job_manager.put(HellGateValidationJob(cy.first_day.date(), cy.last_day.date(), frame))
@@ -206,7 +206,7 @@ if __name__ == '__main__':
         hell_gate_df = job_manager.get('hgv')
         ft.write_df(hell_gate_df.dataframe, env.transit_time_folder.joinpath('hell_gate_slack'))
 
-    if args['--battery']:
+    if args['battery']:
         print(f'\nCreating East River Battery validation tide arcs')
         battery_wp = TideWP(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
         battery_job = TideStationJob(cy, battery_wp, TIMESTEP)
