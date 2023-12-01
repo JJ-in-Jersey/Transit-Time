@@ -15,8 +15,7 @@ from tt_job_manager.job_manager import JobManager
 # import multiprocess as mpm
 from velocity import DownloadVelocityJob, SplineFitVelocityJob, interpolate_group
 from tide import DownloadTideJob
-from battery_validation import BatteryValidationDataframe
-from hell_gate_validation import HellGateValidationDataframe
+from east_river_validations import BatteryValidationDataframe, HellGateValidationDataframe
 from elapsed_time import ElapsedTimeJob
 from transit_time import TransitTimeJob
 from project_globals import WINDOW_MARGIN, boat_speeds, Environment, ChartYear
@@ -76,8 +75,6 @@ if __name__ == '__main__':
     for wp in route.waypoints:
         if isinstance(wp, TideStationWP):
             job_manager.put(DownloadTideJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index()))
-            # job = DownloadTideJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index())
-            # job.execute()
     job_manager.wait()
 
     # ---------- INTERPOLATION WAYPOINTS ----------
@@ -86,8 +83,6 @@ if __name__ == '__main__':
     for wp in route.waypoints:
         if isinstance(wp, InterpolatedDataWP):
             job_manager.put(DownloadVelocityJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index()))
-            # job = NoaaCurrentDownloadJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index())
-            # result = job.execute()
     job_manager.wait()
 
     print(f'\nAdding downloaded data to INTERPOLATED DATA WAYPOINTS', flush=True)
@@ -102,8 +97,6 @@ if __name__ == '__main__':
     for wp in route.waypoints:
         if isinstance(wp, InterpolatedDataWP):
             job_manager.put(SplineFitVelocityJob(wp, cy.waypoint_start_index(), cy.waypoint_end_index(), 10800))  # 3 hour timestep
-            # job = SplineFitCurrentDataJob(wp, cy.waypoint_start_index(), cy.waypoint_end_index(), 10800)  # 3 hour timestep
-            # result = job.execute()
     job_manager.wait()
 
     print(f'\nAdding spline data to INTERPOLATED DATA WAYPOINTS', flush=True)
@@ -136,8 +129,6 @@ if __name__ == '__main__':
     for wp in route.waypoints:
         if isinstance(wp, CurrentStationWP):
             job_manager.put(DownloadVelocityJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index()))
-            # job = NoaaCurrentDownloadJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index())
-            # job.execute()
     job_manager.wait()
 
     print(f'\nAdding downloaded data to CURRENT STATION WAYPOINTS', flush=True)
