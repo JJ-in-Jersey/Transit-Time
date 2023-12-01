@@ -54,20 +54,22 @@ class BatteryValidationDataframe:
 
         if ft.csv_npy_file_exists(download_path):
             frame = ft.read_df(download_path)
+
             south_df = frame[frame['HL'] == 'H']
-            south_df.insert(len(south_df.columns), 'best_time', south_df['datetime'] + pd.Timedelta(hours=4))
+            south_df.insert(len(south_df.columns), 'best_time', south_df['date_time'].apply(pd.to_datetime) + pd.Timedelta(hours=4))
+
             north_df = frame[frame['HL'] == 'L']
-            north_df.insert(len(north_df.columns), 'best_time', north_df['datetime'] + pd.Timedelta(hours=4.5))
-            best_df = north_df.drop(['date', 'time', 'HL', 'datetime'], axis=1)
-            best_df = pd.concat([best_df, south_df.drop(['date', 'time', 'HL', 'datetime'], axis=1)], ignore_index=True)
+            north_df.insert(len(north_df.columns), 'best_time', north_df['date_time'].apply(pd.to_datetime) + pd.Timedelta(hours=4.5))
+
+            best_df = north_df.drop(['date', 'time', 'HL', 'date_time'], axis=1)
+            best_df = pd.concat([best_df, south_df.drop(['date', 'time', 'HL', 'date_time'], axis=1)], ignore_index=True)
 
             best_df['date'] = best_df['best_time'].dt.date
             best_df['time'] = best_df['best_time'].dt.time
             best_df['angle'] = best_df['time'].apply(time_to_degrees)
             best_df = best_df.drop(['best_time'], axis=1)
-            # best_df = best_df[best_df['date'] >= f_date]
-            # best_df = best_df[best_df['date'] <= l_date]
-            best_df = best_df[f_date <= best_df['date'] <= l_date]
+            best_df = best_df[best_df['date'] >= f_date]
+            best_df = best_df[best_df['date'] <= l_date]
             self.dataframe = index_arc_df(best_df, 'Battery Line')
         else:
             raise FileExistsError
