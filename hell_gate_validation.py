@@ -1,7 +1,6 @@
 import pandas as pd
 from tt_file_tools import file_tools as ft
 from tt_geometry.geometry import time_to_degrees
-from tt_job_manager.job_manager import Job
 
 
 def index_arc_df(frame, name):
@@ -23,14 +22,14 @@ def index_arc_df(frame, name):
     return df
 
 
-class HellGateSlackTimesDataframe:
+class HellGateValidationDataframe:
 
     first_slack_lookup = {'flood_slack': 'ebb_begins', 'slack_flood': 'flood_begins', 'slack_ebb': 'ebb_begins', 'ebb_slack': 'flood_begins'}
 
-    def __init__(self, f_date, l_date, downloaded_current_path):
+    def __init__(self, downloaded_path, f_date, l_date):
 
-        if ft.csv_npy_file_exists(downloaded_current_path):
-            slack_df = ft.read_df(downloaded_current_path)
+        if ft.csv_npy_file_exists(downloaded_path):
+            slack_df = ft.read_df(downloaded_path)
             slack_df = slack_df[slack_df['Event'] == 'slack']
             slack_df.drop(columns=['Event', 'Speed (knots)', 'date_index', 'velocity'], inplace=True)
             slack_df = pd.concat([slack_df, pd.DataFrame(columns=['date_time'], data=slack_df['date_time'].apply(pd.to_datetime) + pd.Timedelta(hours=3))])
@@ -45,16 +44,3 @@ class HellGateSlackTimesDataframe:
             self.dataframe = index_arc_df(slack_df, 'Hell Gate Line')
         else:
             raise FileExistsError
-
-
-class HellGateValidationJob(Job):
-
-    def execute(self): return super().execute()
-    def execute_callback(self, result): return super().execute_callback(result)
-    def error_callback(self, result): return super().error_callback(result)
-
-    def __init__(self, f_date, l_date, frame):
-        result_key = 'hgv'
-        job_name = "Hell Gate Validation"
-        arguments = tuple([f_date, l_date, frame])
-        super().__init__(job_name, result_key, HellGateSlackTimesDataframe, arguments)

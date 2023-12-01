@@ -15,10 +15,11 @@ from tt_job_manager.job_manager import JobManager
 # import multiprocess as mpm
 from velocity import DownloadVelocityJob, SplineFitVelocityJob, interpolate_group
 from tide import DownloadTideJob
-from hell_gate_validation import HellGateValidationJob
+from battery_validation import BatteryValidationDataframe
+from hell_gate_validation import HellGateValidationDataframe
 from elapsed_time import ElapsedTimeJob
 from transit_time import TransitTimeJob
-from project_globals import TIME_RESOLUTION, WINDOW_MARGIN, boat_speeds, Environment, ChartYear
+from project_globals import WINDOW_MARGIN, boat_speeds, Environment, ChartYear
 
 
 checkmark = u'\N{check mark}'
@@ -51,7 +52,6 @@ if __name__ == '__main__':
     print(f'\nCalculating route "{route.filepath.stem}"')
     print(f'total waypoints: {len(route.waypoints)}')
     print(f'total edges: {len(route.elapsed_time_edges)}')
-    print(f'chart resolution: {TIME_RESOLUTION}')
     print(f'transit time window: {WINDOW_MARGIN}')
     print(f'boat speeds: {boat_speeds}')
     print(f'length {round(route.elapsed_time_path.length, 1)} nm')
@@ -212,21 +212,16 @@ if __name__ == '__main__':
     ft.write_df(arcs_df, env.transit_time_folder.joinpath('arcs'))
 
     if args['hell_gate']:
-        print(f'\nBuilding East River Hell Gate validation data')
-        frame = list(filter(lambda wpt: not bool(wpt.unique_name.find('Hell_Gate')), route.waypoints))[0].downloaded_path
-        job_manager.put(HellGateValidationJob(cy.first_day.date(), cy.last_day.date(), frame))
-        job_manager.wait()
-        hell_gate_df = job_manager.get('hgv')
-        ft.write_df(hell_gate_df.dataframe, env.transit_time_folder.joinpath('hell_gate_slack'))
+        print(f'\nHell Gate validation')
+        path = list(filter(lambda wpt: not bool(wpt.unique_name.find('Hell_Gate')), route.waypoints))[0].downloaded_path
+        frame = HellGateValidationDataframe(path, cy.first_day.date(), cy.last_day.date()).dataframe
+        ft.write_df(frame, env.transit_time_folder.joinpath('hell_gate_validation'))
 
-    # if args['battery']:
-    #     print(f'\nCreating East River Battery validation tide arcs')
-    #     wp = TideStationWP(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
-    #     tide_df = NoaaTideDownloadJob(cy.year(), wp, cy.first_day(), cy.last_day())
-        # battery_wp = TideWP(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
-        # battery_job = TideStationJob(cy, battery_wp, TIMESTEP)
-        # battery_job.execute()
-        # ft.write_df(battery_job.battery_lines, env.transit_time_folder.joinpath('battery_tide'))
+    if args['battery']:
+        print(f'\nEast River Battery validation')
+        path = list(filter(lambda wpt: not bool(wpt.unique_name.find('NEW_YORK')), route.waypoints))[0].downloaded_path
+        frame = BatteryValidationDataframe(path, cy.first_day.date(), cy.last_day.date()).dataframe
+        ft.write_df(frame, env.transit_time_folder.joinpath('battery_validation'))
 
     print(f'\nProcess Complete')
 
