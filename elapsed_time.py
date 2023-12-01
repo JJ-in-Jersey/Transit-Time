@@ -52,7 +52,7 @@ class ElapsedTimeJob(Job):  # super -> job name, result key, function/object, ar
     def __init__(self, edge: Edge, speed):
         job_name = edge.unique_name + '_' + str(speed)
         result_key = job_name
-        init_velo = edge.start.spline_fit_current_data['velocity'].to_numpy(dtype='float16')
-        final_velo = edge.end.spline_fit_current_data['velocity'].to_numpy(dtype='float16')
+        init_velo = edge.start.spline_fit_data['velocity'].to_numpy(dtype='float16')
+        final_velo = edge.end.spline_fit_data['velocity'].to_numpy(dtype='float16')
         arguments = tuple([edge.unique_name, edge.folder, init_velo, final_velo, edge.edge_range, edge.length, speed])
         super().__init__(job_name, result_key, ElapsedTimeDataframe, arguments)
