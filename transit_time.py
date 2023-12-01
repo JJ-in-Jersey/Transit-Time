@@ -88,8 +88,10 @@ def create_arcs(minima_df, shape_name, f_date, l_date):
     count = 1
     for row in arc_df.index[:-1]:
         arc_df.loc[row, 'name'] = arc_df.loc[row, 'name'] + ' ' + str(count)
-        if arc_df.loc[row, 'date'] == arc_df.loc[row + 1, 'date']: count += 1
-        else: count = 1
+        if arc_df.loc[row, 'date'] == arc_df.loc[row + 1, 'date']:
+            count += 1
+        else:
+            count = 1
 
     arc_df = arc_df[arc_df['date'] >= f_date]
     arc_df = arc_df[arc_df['date'] <= l_date]
