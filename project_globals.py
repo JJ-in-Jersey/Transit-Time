@@ -16,7 +16,6 @@ TIME_RESOLUTION = 5  # time shown on chart, rounded to minutes
 WINDOW_MARGIN = 20  # time on either side of best, minutes
 TIMESTEP_MARGIN = int(WINDOW_MARGIN * 60 / TIMESTEP)  # number of timesteps to add to minimum to find edges of time windows
 FIVE_HOURS_OF_TIMESTEPS = int(5*3600 / TIMESTEP)  # only consider windows of transit times less than the midline that are at least 5 ours long (6 hour tide change)
-WDW = 100
 
 boat_speeds = [v for v in range(-7, -2, 2)]+[v for v in range(3, 8, 2)]  # knots
 def sign(value): return value/abs(value)
@@ -27,16 +26,14 @@ class Environment:
     def __init__(self, args):
         folder_suffix = 'Developer Workspace/' + args['project_name'] + '_' + str(args['year']) + '/'
         self.project_folder = env('user_profile').joinpath(folder_suffix)
-        self.velocity_folder = self.project_folder.joinpath('Velocity')
-        self.current_folder = self.project_folder.joinpath('Current')
+        self.waypoint_folder = self.project_folder.joinpath('Waypoints')
         self.elapsed_time_folder = self.project_folder.joinpath('Elapsed Time')
         self.transit_time_folder = self.project_folder.joinpath('Transit Time')
 
         if args['delete_data']: shutil.rmtree(self.project_folder, ignore_errors=True)
 
         makedirs(self.project_folder, exist_ok=True)
-        makedirs(self.velocity_folder, exist_ok=True)
-        makedirs(self.current_folder, exist_ok=True)
+        makedirs(self.waypoint_folder, exist_ok=True)
         makedirs(self.elapsed_time_folder, exist_ok=True)
         makedirs(self.transit_time_folder, exist_ok=True)
 
