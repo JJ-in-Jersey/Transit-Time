@@ -7,20 +7,19 @@ import pandas as pd
 from pandas import concat as Concat
 
 from tt_gpx.gpx import Route, Waypoint, Edge
-from tt_gpx.gpx import TideWP, InterpolatedDataWP, CurrentStationWP, InterpolatedWP
+from tt_gpx.gpx import InterpolatedDataWP, CurrentStationWP, InterpolatedWP, TideStationWP
 from tt_file_tools import file_tools as ft
 from tt_chrome_driver import chrome_driver
 from tt_job_manager.job_manager import JobManager
 
 # import multiprocess as mpm
-from velocity import NoaaCurrentDownloadJob, SplineFitCurrentDataJob, interpolate_group
+from velocity import DownloadVelocityJob, SplineFitVelocityJob, interpolate_group
+from tide import DownloadTideJob
 from hell_gate_validation import HellGateValidationJob
-from battery_validation import TideStationJob
 from elapsed_time import ElapsedTimeJob
 from transit_time import TransitTimeJob
-from project_globals import TIMESTEP, TIME_RESOLUTION, WINDOW_MARGIN, boat_speeds, Environment, ChartYear
+from project_globals import TIME_RESOLUTION, WINDOW_MARGIN, boat_speeds, Environment, ChartYear
 
-from hell_gate_validation import HellGateSlackTimesDataframe
 
 checkmark = u'\N{check mark}'
 
@@ -33,8 +32,8 @@ if __name__ == '__main__':
     ap.add_argument('filepath', type=Path, help='path to gpx file')
     ap.add_argument('year', type=int, help='calendar year for analysis')
     ap.add_argument('-dd', '--delete_data', action='store_true')
-    ap.add_argument( '-hg', '--hell_gate', action='store_true')
-    ap.add_argument( '-bat', '--battery', action='store_true')
+    ap.add_argument('-hg', '--hell_gate', action='store_true')
+    ap.add_argument('-bat', '--battery', action='store_true')
     args = vars(ap.parse_args())
 
     # ---------- SET UP GLOBALS ----------
@@ -42,8 +41,7 @@ if __name__ == '__main__':
     env = Environment(args)
     cy = ChartYear(args)
 
-    Waypoint.velocity_folder = env.velocity_folder
-    Waypoint.current_folder = env.current_folder
+    Waypoint.waypoints_folder = env.waypoint_folder
     Edge.elapsed_time_folder = env.elapsed_time_folder
 
     # ---------- ROUTE OBJECT ----------
@@ -51,9 +49,8 @@ if __name__ == '__main__':
     route = Route(args['filepath'], cy.edge_range())
 
     print(f'\nCalculating route "{route.filepath.stem}"')
-    print(f'total waypoints: {len(route.elapsed_time_wps)}')
-    print(f'elapsed time waypoints: {len(route.elapsed_time_edges)}')
-    print(f'timestep: {TIMESTEP}')
+    print(f'total waypoints: {len(route.waypoints)}')
+    print(f'total edges: {len(route.elapsed_time_edges)}')
     print(f'chart resolution: {TIME_RESOLUTION}')
     print(f'transit time window: {WINDOW_MARGIN}')
     print(f'boat speeds: {boat_speeds}')
@@ -73,33 +70,47 @@ if __name__ == '__main__':
     if chrome_driver.latest_stable_version > chrome_driver.installed_driver_version:
         chrome_driver.install_stable_driver()
 
+    # ---------- TIDE STATION WAYPOINTS ----------
+
+    print(f'\nDownloading tide data for TIDE STATION WAYPOINTS (1st day-1 to last day+4)', flush=True)
+    for wp in route.waypoints:
+        if isinstance(wp, TideStationWP):
+            job_manager.put(DownloadTideJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index()))
+            # job = DownloadTideJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index())
+            # job.execute()
+    job_manager.wait()
+
     # ---------- INTERPOLATION WAYPOINTS ----------
 
     print(f'\nDownloading current data for INTERPOLATED DATA WAYPOINTS (1st day-1 to last day+4)', flush=True)
     for wp in route.waypoints:
         if isinstance(wp, InterpolatedDataWP):
-            job_manager.put(NoaaCurrentDownloadJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index()))
+            job_manager.put(DownloadVelocityJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index()))
+            # job = NoaaCurrentDownloadJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index())
+            # result = job.execute()
     job_manager.wait()
 
     print(f'\nAdding downloaded data to INTERPOLATED DATA WAYPOINTS', flush=True)
     for wp in route.waypoints:
         if isinstance(wp, InterpolatedDataWP):
             result = job_manager.get(id(wp))
-            wp.downloaded_current_data = result.dataframe
+            wp.downloaded_data = result.dataframe
             print(f'{checkmark}     {wp.unique_name}', flush=True)
 
     print(f'\nSpline fitting data for INTERPOLATED DATA WAYPOINTS', flush=True)
     # normalizing the time points for interpolation, don't want too many points, so using 3 hour timestep
     for wp in route.waypoints:
         if isinstance(wp, InterpolatedDataWP):
-            job_manager.put(SplineFitCurrentDataJob(wp, cy.waypoint_start_index(), cy.waypoint_end_index(), 10800))  # 3 hour timestep
+            job_manager.put(SplineFitVelocityJob(wp, cy.waypoint_start_index(), cy.waypoint_end_index(), 10800))  # 3 hour timestep
+            # job = SplineFitCurrentDataJob(wp, cy.waypoint_start_index(), cy.waypoint_end_index(), 10800)  # 3 hour timestep
+            # result = job.execute()
     job_manager.wait()
 
     print(f'\nAdding spline data to INTERPOLATED DATA WAYPOINTS', flush=True)
     for wp in route.waypoints:
         if isinstance(wp, InterpolatedDataWP):
             result = job_manager.get(id(wp))
-            wp.spline_fit_current_data = result.dataframe
+            wp.spline_fit_data = result.dataframe
             print(f'{checkmark}     {wp.unique_name}', flush=True)
 
     print(f'\nInterpolating the data to approximate velocity for INTERPOLATED WAYPOINTS (1st day-1 to last day+4)', flush=True)
@@ -109,14 +120,14 @@ if __name__ == '__main__':
     print(f'\nSpline fit data from INTERPOLATED WAYPOINTS', flush=True)
     for wp in route.waypoints:
         if isinstance(wp, InterpolatedWP):
-            job_manager.put(SplineFitCurrentDataJob(wp, cy.waypoint_start_index(), cy.waypoint_end_index()))
+            job_manager.put(SplineFitVelocityJob(wp, cy.waypoint_start_index(), cy.waypoint_end_index()))
     job_manager.wait()
 
     print(f'\nAdding spline data to INTERPOLATED WAYPOINTS', flush=True)
     for wp in route.waypoints:
         if isinstance(wp, InterpolatedWP):
             result = job_manager.get(id(wp))
-            wp.spline_fit_current_data = result.dataframe
+            wp.spline_fit_data = result.dataframe
             print(f'{checkmark}     {wp.unique_name}', flush=True)
 
     # ---------- CURRENT STATION WAYPOINTS ----------
@@ -124,27 +135,29 @@ if __name__ == '__main__':
     print(f'\nDownloading current data for CURRENT STATION WAYPOINTS (1st day-1 to last day+4)', flush=True)
     for wp in route.waypoints:
         if isinstance(wp, CurrentStationWP):
-            job_manager.put(NoaaCurrentDownloadJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index()))
+            job_manager.put(DownloadVelocityJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index()))
+            # job = NoaaCurrentDownloadJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index())
+            # job.execute()
     job_manager.wait()
 
     print(f'\nAdding downloaded data to CURRENT STATION WAYPOINTS', flush=True)
     for wp in route.waypoints:
         if isinstance(wp, CurrentStationWP):
             result = job_manager.get(id(wp))
-            wp.downloaded_current_data = result.dataframe
+            wp.downloaded_data = result.dataframe
             print(f'{checkmark}     {wp.unique_name}', flush=True)
 
     print(f'\nSpline fit data from CURRENT STATION WAYPOINTS', flush=True)
     for wp in route.waypoints:
         if isinstance(wp, CurrentStationWP):
-            job_manager.put(SplineFitCurrentDataJob(wp, cy.waypoint_start_index(), cy.waypoint_end_index()))
+            job_manager.put(SplineFitVelocityJob(wp, cy.waypoint_start_index(), cy.waypoint_end_index()))
     job_manager.wait()
 
     print(f'\nAdding spline data to CURRENT STATION WAYPOINTS', flush=True)
     for wp in route.waypoints:
         if isinstance(wp, CurrentStationWP):
             result = job_manager.get(id(wp))
-            wp.spline_fit_current_data = result.dataframe
+            wp.spline_fit_data = result.dataframe
             print(f'{checkmark}     {wp.unique_name}', flush=True)
 
     # ---------- ELAPSED TIME ----------
@@ -200,18 +213,20 @@ if __name__ == '__main__':
 
     if args['hell_gate']:
         print(f'\nBuilding East River Hell Gate validation data')
-        frame = list(filter(lambda wp: not bool(wp.unique_name.find('Hell_Gate')), route.waypoints))[0].downloaded_current_path
+        frame = list(filter(lambda wpt: not bool(wpt.unique_name.find('Hell_Gate')), route.waypoints))[0].downloaded_path
         job_manager.put(HellGateValidationJob(cy.first_day.date(), cy.last_day.date(), frame))
         job_manager.wait()
         hell_gate_df = job_manager.get('hgv')
         ft.write_df(hell_gate_df.dataframe, env.transit_time_folder.joinpath('hell_gate_slack'))
 
-    if args['battery']:
-        print(f'\nCreating East River Battery validation tide arcs')
-        battery_wp = TideWP(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
-        battery_job = TideStationJob(cy, battery_wp, TIMESTEP)
-        battery_job.execute()
-        ft.write_df(battery_job.battery_lines, env.transit_time_folder.joinpath('battery_tide'))
+    # if args['battery']:
+    #     print(f'\nCreating East River Battery validation tide arcs')
+    #     wp = TideStationWP(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
+    #     tide_df = NoaaTideDownloadJob(cy.year(), wp, cy.first_day(), cy.last_day())
+        # battery_wp = TideWP(args['filepath'].parent.joinpath('NOAA Tide Stations/8518750.gpx'))
+        # battery_job = TideStationJob(cy, battery_wp, TIMESTEP)
+        # battery_job.execute()
+        # ft.write_df(battery_job.battery_lines, env.transit_time_folder.joinpath('battery_tide'))
 
     print(f'\nProcess Complete')
 
