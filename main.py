@@ -195,7 +195,7 @@ if __name__ == '__main__':
     arcs_df = Concat([route.transit_time_lookup[key] for key in route.transit_time_lookup])
     arcs_df.sort_values(['date', 'name'], ignore_index=True, inplace=True)
     min_rotation_df = arcs_df[arcs_df['min'].notna()]
-    min_rotation_df['name'] = min_rotation_df['name'].apply(lambda name_string: name_string.replace('arc', 'min'))
+    min_rotation_df = min_rotation_df.replace(to_replace=r'arc', value='min', regex=True)
 
     arcs_df.drop(['date_time', 'min'], axis=1, inplace=True)
     min_rotation_df.drop(['date_time', 'start', 'end'], axis=1, inplace=True)

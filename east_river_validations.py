@@ -32,7 +32,7 @@ class HellGateValidationDataframe:
             slack_df = ft.read_df(downloaded_path)
             slack_df = slack_df[slack_df['Event'] == 'slack']
             slack_df.drop(columns=['Event', 'Speed (knots)', 'date_index', 'velocity'], inplace=True)
-            slack_df = pd.concat([slack_df, pd.DataFrame(columns=['date_time'], data=slack_df['date_time'].apply(pd.to_datetime) + pd.Timedelta(hours=3))])
+            # slack_df = pd.concat([slack_df, pd.DataFrame(columns=['date_time'], data=slack_df['date_time'].apply(pd.to_datetime) + pd.Timedelta(hours=3))])
             slack_df['date_time'] = slack_df['date_time'].apply(pd.to_datetime)
             slack_df.sort_values('date_time')
             slack_df['date'] = slack_df['date_time'].apply(pd.to_datetime).dt.date
