@@ -20,35 +20,9 @@ def index_arc_df(frame, name):
     return df
 
 
-class HellGateValidationDataframe:
-
-    first_slack_lookup = {'flood_slack': 'ebb_begins', 'slack_flood': 'flood_begins', 'slack_ebb': 'ebb_begins', 'ebb_slack': 'flood_begins'}
-
-    def __init__(self, downloaded_path, f_date, l_date):
-
-        if ft.csv_npy_file_exists(downloaded_path):
-            slack_df = ft.read_df(downloaded_path)
-            slack_df = slack_df[slack_df['Event'] == 'slack']
-            slack_df.drop(columns=['Event', 'Speed (knots)', 'date_index', 'velocity'], inplace=True)
-            slack_df['date_time'] = slack_df['date_time'].apply(pd.to_datetime)
-            slack_df.sort_values('date_time')
-            slack_df['date'] = slack_df['date_time'].apply(pd.to_datetime).dt.date
-            slack_df['time'] = slack_df['date_time'].apply(pd.to_datetime).dt.time
-            slack_df['angle'] = slack_df['time'].apply(time_to_degrees)
-            slack_df = slack_df.filter(['date', 'time', 'angle'])
-            slack_df = slack_df[slack_df['date'] >= f_date]
-            slack_df = slack_df[slack_df['date'] <= l_date]
-            self.dataframe = index_arc_df(slack_df, 'Hell Gate Line')
-        else:
-            raise FileExistsError
-
-
-class BatteryValidationDataframe:
-    # northbound depart 4.5 hours after low water at the battery
-    # southbound depart 4 hours after high water at the battery
+class CapeCodCanalRailBridgeDataframe:
 
     def __init__(self, download_path, f_date, l_date):
-
 
         if ft.csv_npy_file_exists(download_path):
             frame = ft.read_df(download_path)
