@@ -21,20 +21,23 @@ def index_arc_df(frame, name):
 
 
 class CapeCodCanalRailBridgeDataframe:
+    # Eastbound slack water flood begins (L) + 3.5 hours
+    # Westbound slack water ebb begins (H) + 2.5 to 2.75 hours
 
     def __init__(self, download_path, f_date, l_date):
 
         if ft.csv_npy_file_exists(download_path):
             frame = ft.read_df(download_path)
 
-            south_df = frame[frame['HL'] == 'H']
-            south_df.insert(len(south_df.columns), 'best_time', south_df['date_time'].apply(pd.to_datetime) + pd.Timedelta(hours=4))
+            west_df = frame[frame['HL'] == 'H']
+            west_df.insert(len(west_df.columns), 'west_best_time_1', west_df['date_time'].apply(pd.to_datetime) + pd.Timedelta(hours=2.5))
+            west_df.insert(len(west_df.columns), 'west_best_time_2', west_df['date_time'].apply(pd.to_datetime) + pd.Timedelta(hours=2.75))
 
-            north_df = frame[frame['HL'] == 'L']
-            north_df.insert(len(north_df.columns), 'best_time', north_df['date_time'].apply(pd.to_datetime) + pd.Timedelta(hours=4.5))
+            east_df = frame[frame['HL'] == 'L']
+            east_df.insert(len(east_df.columns), 'best_time', east_df['date_time'].apply(pd.to_datetime) + pd.Timedelta(hours=3.5))
 
-            best_df = north_df.drop(['date', 'time', 'HL', 'date_time'], axis=1)
-            best_df = pd.concat([best_df, south_df.drop(['date', 'time', 'HL', 'date_time'], axis=1)], ignore_index=True)
+            best_df = east_df.drop(['date', 'time', 'HL', 'date_time'], axis=1)
+            best_df = pd.concat([best_df, west_df.drop(['date', 'time', 'HL', 'date_time'], axis=1)], ignore_index=True)
 
             best_df['date'] = best_df['best_time'].dt.date
             best_df['time'] = best_df['best_time'].dt.time

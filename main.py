@@ -34,6 +34,7 @@ if __name__ == '__main__':
     ap.add_argument('-dd', '--delete_data', action='store_true')
     ap.add_argument('-hg', '--hell_gate', action='store_true')
     ap.add_argument('-bat', '--battery', action='store_true')
+    ap.add_argument('-ccc', '--cape_cod_canal', action='store_true')
     args = vars(ap.parse_args())
 
     # ---------- SET UP GLOBALS ----------
@@ -213,6 +214,12 @@ if __name__ == '__main__':
         path = list(filter(lambda wpt: not bool(wpt.unique_name.find('NEW_YORK')), route.waypoints))[0].downloaded_path
         frame = BatteryValidationDataframe(path, cy.first_day.date(), cy.last_day.date()).dataframe
         ft.write_df(frame, env.transit_time_folder.joinpath('battery_validation'))
+
+    if args['cape_cod_canal']:
+        print(f'\nCape Cod Canal Battery validation')
+        path = list(filter(lambda wpt: not bool(wpt.unique_name.find('NEW_YORK')), route.waypoints))[0].downloaded_path
+        frame = BatteryValidationDataframe(path, cy.first_day.date(), cy.last_day.date()).dataframe
+        ft.write_df(frame, env.transit_time_folder.joinpath('cape_cod_canal_validation'))
 
     print(f'\nProcess Complete')
 
