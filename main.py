@@ -16,6 +16,7 @@ from tt_job_manager.job_manager import JobManager
 from velocity import DownloadVelocityJob, SplineFitVelocityJob, interpolate_group
 from tide import DownloadTideJob
 from east_river_validations import BatteryValidationDataframe, HellGateValidationDataframe
+from cape_cod_canal_validations import CapeCodCanalRailBridgeDataframe
 from elapsed_time import ElapsedTimeJob
 from transit_time import TransitTimeJob
 from project_globals import WINDOW_MARGIN, boat_speeds, Environment, ChartYear
@@ -217,8 +218,8 @@ if __name__ == '__main__':
 
     if args['cape_cod_canal']:
         print(f'\nCape Cod Canal Battery validation')
-        path = list(filter(lambda wpt: not bool(wpt.unique_name.find('NEW_YORK')), route.waypoints))[0].downloaded_path
-        frame = BatteryValidationDataframe(path, cy.first_day.date(), cy.last_day.date()).dataframe
+        path = list(filter(lambda wpt: not bool(wpt.unique_name.find('Cape_Cod_Canal_RR')), route.waypoints))[0].downloaded_path
+        frame = CapeCodCanalRailBridgeDataframe(path, cy.first_day.date(), cy.last_day.date()).dataframe
         ft.write_df(frame, env.transit_time_folder.joinpath('cape_cod_canal_validation'))
 
     print(f'\nProcess Complete')

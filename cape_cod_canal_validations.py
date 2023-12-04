@@ -30,8 +30,8 @@ class CapeCodCanalRailBridgeDataframe:
             frame = ft.read_df(download_path)
 
             west_df = frame[frame['HL'] == 'H']
-            west_df.insert(len(west_df.columns), 'west_best_time_1', west_df['date_time'].apply(pd.to_datetime) + pd.Timedelta(hours=2.5))
-            west_df.insert(len(west_df.columns), 'west_best_time_2', west_df['date_time'].apply(pd.to_datetime) + pd.Timedelta(hours=2.75))
+            west_df.insert(len(west_df.columns), 'best_time', west_df['date_time'].apply(pd.to_datetime) + pd.Timedelta(hours=2.5))
+            # west_df.insert(len(west_df.columns), 'west_best_time_2', west_df['date_time'].apply(pd.to_datetime) + pd.Timedelta(hours=2.75))
 
             east_df = frame[frame['HL'] == 'L']
             east_df.insert(len(east_df.columns), 'best_time', east_df['date_time'].apply(pd.to_datetime) + pd.Timedelta(hours=3.5))
@@ -45,6 +45,6 @@ class CapeCodCanalRailBridgeDataframe:
             best_df = best_df.drop(['best_time'], axis=1)
             best_df = best_df[best_df['date'] >= f_date]
             best_df = best_df[best_df['date'] <= l_date]
-            self.dataframe = index_arc_df(best_df, 'Battery Line')
+            self.dataframe = index_arc_df(best_df, 'Cape Cod Canal Line')
         else:
             raise FileExistsError
