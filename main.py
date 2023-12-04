@@ -7,7 +7,7 @@ import pandas as pd
 from pandas import concat as Concat
 
 from tt_gpx.gpx import Route, Waypoint, Edge
-from tt_gpx.gpx import InterpolatedDataWP, CurrentStationWP, InterpolatedWP, TideStationWP
+from tt_gpx.gpx import InterpolatedDataWP, CurrentStationWP, InterpolatedWP, TideStationWP, SurrogateWP
 from tt_file_tools import file_tools as ft
 from tt_chrome_driver import chrome_driver
 from tt_job_manager.job_manager import JobManager
@@ -123,30 +123,30 @@ if __name__ == '__main__':
             wp.spline_fit_data = result.dataframe
             print(f'{checkmark}     {wp.unique_name}', flush=True)
 
-    # ---------- CURRENT STATION WAYPOINTS ----------
+    # ---------- CURRENT STATION and SURROGATE WAYPOINTS ----------
 
-    print(f'\nDownloading current data for CURRENT STATION WAYPOINTS (1st day-1 to last day+4)', flush=True)
+    print(f'\nDownloading current data for CURRENT STATION and SURROGATE WAYPOINTS (1st day-1 to last day+4)', flush=True)
     for wp in route.waypoints:
-        if isinstance(wp, CurrentStationWP):
+        if isinstance(wp, CurrentStationWP) or isinstance(wp, SurrogateWP):
             job_manager.put(DownloadVelocityJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index()))
     job_manager.wait()
 
-    print(f'\nAdding downloaded data to CURRENT STATION WAYPOINTS', flush=True)
+    print(f'\nAdding downloaded data to CURRENT STATION and SURROGATE WAYPOINTS', flush=True)
     for wp in route.waypoints:
-        if isinstance(wp, CurrentStationWP):
+        if isinstance(wp, CurrentStationWP) or isinstance(wp, SurrogateWP):
             result = job_manager.get(id(wp))
             wp.downloaded_data = result.dataframe
             print(f'{checkmark}     {wp.unique_name}', flush=True)
 
-    print(f'\nSpline fit data from CURRENT STATION WAYPOINTS', flush=True)
+    print(f'\nSpline fit data from CURRENT STATION and SURROGATE WAYPOINTS', flush=True)
     for wp in route.waypoints:
-        if isinstance(wp, CurrentStationWP):
+        if isinstance(wp, CurrentStationWP) or isinstance(wp, SurrogateWP):
             job_manager.put(SplineFitVelocityJob(wp, cy.waypoint_start_index(), cy.waypoint_end_index()))
     job_manager.wait()
 
-    print(f'\nAdding spline data to CURRENT STATION WAYPOINTS', flush=True)
+    print(f'\nAdding spline data to CURRENT STATION and SURROGATE WAYPOINTS', flush=True)
     for wp in route.waypoints:
-        if isinstance(wp, CurrentStationWP):
+        if isinstance(wp, CurrentStationWP) or isinstance(wp, SurrogateWP):
             result = job_manager.get(id(wp))
             wp.spline_fit_data = result.dataframe
             print(f'{checkmark}     {wp.unique_name}', flush=True)
