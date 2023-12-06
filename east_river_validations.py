@@ -29,6 +29,7 @@ class HellGateValidationDataframe:
 
 
 class BatteryValidationDataframe:
+    # flood current is to the north & east, ebb current is to the south & west
     # northbound depart 4.5 hours after low water at the battery
     # southbound depart 4 hours after high water at the battery
 
