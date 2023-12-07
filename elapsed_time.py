@@ -4,9 +4,21 @@ import pandas as pd
 from tt_gpx.gpx import Edge
 from tt_file_tools import file_tools as ft
 from tt_job_manager.job_manager import Job
-from project_globals import TIMESTEP, sign
+from project_globals import TIMESTEP
 
 #  Elapsed times are reported in number of timesteps
+
+
+# def elapsed_time(distance_start_index, distances, length):  # returns number of timesteps
+#     distance_index = distance_start_index + 1  # distance at departure time is 0
+#     count = total = 0
+#     not_there_yet = True
+#     while not_there_yet:
+#         total += distances[distance_index]
+#         count += 1
+#         distance_index += 1
+#         not_there_yet = True if length > 0 and total < length or length < 0 and total > length else False
+#     return count  # count = number of time steps
 
 
 def elapsed_time(distance_start_index, distances, length):  # returns number of timesteps
@@ -14,10 +26,10 @@ def elapsed_time(distance_start_index, distances, length):  # returns number of 
     count = total = 0
     not_there_yet = True
     while not_there_yet:
-        total += distances[distance_index]
+        total += abs(distances[distance_index])
         count += 1
         distance_index += 1
-        not_there_yet = True if length > 0 and total < length or length < 0 and total > length else False
+        not_there_yet = True if length > 0 and total < length else False
     return count  # count = number of time steps
 
 
@@ -35,10 +47,20 @@ class ElapsedTimeDataframe:
         if ft.csv_npy_file_exists(et_path):
             self.dataframe = ft.read_df(et_path)
         else:
+            # frame = pd.DataFrame(data={'departure_index': edge_range})
+            # frame['final_velo'] = pd.Series(final_velos)
+            # frame['init_velo'] = pd.Series(init_velos)
+            # frame = frame.assign(t_in_hrs=TIMESTEP/3600)
+            # frame = frame.assign(length=length)
+
             self.dataframe = pd.DataFrame(data={'departure_index': edge_range})
             dist = ElapsedTimeDataframe.distance(final_velos[1:], init_velos[:-1], speed, TIMESTEP/3600)
             dist = np.insert(dist, 0, 0.0)  # distance uses an offset calculation VIx, VFx+1, need a zero at the beginning
-            self.dataframe[name] = [elapsed_time(i, dist, sign(speed)*length) for i in range(len(edge_range))]
+            # frame['distance'] = pd.Series(dist)
+            # ft.write_df(frame, folder.joinpath('temp_frame' + '_' + str(speed)))
+
+            # self.dataframe[name] = [elapsed_time(i, dist, sign(speed)*length) for i in range(len(edge_range))]
+            self.dataframe[name] = [elapsed_time(i, dist, length) for i in range(len(edge_range))]
             self.dataframe.fillna(0, inplace=True)
             ft.write_df(self.dataframe, et_path)
 
@@ -50,9 +72,9 @@ class ElapsedTimeJob(Job):  # super -> job name, result key, function/object, ar
     def error_callback(self, result): return super().error_callback(result)
 
     def __init__(self, edge: Edge, speed):
-        job_name = edge.unique_name + '_' + str(speed)
-        result_key = job_name
-        init_velo = edge.start.spline_fit_data['velocity'].to_numpy(dtype='float16')
-        final_velo = edge.end.spline_fit_data['velocity'].to_numpy(dtype='float16')
+        job_name = edge.unique_name + ' ' + str(round(edge.length, 3)) + ' ' + str(speed)
+        result_key = edge.unique_name + '_' + str(speed)
+        init_velo = edge.start.spline_fit_data['velocity'].to_numpy()
+        final_velo = edge.end.spline_fit_data['velocity'].to_numpy()
         arguments = tuple([edge.unique_name, edge.folder, init_velo, final_velo, edge.edge_range, edge.length, speed])
         super().__init__(job_name, result_key, ElapsedTimeDataframe, arguments)

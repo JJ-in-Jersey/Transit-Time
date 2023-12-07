@@ -11,13 +11,15 @@ from tt_os_abstraction.os_abstraction import env
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
+CHECKMARK = u'\N{check mark}'
 TIMESTEP = 15  # time steps used to calculate, seconds
 TIME_RESOLUTION = 5  # time shown on chart, rounded to minutes
 WINDOW_MARGIN = 20  # time on either side of best, minutes
 TIMESTEP_MARGIN = int(WINDOW_MARGIN * 60 / TIMESTEP)  # number of timesteps to add to minimum to find edges of time windows
 FIVE_HOURS_OF_TIMESTEPS = int(5*3600 / TIMESTEP)  # only consider windows of transit times less than the midline that are at least 5 ours long (6 hour tide change)
+BOAT_SPEEDS = [v for v in range(-7, -2, 2)]+[v for v in range(3, 8, 2)]  # knots
 
-boat_speeds = [v for v in range(-7, -2, 2)]+[v for v in range(3, 8, 2)]  # knots
+
 def sign(value): return value/abs(value)
 
 
@@ -30,14 +32,15 @@ class Environment:
         self.elapsed_time_folder = self.project_folder.joinpath('Elapsed Time')
         self.transit_time_folder = self.project_folder.joinpath('Transit Time')
 
-        if args['delete_data']: shutil.rmtree(self.project_folder, ignore_errors=True)
+        if args['delete_data']:
+            shutil.rmtree(self.project_folder, ignore_errors=True)
 
         makedirs(self.project_folder, exist_ok=True)
         makedirs(self.waypoint_folder, exist_ok=True)
         makedirs(self.elapsed_time_folder, exist_ok=True)
         makedirs(self.transit_time_folder, exist_ok=True)
 
-        for s in boat_speeds:
+        for s in BOAT_SPEEDS:
             makedirs(self.transit_time_folder.joinpath(num2words(s)), exist_ok=True)
 
     def edge_folder(self, name):

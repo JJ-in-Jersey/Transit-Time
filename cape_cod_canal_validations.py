@@ -22,8 +22,8 @@ class CapeCodCanalRailBridgeDataframe:
             # west_df.insert(len(west_df.columns), 'west_best_time_2', west_df['date_time'].apply(pd.to_datetime) + pd.Timedelta(hours=2.75))
             west_df = east_df.assign(graphic_name='CCC west')
 
-            best_df = east_df.drop(['date', 'time', 'HL', 'date_time'], axis=1)
-            best_df = pd.concat([best_df, west_df.drop(['date', 'time', 'HL', 'date_time'], axis=1)], ignore_index=True)
+            best_df = pd.concat([east_df.drop(['date', 'time', 'HL', 'date_time'], axis=1),
+                                 west_df.drop(['date', 'time', 'HL', 'date_time'], axis=1)], ignore_index=True)
 
             best_df['date'] = best_df['best_time'].dt.date
             best_df['time'] = best_df['best_time'].dt.time
