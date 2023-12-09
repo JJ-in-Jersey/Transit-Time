@@ -47,20 +47,10 @@ class ElapsedTimeDataframe:
         if ft.csv_npy_file_exists(et_path):
             self.dataframe = ft.read_df(et_path)
         else:
-            # frame = pd.DataFrame(data={'departure_index': edge_range})
-            # frame['final_velo'] = pd.Series(final_velos)
-            # frame['init_velo'] = pd.Series(init_velos)
-            # frame = frame.assign(t_in_hrs=TIMESTEP/3600)
-            # frame = frame.assign(length=length)
-
             self.dataframe = pd.DataFrame(data={'departure_index': edge_range})
             dist = ElapsedTimeDataframe.distance(final_velos[1:], init_velos[:-1], speed, TIMESTEP/3600)
             dist = np.insert(dist, 0, 0.0)  # distance uses an offset calculation VIx, VFx+1, need a zero at the beginning
-            # frame['distance'] = pd.Series(dist)
-            # ft.write_df(frame, folder.joinpath('temp_frame' + '_' + str(speed)))
-
-            # self.dataframe[name] = [elapsed_time(i, dist, sign(speed)*length) for i in range(len(edge_range))]
-            self.dataframe[name] = [elapsed_time(i, dist, length) for i in range(len(edge_range))]
+            self.dataframe[filename] = [elapsed_time(i, dist, length) for i in range(len(edge_range))]
             self.dataframe.fillna(0, inplace=True)
             ft.write_df(self.dataframe, et_path)
 
