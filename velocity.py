@@ -3,7 +3,7 @@ from scipy.interpolate import CubicSpline
 from sympy import Point
 
 from tt_chrome_driver import chrome_driver as cd
-from tt_interpolation.velocity_interpolation import Interpolator as VI
+from tt_interpolation.velocity_interpolation import Interpolator as VInt
 from tt_file_tools import file_tools as ft
 from tt_date_time_tools import date_time_tools as dtt
 from tt_job_manager.job_manager import Job
@@ -80,7 +80,7 @@ class SplineFitVelocityDataframe:
 class InterpolatedPoint:
 
     def __init__(self, interpolation_pt_data, surface_points, date_index):
-        interpolator = VI(surface_points)
+        interpolator = VInt(surface_points)
         interpolator.set_interpolation_point(Point(interpolation_pt_data[1], interpolation_pt_data[2], 0))
         self.date_velo = [date_index, round(interpolator.get_interpolated_point().z.evalf(), 4)]
         # interpolator.set_interpolation_point(input_point)
