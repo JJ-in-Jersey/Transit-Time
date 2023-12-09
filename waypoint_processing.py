@@ -57,27 +57,23 @@ def waypoint_processing(route, cy, job_manager):
     # ---------- CURRENT STATION and SURROGATE WAYPOINTS ----------
 
     print(f'\nDownloading current data for CURRENT STATION and SURROGATE WAYPOINTS (1st day-1 to last day+4)', flush=True)
-    for wp in route.waypoints:
-        if isinstance(wp, CurrentStationWP) or isinstance(wp, SurrogateWP):
-            job_manager.put(DownloadVelocityJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index()))
+    for wp in filter(lambda w: isinstance(wp, CurrentStationWP) or isinstance(wp, SurrogateWP), route.waypoints):
+        job_manager.put(DownloadVelocityJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index()))
     job_manager.wait()
 
     print(f'\nAdding downloaded data to CURRENT STATION and SURROGATE WAYPOINTS', flush=True)
-    for wp in route.waypoints:
-        if isinstance(wp, CurrentStationWP) or isinstance(wp, SurrogateWP):
-            result = job_manager.get(id(wp))
-            wp.downloaded_data = result.dataframe
-            print(f'{CHECKMARK}     {wp.unique_name}', flush=True)
+    for wp in filter(lambda w: isinstance(wp, CurrentStationWP) or isinstance(wp, SurrogateWP), route.waypoints):
+        result = job_manager.get(id(wp))
+        wp.downloaded_data = result.dataframe
+        print(f'{CHECKMARK}     {wp.unique_name}', flush=True)
 
     print(f'\nSpline fit data from CURRENT STATION and SURROGATE WAYPOINTS', flush=True)
-    for wp in route.waypoints:
-        if isinstance(wp, CurrentStationWP) or isinstance(wp, SurrogateWP):
-            job_manager.put(SplineFitVelocityJob(wp, cy.waypoint_start_index(), cy.waypoint_end_index()))
+    for wp in filter(lambda w: isinstance(wp, CurrentStationWP) or isinstance(wp, SurrogateWP), route.waypoints):
+        job_manager.put(SplineFitVelocityJob(wp, cy.waypoint_start_index(), cy.waypoint_end_index()))
     job_manager.wait()
 
     print(f'\nAdding spline data to CURRENT STATION and SURROGATE WAYPOINTS', flush=True)
-    for wp in route.waypoints:
-        if isinstance(wp, CurrentStationWP) or isinstance(wp, SurrogateWP):
-            result = job_manager.get(id(wp))
-            wp.spline_fit_data = result.dataframe
-            print(f'{CHECKMARK}     {wp.unique_name}', flush=True)
+    for wp in filter(lambda w: isinstance(wp, CurrentStationWP) or isinstance(wp, SurrogateWP), route.waypoints):
+        result = job_manager.get(id(wp))
+        wp.spline_fit_data = result.dataframe
+        print(f'{CHECKMARK}     {wp.unique_name}', flush=True)
