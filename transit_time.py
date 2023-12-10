@@ -3,8 +3,9 @@ from scipy.signal import savgol_filter
 from num2words import num2words
 
 from tt_file_tools import file_tools as ft
-from tt_geometry.geometry import Arc, RoundedArc, FractionalArcStartDay, FractionalArcEndDay
+from tt_geometry.geometry import Arc
 from tt_job_manager.job_manager import Job
+from tt_date_time_tools import date_time_tools as dtt
 
 from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS
 
@@ -27,6 +28,7 @@ def total_transit_time(init_row, d_frame, cols):
 def minima_table(transit_array, tt_range, savgol_path):
     tt_df = pd.DataFrame()
     tt_df['departure_index'] = tt_range
+    tt_df['departure_index'].astype('int')
     tt_df['plot'] = 0
     tt_df = tt_df.assign(tts=transit_array)
     if ft.csv_npy_file_exists(savgol_path):
@@ -48,17 +50,20 @@ def minima_table(transit_array, tt_range, savgol_path):
             offset = segment_df['tts'].min() + TIMESTEP_MARGIN  # minimum tss + margin for window
             if min_index != clump[0] and min_index != clump[-1]:  # ignore minima at edges
                 start_segment = segment_df[segment_df['departure_index'].le(min_index)]  # portion of segment from start to minimum
-                end_segment = segment_df[segment_df['departure_index'].ge(min_index)]  # portion of segment from minimum to end
                 start_row = start_segment[start_segment['tts'].le(offset)].index[0]
-                end_row = end_segment[end_segment['tts'].ge(offset)].index[0]
                 start_index = start_segment.at[start_row, 'departure_index']
+                end_segment = segment_df[segment_df['departure_index'].ge(min_index)]  # portion of segment from minimum to end
+                end_row = end_segment[end_segment['tts'].ge(offset)].index[0]
                 end_index = end_segment.at[end_row, 'departure_index']
                 tt_df_start_row = tt_df[tt_df['departure_index'] == start_index].index[0]
                 tt_df_min_row = tt_df[tt_df['departure_index'] == min_index].index[0]
                 tt_df_end_row = tt_df[tt_df['departure_index'] == end_index].index[0]
-                tt_df.at[tt_df_min_row, 'start_index'] = int(start_index)
-                tt_df.at[tt_df_min_row, 'min_index'] = int(min_index)
-                tt_df.at[tt_df_min_row, 'end_index'] = int(end_index)
+                tt_df.at[tt_df_min_row, 'start_index'] = start_index
+                tt_df.at[tt_df_min_row, 'start_datetime'] = dtt.datetime(start_index)
+                tt_df.at[tt_df_min_row, 'min_index'] = min_index
+                tt_df.at[tt_df_min_row, 'min_datetime'] = dtt.datetime(min_index)
+                tt_df.at[tt_df_min_row, 'end_index'] = end_index
+                tt_df.at[tt_df_min_row, 'end_datetime'] = dtt.datetime(end_index)
                 tt_df.at[tt_df_start_row, 'plot'] = max(transit_array)
                 tt_df.at[tt_df_min_row, 'plot'] = min(transit_array)
                 tt_df.at[tt_df_end_row, 'plot'] = max(transit_array)
@@ -68,17 +73,14 @@ def minima_table(transit_array, tt_range, savgol_path):
 
 
 def create_arcs(minima_df, shape_name, f_date, l_date):
+    print(minima_df.columns)
 
-    arc_frame = minima_df[['tts', 'start_index', 'min_index', 'end_index']]
+    arc_frame = minima_df[['tts', 'start_index', 'start_datetime', 'min_index', 'min_datetime', 'end_index', 'end_datetime']]
     Arc.name = shape_name
 
-    arcs = [RoundedArc(*row.values.tolist()) for i, row in arc_frame.iterrows()]
+    arcs = [Arc(*row.values.tolist()) for i, row in arc_frame.iterrows()]
     fractured_arc_list = list(filter(lambda n: n.fractured, arcs))
     arc_list = list(filter(lambda n: not n.fractured, arcs))
-
-    for arc in fractured_arc_list:
-        arc_list.append(FractionalArcStartDay(*arc.fractional_arc_args()))
-        arc_list.append(FractionalArcEndDay(*arc.fractional_arc_args()))
 
     arc_df = pd.DataFrame([arc.df_angles() for arc in arc_list])
     arc_df.columns = Arc.columns
@@ -103,7 +105,7 @@ class ArcsDataframe:
 
     def __init__(self, speed, year, f_date, l_date, tt_range, et_df, tt_folder):
 
-        self.dataframe = None
+        self.frame = None
         sign = '+' if speed / abs(speed) > 0 else '-'
         boat_speed = sign + str(abs(speed))
         shape_name = 'arc ' + boat_speed
@@ -116,7 +118,7 @@ class ArcsDataframe:
         arcs_path = speed_folder.joinpath(file_header + '_arcs')
 
         if ft.csv_npy_file_exists(arcs_path):
-            self.dataframe = ft.read_df(arcs_path)
+            self.frame = ft.read_df(arcs_path)
         else:
 
             if ft.csv_npy_file_exists(transit_timesteps_path):
@@ -131,14 +133,16 @@ class ArcsDataframe:
             else:
                 minima_df = minima_table(transit_timesteps_arr, tt_range, savgol_path)  # call minima_table
                 ft.write_df(minima_df, minima_path)
+                print('finished minima')
 
             if ft.csv_npy_file_exists(arcs_path):
-                self.dataframe = ft.read_df(arcs_path)
+                self.frame = ft.read_df(arcs_path)
             else:
+                print('starting create arcs')
                 minima_df = minima_df.dropna(axis=0).sort_index().reset_index(drop=True)
-                minima_df = minima_df.astype({'departure_index': int, 'start_index': int, 'min_index': int, 'end_index': int})
-                self.dataframe = create_arcs(minima_df, shape_name, f_date, l_date)
-                ft.write_df(self.dataframe, arcs_path)
+                # minima_df = minima_df.astype({'departure_index': int, 'start_index': int, 'min_index': int, 'end_index': int})
+                self.frame = create_arcs(minima_df, shape_name, f_date, l_date)
+                ft.write_df(self.frame, arcs_path)
 
 
 class TransitTimeJob(Job):  # super -> job name, result key, function/object, arguments

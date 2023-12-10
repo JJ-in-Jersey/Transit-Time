@@ -35,12 +35,12 @@ class DownloadedVelocityDataframe:
         cd.WDW.until(ec.element_to_be_clickable((By.ID, 'generatePDF'))).click()
 
     def __init__(self, year, downloaded_path, folder, url, code, start_index, end_index):
-        self.dataframe = None
+        self.frame = None
 
         if ft.csv_npy_file_exists(downloaded_path):
-            self.dataframe = ft.read_df(downloaded_path)
+            self.frame = ft.read_df(downloaded_path)
         else:
-            self.dataframe = pd.DataFrame()
+            self.frame = pd.DataFrame()
             cd.set_driver(folder)
 
             for y in range(year - 1, year + 2):  # + 2 because of range behavior
@@ -48,33 +48,33 @@ class DownloadedVelocityDataframe:
                 self.click_sequence(y, code)
                 downloaded_file = ft.wait_for_new_file(folder, self.download_event)
                 file_df = pd.read_csv(downloaded_file, parse_dates=['Date_Time (LST/LDT)'])
-                self.dataframe = pd.concat([self.dataframe, file_df])
+                self.frame = pd.concat([self.frame, file_df])
 
             cd.driver.quit()
 
-            self.dataframe.rename(columns={' Event': 'Event', ' Speed (knots)': 'Speed (knots)', 'Date_Time (LST/LDT)': 'date_time'}, inplace=True)
-            self.dataframe['Event'] = self.dataframe['Event'].apply(lambda s: s.strip())
-            self.dataframe['date_index'] = self.dataframe['date_time'].apply(lambda x: dtt.int_timestamp(x))
-            self.dataframe['velocity'] = self.dataframe['Speed (knots)'].apply(dash_to_zero)
-            self.dataframe = self.dataframe[(start_index <= self.dataframe['date_index']) & (self.dataframe['date_index'] <= end_index)]
-            self.dataframe.reset_index(drop=True, inplace=True)
-            ft.write_df(self.dataframe, downloaded_path)
+            self.frame.rename(columns={' Event': 'Event', ' Speed (knots)': 'Speed (knots)', 'Date_Time (LST/LDT)': 'date_time'}, inplace=True)
+            self.frame['Event'] = self.frame['Event'].apply(lambda s: s.strip())
+            self.frame['date_index'] = self.frame['date_time'].apply(lambda x: dtt.int_timestamp(x))
+            self.frame['velocity'] = self.frame['Speed (knots)'].apply(dash_to_zero)
+            self.frame = self.frame[(start_index <= self.frame['date_index']) & (self.frame['date_index'] <= end_index)]
+            self.frame.reset_index(drop=True, inplace=True)
+            ft.write_df(self.frame, downloaded_path)
 
 
 class SplineFitVelocityDataframe:
 
     def __init__(self, spline_fit_path, downloaded_dataframe, start_index, end_index, timestep):
-        self.dataframe = None
+        self.frame = None
 
         if ft.csv_npy_file_exists(spline_fit_path):
-            self.dataframe = ft.read_df(spline_fit_path)
+            self.frame = ft.read_df(spline_fit_path)
         else:
             cs = CubicSpline(downloaded_dataframe['date_index'], downloaded_dataframe['velocity'])
-            self.dataframe = pd.DataFrame()
-            self.dataframe['date_index'] = range(start_index, end_index, timestep)
-            self.dataframe['date_time'] = pd.to_datetime(self.dataframe['date_index'], unit='s').round('min')
-            self.dataframe['velocity'] = self.dataframe['date_index'].apply(cs)
-            ft.write_df(self.dataframe, spline_fit_path)
+            self.frame = pd.DataFrame()
+            self.frame['date_index'] = range(start_index, end_index, timestep)
+            self.frame['date_time'] = pd.to_datetime(self.frame['date_index'], unit='s').round('min')
+            self.frame['velocity'] = self.frame['date_index'].apply(cs)
+            ft.write_df(self.frame, spline_fit_path)
 
 
 class InterpolatedPoint:

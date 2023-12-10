@@ -18,12 +18,12 @@ class TideXMLDataframe:
     def __init__(self, filepath):
         tree = ft.XMLFile(filepath).tree
 
-        self.dataframe = pd.DataFrame(columns=['date', 'time', 'HL'])
+        self.frame = pd.DataFrame(columns=['date', 'time', 'HL'])
         for i in tree.find_all('item'):
-            self.dataframe.loc[len(self.dataframe)] = [i.find('date').text, i.find('time').text, i.find('highlow').text]
+            self.frame.loc[len(self.frame)] = [i.find('date').text, i.find('time').text, i.find('highlow').text]
 
         # need datetime so that when adding time, it can switch to the next day
-        self.dataframe['date_time'] = pd.to_datetime(self.dataframe['date'] + ' ' + self.dataframe['time'], format='%Y/%m/%d %H:%M')
+        self.frame['date_time'] = pd.to_datetime(self.frame['date'] + ' ' + self.frame['time'], format='%Y/%m/%d %H:%M')
 
 
 class DownloadedTideDataframe:
@@ -43,10 +43,10 @@ class DownloadedTideDataframe:
         cd.WDW.until(ec.element_to_be_clickable((By.ID, 'create_annual_tide_tables'))).click()
 
     def __init__(self, year, download_path, folder, url, code, start_index, end_index):
-        self.dataframe = None
+        self.frame = None
 
         if ft.csv_npy_file_exists(download_path):
-            self.dataframe = ft.read_df(download_path)
+            self.frame = ft.read_df(download_path)
         else:
             frame = pd.DataFrame()
             cd.set_driver(folder)
@@ -55,7 +55,7 @@ class DownloadedTideDataframe:
                 cd.driver.get(url)
                 self.click_sequence(y, code)
                 downloaded_file = ft.wait_for_new_file(folder, self.download_event)
-                file_df = TideXMLDataframe(downloaded_file).dataframe
+                file_df = TideXMLDataframe(downloaded_file).frame
                 ft.write_df(frame, folder.joinpath(str(code) + '_' + str(y)))
                 frame = pd.concat([frame, file_df])
 
@@ -65,7 +65,7 @@ class DownloadedTideDataframe:
             frame = frame[(start_index <= frame['date_index']) & (frame['date_index'] <= end_index)]
 
             ft.write_df(frame, download_path)
-            self.dataframe = frame
+            self.frame = frame
 
 
 class DownloadTideJob(Job):

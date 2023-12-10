@@ -45,14 +45,14 @@ class ElapsedTimeDataframe:
         et_path = folder.joinpath(filename)
 
         if ft.csv_npy_file_exists(et_path):
-            self.dataframe = ft.read_df(et_path)
+            self.frame = ft.read_df(et_path)
         else:
-            self.dataframe = pd.DataFrame(data={'departure_index': edge_range})
+            self.frame = pd.DataFrame(data={'departure_index': edge_range})
             dist = ElapsedTimeDataframe.distance(final_velos[1:], init_velos[:-1], speed, TIMESTEP/3600)
             dist = np.insert(dist, 0, 0.0)  # distance uses an offset calculation VIx, VFx+1, need a zero at the beginning
-            self.dataframe[filename] = [elapsed_time(i, dist, length) for i in range(len(edge_range))]
-            self.dataframe.fillna(0, inplace=True)
-            ft.write_df(self.dataframe, et_path)
+            self.frame[filename] = [elapsed_time(i, dist, length) for i in range(len(edge_range))]
+            self.frame.fillna(0, inplace=True)
+            ft.write_df(self.frame, et_path)
 
 
 class ElapsedTimeJob(Job):  # super -> job name, result key, function/object, arguments

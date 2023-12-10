@@ -20,7 +20,7 @@ def edge_processing(route, env, cy, job_manager):
             elapsed_time_df = pd.DataFrame(data={'departure_index': cy.edge_range()})  # add departure_index as the join column
             for edge in route.elapsed_time_path.edges:
                 result = job_manager.get(edge.unique_name + '_' + str(s))
-                elapsed_time_df = elapsed_time_df.merge(result.dataframe, on='departure_index')
+                elapsed_time_df = elapsed_time_df.merge(result.frame, on='departure_index')
                 print(f'{CHECKMARK}     {edge.unique_name} {s}', flush=True)
             elapsed_time_df.drop(['departure_index'], axis=1, inplace=True)
             ft.write_df(elapsed_time_df, speed_path)

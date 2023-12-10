@@ -26,7 +26,7 @@ class HellGateValidationDataframe:
             best_df = best_df[best_df['date'] >= f_date]
             best_df = best_df[best_df['date'] <= l_date]
             best_df = best_df.assign(graphic_name='HG')
-            self.dataframe = index_arc_df(best_df)
+            self.frame = index_arc_df(best_df)
         else:
             raise FileExistsError
 
@@ -58,7 +58,7 @@ class BatteryValidationDataframe:
             best_df = best_df.drop(['best_time'], axis=1)
             best_df = best_df[best_df['date'] >= f_date]
             best_df = best_df[best_df['date'] <= l_date]
-            self.dataframe = index_arc_df(best_df)
+            self.frame = index_arc_df(best_df)
         else:
             raise FileExistsError
 
@@ -90,6 +90,6 @@ class HornsHookValidationDataframe:
             best_df = best_df.drop(['best_time'], axis=1)
             best_df = best_df[best_df['date'] >= f_date]
             best_df = best_df[best_df['date'] <= l_date]
-            self.dataframe = index_arc_df(best_df)
+            self.frame = index_arc_df(best_df)
         else:
             raise FileExistsError

@@ -55,7 +55,7 @@ if __name__ == '__main__':
 
     # ---------- START MULTIPROCESSING ----------
 
-    job_manager = JobManager()
+    job_manager = JobManager(1)
 
     # ---------- CHECK CHROME ----------
 
@@ -80,13 +80,15 @@ if __name__ == '__main__':
         l_date = cy.last_day.date()
         tt_range = cy.transit_range()
         tt_folder = env.transit_time_folder
-        job_manager.put(TransitTimeJob(speed, cy.year(), f_date, l_date, tt_range, route.elapsed_time_lookup[speed], tt_folder))
+        # job_manager.put(TransitTimeJob(speed, cy.year(), f_date, l_date, tt_range, route.elapsed_time_lookup[speed], tt_folder))
+        job = TransitTimeJob(speed, cy.year(), f_date, l_date, tt_range, route.elapsed_time_lookup[speed], tt_folder)
+        result = job.execute()
     job_manager.wait()
 
     print(f'\nAdding transit time speed results to route')
     for speed in BOAT_SPEEDS:
         result = job_manager.get(speed)
-        route.transit_time_lookup[speed] = result.dataframe
+        route.transit_time_lookup[speed] = result.frame
         print(f'{CHECKMARK}     tt {speed}', flush=True)
 
     arcs_df = concat([route.transit_time_lookup[key] for key in route.transit_time_lookup])
@@ -102,25 +104,25 @@ if __name__ == '__main__':
     if args['hell_gate']:
         print(f'\nHell Gate validation')
         path = list(filter(lambda wpt: not bool(wpt.unique_name.find('Hell_Gate')), route.waypoints))[0].downloaded_path
-        frame = HellGateValidationDataframe(path, cy.first_day.date(), cy.last_day.date()).dataframe
+        frame = HellGateValidationDataframe(path, cy.first_day.date(), cy.last_day.date()).frame
         ft.write_df(frame, env.transit_time_folder.joinpath('hell_gate_validation'))
 
     if args['battery']:
         print(f'\nEast River Battery validation')
         path = list(filter(lambda wpt: not bool(wpt.unique_name.find('NEW_YORK')), route.waypoints))[0].downloaded_path
-        frame = BatteryValidationDataframe(path, cy.first_day.date(), cy.last_day.date()).dataframe
+        frame = BatteryValidationDataframe(path, cy.first_day.date(), cy.last_day.date()).frame
         ft.write_df(frame, env.transit_time_folder.joinpath('battery_validation'))
 
     if args['horns_hook']:
         print(f'\nEast River Horns Hook validation')
         path = list(filter(lambda wpt: not bool(wpt.unique_name.find('Horns_Hook')), route.waypoints))[0].downloaded_path
-        frame = HornsHookValidationDataframe(path, cy.first_day.date(), cy.last_day.date()).dataframe
+        frame = HornsHookValidationDataframe(path, cy.first_day.date(), cy.last_day.date()).frame
         ft.write_df(frame, env.transit_time_folder.joinpath('horns_hook_validation'))
 
     if args['cape_cod_canal']:
         print(f'\nCape Cod Canal Battery validation')
         path = list(filter(lambda wpt: not bool(wpt.unique_name.find('Cape_Cod_Canal_RR')), route.waypoints))[0].downloaded_path
-        frame = CapeCodCanalRailBridgeDataframe(path, cy.first_day.date(), cy.last_day.date()).dataframe
+        frame = CapeCodCanalRailBridgeDataframe(path, cy.first_day.date(), cy.last_day.date()).frame
         ft.write_df(frame, env.transit_time_folder.joinpath('cape_cod_canal_validation'))
 
     print(f'\nProcess Complete')
