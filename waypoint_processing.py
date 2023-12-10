@@ -10,19 +10,26 @@ def waypoint_processing(route, cy, job_manager):
 
     print(f'\nDownloading tide data for TIDE STATION WAYPOINTS (1st day-1 to last day+4)', flush=True)
     for wp in filter(lambda w: isinstance(w, TideStationWP), route.waypoints):
-        job_manager.put(DownloadTideJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index()))
+        job = DownloadTideJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index())
+        job_manager.put(job)
     job_manager.wait()
+
+    print(f'\nSuccessfully downloaded tide data for TIDE STATION WAYPOINTS', flush=True)
+    for wp in filter(lambda w: isinstance(w, TideStationWP), route.waypoints):  # clear the result queue
+        job_manager.get(id(wp))
+        print(f'{CHECKMARK}     {wp.unique_name}', flush=True)
 
     # ---------- INTERPOLATION WAYPOINTS ----------
 
     print(f'\nDownloading current data for INTERPOLATED DATA WAYPOINTS (1st day-1 to last day+4)', flush=True)
     for wp in filter(lambda w: isinstance(w, InterpolatedDataWP), route.waypoints):
-        job_manager.put(DownloadVelocityJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index()))
+        job = DownloadVelocityJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index())
+        job_manager.put(job)
     job_manager.wait()
 
     print(f'\nAdding downloaded data to INTERPOLATED DATA WAYPOINTS', flush=True)
 
-    for wp in filter(lambda w: isinstance(w, InterpolatedDataWP), route.waypoints):
+    for wp in filter(lambda w: isinstance(w, InterpolatedDataWP), route.waypoints):  # clear the result queue
         result = job_manager.get(id(wp))
         wp.downloaded_data = result.frame
         print(f'{CHECKMARK}     {wp.unique_name}', flush=True)
@@ -30,11 +37,12 @@ def waypoint_processing(route, cy, job_manager):
     print(f'\nSpline fitting data for INTERPOLATED DATA WAYPOINTS', flush=True)
     # normalizing the time points for interpolation, don't want too many points, so using 3 hour timestep
     for wp in filter(lambda w: isinstance(w, InterpolatedDataWP), route.waypoints):
-        job_manager.put(SplineFitVelocityJob(wp, cy.waypoint_start_index(), cy.waypoint_end_index(), 10800))  # 3 hour timestep
+        job = SplineFitVelocityJob(wp, cy.waypoint_start_index(), cy.waypoint_end_index(), 10800)  # 3 hour timestep
+        job_manager.put(job)
     job_manager.wait()
 
     print(f'\nAdding spline data to INTERPOLATED DATA WAYPOINTS', flush=True)
-    for wp in filter(lambda w: isinstance(w, InterpolatedDataWP), route.waypoints):
+    for wp in filter(lambda w: isinstance(w, InterpolatedDataWP), route.waypoints):  # clear the result queue
         result = job_manager.get(id(wp))
         wp.spline_fit_data = result.frame
         print(f'{CHECKMARK}     {wp.unique_name}', flush=True)
@@ -45,13 +53,12 @@ def waypoint_processing(route, cy, job_manager):
 
     print(f'\nSpline fit data from INTERPOLATED WAYPOINTS', flush=True)
     for wp in filter(lambda w: isinstance(w, InterpolatedWP), route.waypoints):
-        job_manager.put(SplineFitVelocityJob(wp, cy.waypoint_start_index(), cy.waypoint_end_index()))
-        # job = SplineFitVelocityJob(wp, cy.waypoint_start_index(), cy.waypoint_end_index())
-        # result = job.execute()
+        job = SplineFitVelocityJob(wp, cy.waypoint_start_index(), cy.waypoint_end_index())
+        job_manager.put(job)
     job_manager.wait()
 
     print(f'\nAdding spline data to INTERPOLATED WAYPOINTS', flush=True)
-    for wp in filter(lambda w: isinstance(w, InterpolatedWP), route.waypoints):
+    for wp in filter(lambda w: isinstance(w, InterpolatedWP), route.waypoints):  # clear the result queue
         result = job_manager.get(id(wp))
         wp.spline_fit_data = result.frame
         print(f'{CHECKMARK}     {wp.unique_name}', flush=True)
@@ -60,22 +67,24 @@ def waypoint_processing(route, cy, job_manager):
 
     print(f'\nDownloading current data for CURRENT STATION and SURROGATE WAYPOINTS (1st day-1 to last day+4)', flush=True)
     for wp in filter(lambda w: (isinstance(w, CurrentStationWP) or isinstance(w, SurrogateWP)), route.waypoints):
-        job_manager.put(DownloadVelocityJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index()))
+        job = DownloadVelocityJob(wp, cy.year(), cy.waypoint_start_index(), cy.waypoint_end_index())
+        job_manager.put(job)
     job_manager.wait()
 
     print(f'\nAdding downloaded data to CURRENT STATION and SURROGATE WAYPOINTS', flush=True)
-    for wp in filter(lambda w: isinstance(w, CurrentStationWP) or isinstance(w, SurrogateWP), route.waypoints):
+    for wp in filter(lambda w: isinstance(w, CurrentStationWP) or isinstance(w, SurrogateWP), route.waypoints):  # clear the result queue
         result = job_manager.get(id(wp))
         wp.downloaded_data = result.frame
         print(f'{CHECKMARK}     {wp.unique_name}', flush=True)
 
     print(f'\nSpline fit data from CURRENT STATION and SURROGATE WAYPOINTS', flush=True)
     for wp in filter(lambda w: isinstance(w, CurrentStationWP) or isinstance(w, SurrogateWP), route.waypoints):
-        job_manager.put(SplineFitVelocityJob(wp, cy.waypoint_start_index(), cy.waypoint_end_index()))
+        job = SplineFitVelocityJob(wp, cy.waypoint_start_index(), cy.waypoint_end_index())
+        job_manager.put(job)
     job_manager.wait()
 
     print(f'\nAdding spline data to CURRENT STATION and SURROGATE WAYPOINTS', flush=True)
-    for wp in filter(lambda w: isinstance(w, CurrentStationWP) or isinstance(w, SurrogateWP), route.waypoints):
+    for wp in filter(lambda w: isinstance(w, CurrentStationWP) or isinstance(w, SurrogateWP), route.waypoints):  # clear the result queue
         result = job_manager.get(id(wp))
         wp.spline_fit_data = result.frame
         print(f'{CHECKMARK}     {wp.unique_name}', flush=True)
