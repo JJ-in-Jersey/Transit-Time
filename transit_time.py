@@ -72,33 +72,66 @@ def minima_table(transit_array, tt_range, savgol_path):
     return tt_df
 
 
-def create_arcs(minima_df, shape_name, f_date, l_date):
-    print(minima_df.columns)
+def index_arc_df(frame):
+    # columns = ['name', 'start_date', 'start_time', 'start_angle', 'min_time', 'min_angle', 'end_time', 'end_angle', 'elapsed_time']
 
-    arc_frame = minima_df[['tts', 'start_index', 'start_datetime', 'min_index', 'min_datetime', 'end_index', 'end_datetime']]
+    date_keys = [key for key in sorted(list(set(frame['start_date'])))]
+    name_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
+    start_time_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
+    start_angle_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
+    min_time_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
+    min_angle_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
+    end_time_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
+    end_angle_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
+    elapsed_time_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
+    columns = frame.columns.to_list()
+
+    for i, row in frame.iterrows():
+        name_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('name')])
+        start_time_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('start_time')])
+        start_angle_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('start_angle')])
+        min_time_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('min_time')])
+        min_angle_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('min_angle')])
+        end_time_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('end_time')])
+        end_angle_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('end_angle')])
+        elapsed_time_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('elapsed_time')])
+
+    arc_frame = pd.DataFrame(columns=Arc.columns)
+    for date in date_keys:
+        names = name_dict[date]
+        start_times = start_time_dict[date]
+        start_angles = start_angle_dict[date]
+        min_times = min_time_dict[date]
+        min_angles = min_angle_dict[date]
+        end_times = end_time_dict[date]
+        end_angels = end_angle_dict[date]
+        elapsed_times = elapsed_time_dict[date]
+
+        for i in range(len(names)):
+            arc_frame.loc[len(arc_frame)] = [names[i] + ' ' + str(i + 1), date,
+                                             start_times[i], start_angles[i], min_times[i], min_angles[i],
+                                             end_times[i], end_angels[i], elapsed_times[i]]
+    return arc_frame
+
+
+def create_arcs(minima_df, shape_name, f_date, l_date):
+
+    arc_frame = minima_df.drop(['departure_index', 'plot', 'tts', 'midline'], axis=1)
     Arc.name = shape_name
 
     arcs = [Arc(*row.values.tolist()) for i, row in arc_frame.iterrows()]
-    fractured_arc_list = list(filter(lambda n: n.fractured, arcs))
-    arc_list = list(filter(lambda n: not n.fractured, arcs))
 
-    arc_df = pd.DataFrame([arc.df_angles() for arc in arc_list])
-    arc_df.columns = Arc.columns
-    arc_df.sort_values(['date'], ignore_index=True, inplace=True)
+    whole_arc_rows = [a.info() for a in filter(lambda a: not a.fractured, arcs)]
+    start_day_rows = [a.start_day_arc.info() for a in filter(lambda a: a.fractured, arcs)]
+    end_day_rows = [a.end_day_arc.info() for a in filter(lambda a: a.fractured, arcs)]
 
-    # add shape counts to shapes, last row doesn't matter, it will be trimmed away
-    count = 1
-    for row in arc_df.index[:-1]:
-        arc_df.loc[row, 'name'] = arc_df.loc[row, 'name'] + ' ' + str(count)
-        if arc_df.loc[row, 'date'] == arc_df.loc[row + 1, 'date']:
-            count += 1
-        else:
-            count = 1
+    arcs_df = pd.DataFrame(whole_arc_rows + start_day_rows + end_day_rows)
+    arcs_df.columns = Arc.columns
+    arcs_df = index_arc_df(arcs_df)
+    arcs_df = arcs_df[arcs_df['start_date'] >= f_date]
+    arcs_df = arcs_df[arcs_df['start_date'] <= l_date]
 
-    arc_df = arc_df[arc_df['date'] >= f_date]
-    arc_df = arc_df[arc_df['date'] <= l_date]
-
-    return arc_df
+    return arcs_df
 
 
 class ArcsDataframe:
@@ -113,14 +146,13 @@ class ArcsDataframe:
         speed_folder = tt_folder.joinpath(num2words(speed))
 
         transit_timesteps_path = speed_folder.joinpath(file_header + '_timesteps')
-        savgol_path = speed_folder.joinpath(file_header + '_savgol_data')
-        minima_path = speed_folder.joinpath(file_header + '_minima_data')
+        savgol_path = speed_folder.joinpath(file_header + '_savgol')
+        minima_path = speed_folder.joinpath(file_header + '_minima')
         arcs_path = speed_folder.joinpath(file_header + '_arcs')
 
         if ft.csv_npy_file_exists(arcs_path):
             self.frame = ft.read_df(arcs_path)
         else:
-
             if ft.csv_npy_file_exists(transit_timesteps_path):
                 transit_timesteps_arr = ft.read_arr(transit_timesteps_path)
             else:
@@ -132,15 +164,13 @@ class ArcsDataframe:
                 minima_df = ft.read_df(minima_path)
             else:
                 minima_df = minima_table(transit_timesteps_arr, tt_range, savgol_path)  # call minima_table
+                minima_df = minima_df.dropna(axis=0).sort_index().reset_index(drop=True)  # make minima_df easier to write
+                minima_df.drop(['plot', 'midline'], axis=1, inplace=True)  # make minima_df easier to write
                 ft.write_df(minima_df, minima_path)
-                print('finished minima')
 
             if ft.csv_npy_file_exists(arcs_path):
                 self.frame = ft.read_df(arcs_path)
             else:
-                print('starting create arcs')
-                minima_df = minima_df.dropna(axis=0).sort_index().reset_index(drop=True)
-                # minima_df = minima_df.astype({'departure_index': int, 'start_index': int, 'min_index': int, 'end_index': int})
                 self.frame = create_arcs(minima_df, shape_name, f_date, l_date)
                 ft.write_df(self.frame, arcs_path)
 
