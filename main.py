@@ -80,9 +80,8 @@ if __name__ == '__main__':
         l_date = cy.last_day.date()
         tt_range = cy.transit_range()
         tt_folder = env.transit_time_folder
-        # job = TransitTimeJob(speed, cy.year(), f_date, l_date, tt_range, route.elapsed_time_lookup[speed], tt_folder)
-        # job_manager.put(job)
         job = TransitTimeJob(speed, cy.year(), f_date, l_date, tt_range, route.elapsed_time_lookup[speed], tt_folder)
+        job_manager.put(job)
         result = job.execute()
     job_manager.wait()
 
@@ -97,8 +96,6 @@ if __name__ == '__main__':
     min_rotation_df = arcs_df[arcs_df['min'].notna()]
     min_rotation_df = min_rotation_df.replace(to_replace=r'arc', value='min', regex=True)
 
-    # arcs_df.drop(['date_time', 'min'], axis=1, inplace=True)
-    # min_rotation_df.drop(['date_time', 'start', 'end'], axis=1, inplace=True)
     ft.write_df(min_rotation_df, env.transit_time_folder.joinpath('minima'))
     ft.write_df(arcs_df, env.transit_time_folder.joinpath('arcs'))
 
