@@ -4,6 +4,16 @@ from elapsed_time import ElapsedTimeJob
 from project_globals import BOAT_SPEEDS, CHECKMARK
 
 
+def check_edges(env):
+
+    waypoint_processing_required = False
+    for s in BOAT_SPEEDS:
+        speed_path = env.elapsed_time_folder.joinpath('elapsed_timesteps_'+str(s))
+        if not ft.csv_npy_file_exists(speed_path):
+            waypoint_processing_required = True
+    return waypoint_processing_required
+
+
 def edge_processing(route, env, cy, job_manager):
 
     for s in BOAT_SPEEDS:

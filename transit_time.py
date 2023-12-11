@@ -70,7 +70,7 @@ def minima_table(transit_array, tt_range, savgol_path):
             clump = []
     tt_df['transit_time'] = pd.to_timedelta(tt_df['tts']*TIMESTEP, unit='s').round('min')
     tt_df = tt_df.dropna(axis=0).sort_index().reset_index(drop=True)  # make minima_df easier to write
-    tt_df.drop(['tts', 'departure_index','plot', 'midline'], axis=1, inplace=True)  # make minima_df easier to write
+    tt_df.drop(['tts', 'departure_index', 'plot', 'midline'], axis=1, inplace=True)  # make minima_df easier to write
     return tt_df
 
 
