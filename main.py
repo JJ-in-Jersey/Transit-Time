@@ -55,7 +55,7 @@ if __name__ == '__main__':
 
     # ---------- START MULTIPROCESSING ----------
 
-    job_manager = JobManager(1)
+    job_manager = JobManager()
 
     # ---------- CHECK CHROME ----------
 
