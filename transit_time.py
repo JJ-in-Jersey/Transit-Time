@@ -69,6 +69,8 @@ def minima_table(transit_array, tt_range, savgol_path):
                 tt_df.at[tt_df_end_row, 'plot'] = max(transit_array)
             clump = []
     tt_df['transit_time'] = pd.to_timedelta(tt_df['tts']*TIMESTEP, unit='s').round('min')
+    tt_df = tt_df.dropna(axis=0).sort_index().reset_index(drop=True)  # make minima_df easier to write
+    tt_df.drop(['tts', 'departure_index','plot', 'midline'], axis=1, inplace=True)  # make minima_df easier to write
     return tt_df
 
 
@@ -114,9 +116,9 @@ def index_arc_df(frame):
     return arc_frame
 
 
-def create_arcs(minima_df, shape_name, f_date, l_date):
+def create_arcs(arc_frame, shape_name, f_date, l_date):
 
-    arc_frame = minima_df.drop(['departure_index', 'plot', 'tts', 'midline'], axis=1)
+    # arc_frame = minima_df.drop(['departure_index', 'plot', 'tts', 'midline'], axis=1)
     Arc.name = shape_name
 
     arcs = [Arc(*row.values.tolist()) for i, row in arc_frame.iterrows()]
@@ -163,9 +165,7 @@ class ArcsDataframe:
             if ft.csv_npy_file_exists(minima_path):
                 minima_df = ft.read_df(minima_path)
             else:
-                minima_df = minima_table(transit_timesteps_arr, tt_range, savgol_path)  # call minima_table
-                minima_df = minima_df.dropna(axis=0).sort_index().reset_index(drop=True)  # make minima_df easier to write
-                minima_df.drop(['plot', 'midline'], axis=1, inplace=True)  # make minima_df easier to write
+                minima_df = minima_table(transit_timesteps_arr, tt_range, savgol_path)
                 ft.write_df(minima_df, minima_path)
 
             if ft.csv_npy_file_exists(arcs_path):

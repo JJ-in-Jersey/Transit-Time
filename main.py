@@ -7,7 +7,7 @@ from tt_chrome_driver import chrome_driver
 from tt_job_manager.job_manager import JobManager
 
 from waypoint_processing import waypoint_processing
-from edge_processing import edge_processing
+from edge_processing import edge_processing, check_edges
 
 from east_river_validations import BatteryValidationDataframe, HellGateValidationDataframe, HornsHookValidationDataframe
 from cape_cod_canal_validations import CapeCodCanalRailBridgeDataframe
@@ -55,7 +55,7 @@ if __name__ == '__main__':
 
     # ---------- START MULTIPROCESSING ----------
 
-    job_manager = JobManager()
+    job_manager = JobManager(1)
 
     # ---------- CHECK CHROME ----------
 
@@ -65,7 +65,8 @@ if __name__ == '__main__':
 
     # ---------- WAYPOINT PROCESSING ----------
 
-    waypoint_processing(route, cy, job_manager)
+    if check_edges(env):
+        waypoint_processing(route, cy, job_manager)
 
     # ---------- EDGE PROCESSING ----------
 
@@ -81,7 +82,8 @@ if __name__ == '__main__':
         tt_range = cy.transit_range()
         tt_folder = env.transit_time_folder
         job = TransitTimeJob(speed, cy.year(), f_date, l_date, tt_range, route.elapsed_time_lookup[speed], tt_folder)
-        job_manager.put(job)
+        # job_manager.put(job)
+        result = job.execute()
     job_manager.wait()
 
     print(f'\nAdding transit time speed results to route')
