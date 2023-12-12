@@ -19,12 +19,12 @@ class HellGateValidationDataframe:
             best_df.drop(columns=['Event', 'Speed (knots)', 'date_index', 'velocity'], inplace=True)
             best_df['date_time'] = best_df['date_time'].apply(pd.to_datetime)
             best_df.sort_values('date_time')
-            best_df['date'] = best_df['date_time'].apply(pd.to_datetime).dt.date
+            best_df['start_date'] = best_df['date_time'].apply(pd.to_datetime).dt.date
             best_df['time'] = best_df['date_time'].apply(pd.to_datetime).dt.time
             best_df['angle'] = best_df['time'].apply(time_to_degrees)
-            best_df = best_df.filter(['date', 'time', 'angle'])
-            best_df = best_df[best_df['date'] >= f_date]
-            best_df = best_df[best_df['date'] <= l_date]
+            best_df = best_df.filter(['start_date', 'time', 'angle'])
+            best_df = best_df[best_df['start_date'] >= f_date]
+            best_df = best_df[best_df['start_date'] <= l_date]
             best_df = best_df.assign(graphic_name='HG')
             self.frame = index_arc_df(best_df)
         else:
@@ -49,15 +49,14 @@ class BatteryValidationDataframe:
             south_df.insert(len(south_df.columns), 'best_time', south_df['date_time'].apply(pd.to_datetime) + pd.Timedelta(hours=4))
             south_df = south_df.assign(graphic_name='ERB south')
 
-            best_df = pd.concat([north_df.drop(['date', 'time', 'HL', 'date_time'], axis=1),
-                                 south_df.drop(['date', 'time', 'HL', 'date_time'], axis=1)], ignore_index=True)
+            best_df = pd.concat([north_df.drop(['date', 'time', 'HL', 'date_time'], axis=1), south_df.drop(['date', 'time', 'HL', 'date_time'], axis=1)], ignore_index=True)
 
-            best_df['date'] = best_df['best_time'].dt.date
+            best_df['start_date'] = best_df['best_time'].dt.date
             best_df['time'] = best_df['best_time'].dt.time
             best_df['angle'] = best_df['time'].apply(time_to_degrees)
             best_df = best_df.drop(['best_time'], axis=1)
-            best_df = best_df[best_df['date'] >= f_date]
-            best_df = best_df[best_df['date'] <= l_date]
+            best_df = best_df[best_df['start_date'] >= f_date]
+            best_df = best_df[best_df['start_date'] <= l_date]
             self.frame = index_arc_df(best_df)
         else:
             raise FileExistsError
@@ -84,12 +83,12 @@ class HornsHookValidationDataframe:
             best_df = pd.concat([north_df.drop(['date', 'time', 'HL', 'date_time'], axis=1),
                                  south_df.drop(['date', 'time', 'HL', 'date_time'], axis=1)], ignore_index=True)
 
-            best_df['date'] = best_df['best_time'].dt.date
+            best_df['start_date'] = best_df['best_time'].dt.date
             best_df['time'] = best_df['best_time'].dt.time
             best_df['angle'] = best_df['time'].apply(time_to_degrees)
             best_df = best_df.drop(['best_time'], axis=1)
-            best_df = best_df[best_df['date'] >= f_date]
-            best_df = best_df[best_df['date'] <= l_date]
+            best_df = best_df[best_df['start_date'] >= f_date]
+            best_df = best_df[best_df['start_date'] <= l_date]
             self.frame = index_arc_df(best_df)
         else:
             raise FileExistsError
