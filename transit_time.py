@@ -7,7 +7,7 @@ from tt_geometry.geometry import Arc
 from tt_job_manager.job_manager import Job
 from tt_date_time_tools import date_time_tools as dtt
 
-from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS
+from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS, BOAT_SPEEDS
 
 
 def none_row(row, df):
@@ -186,3 +186,20 @@ class TransitTimeJob(Job):  # super -> job name, result key, function/object, ar
         result_key = speed
         arguments = tuple([speed, year, f_date, l_date, t_range, et_df, tt_folder])
         super().__init__(job_name, result_key, ArcsDataframe, arguments)
+
+
+def check_arcs(env, year):
+
+    edge_processing_required = False
+    for speed in BOAT_SPEEDS:
+
+        sign = '+' if speed / abs(speed) > 0 else '-'
+        boat_speed = sign + str(abs(speed))
+
+        speed_folder = env.transit_time_folder.joinpath(num2words(boat_speed))
+        arcs_path = speed_folder.joinpath(str(year) + '_' + str(boat_speed) + '_arcs')
+
+        if not ft.csv_npy_file_exists(arcs_path):
+            edge_processing_required = True
+
+    return edge_processing_required

@@ -11,7 +11,7 @@ from edge_processing import edge_processing, check_edges
 
 from east_river_validations import BatteryValidationDataframe, HellGateValidationDataframe, HornsHookValidationDataframe
 from cape_cod_canal_validations import CapeCodCanalRailBridgeDataframe
-from transit_time import TransitTimeJob
+from transit_time import TransitTimeJob, check_arcs
 from project_globals import WINDOW_MARGIN, BOAT_SPEEDS, CHECKMARK, Environment, ChartYear
 
 
@@ -55,7 +55,7 @@ if __name__ == '__main__':
 
     # ---------- START MULTIPROCESSING ----------
 
-    job_manager = JobManager(1)
+    job_manager = JobManager()
 
     # ---------- CHECK CHROME ----------
 
@@ -70,6 +70,7 @@ if __name__ == '__main__':
 
     # ---------- EDGE PROCESSING ----------
 
+    # if check_arcs(env, cy.year()):
     edge_processing(route, env, cy, job_manager)
 
     # ---------- TRANSIT TIMES ----------
@@ -82,8 +83,7 @@ if __name__ == '__main__':
         tt_range = cy.transit_range()
         tt_folder = env.transit_time_folder
         job = TransitTimeJob(speed, cy.year(), f_date, l_date, tt_range, route.elapsed_time_lookup[speed], tt_folder)
-        # job_manager.put(job)
-        result = job.execute()
+        job_manager.put(job)
     job_manager.wait()
 
     print(f'\nAdding transit time speed results to route')
@@ -93,8 +93,8 @@ if __name__ == '__main__':
         print(f'{CHECKMARK}     tt {speed}', flush=True)
 
     arcs_df = concat([route.transit_time_lookup[key] for key in route.transit_time_lookup])
-    arcs_df.sort_values(['date', 'name'], ignore_index=True, inplace=True)
-    min_rotation_df = arcs_df[arcs_df['min'].notna()]
+    arcs_df.sort_values(['start_date', 'name'], ignore_index=True, inplace=True)
+    min_rotation_df = arcs_df[arcs_df['min_angle'].notna()]
     min_rotation_df = min_rotation_df.replace(to_replace=r'arc', value='min', regex=True)
 
     ft.write_df(min_rotation_df, env.transit_time_folder.joinpath('minima'))
