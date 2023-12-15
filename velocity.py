@@ -95,7 +95,7 @@ class InterpolatedPoint:
     def __init__(self, interpolation_pt_data, surface_points, date_index):
         interpolator = VInt(surface_points)
         interpolator.set_interpolation_point(Point(interpolation_pt_data[1], interpolation_pt_data[2], 0))
-        self.date_velo = [date_index, round(interpolator.get_interpolated_point().z.evalf(), 4)]
+        self.date_velocity = tuple([date_index, round(interpolator.get_interpolated_point().z.evalf(), 4)])
 
 
 class InterpolatePointJob(Job):
@@ -105,12 +105,13 @@ class InterpolatePointJob(Job):
     def error_callback(self, result): return super().error_callback(result)
 
     def __init__(self, interpolation_pt, velocity_data, index):
+
+        date_indices = velocity_data[0]['date_time'].apply(lambda x: dtt.int_timestamp(x))
+
         result_key = str(id(interpolation_pt)) + '_' + str(index)
         interpolation_pt_data = tuple([interpolation_pt.unique_name, interpolation_pt.lat, interpolation_pt.lon])
-        # surface_points = [Point(wp.lat, wp.lon, wp.spline_fit_data.at[index, 'velocity']) for wp in data_waypoints]
-        surface_points = [Point(frame.at[index, 'lat'], frame.at[index, 'lon'], frame.at[index, 'velocity']) for frame in velocity_data]
-        date_index = dtt.int_timestamp(velocity_data[0].at[index, 'date_time'])
-        arguments = tuple([interpolation_pt_data, surface_points, date_index])
+        surface_points = tuple([Point(frame.at[index, 'lat'], frame.at[index, 'lon'], frame.at[index, 'velocity']) for frame in velocity_data])
+        arguments = tuple([interpolation_pt_data, surface_points, date_indices[index]])
         super().__init__(str(index) + ' ' + interpolation_pt.unique_name, result_key, InterpolatedPoint, arguments)
 
 
@@ -126,19 +127,20 @@ def interpolate_group(waypoints, job_manager):
         for i, wp in enumerate(data_waypoints):
             velocity_data[i]['lat'] = wp.lat
             velocity_data[i]['lon'] = wp.lon
+
         for i in range(len(velocity_data[0])):
             job = InterpolatePointJob(interpolation_pt, velocity_data, i)
-            # job_manager.put(job)
-            result = job.execute()
+            job_manager.put(job)
+            # result = job.execute()
         job_manager.wait()
 
-        result_array = [job_manager.get(str(id(interpolation_pt)) + '_' + str(i)).date_velo for i in range(len(velocity_data[0]))]
+        result_array = tuple([job_manager.get(str(id(interpolation_pt)) + '_' + str(i)).date_velo for i in range(len(velocity_data[0]))])
         frame = pd.DataFrame(result_array, columns=['date_index', 'velocity'])
         frame.sort_values('date_index', inplace=True)
         frame['date_time'] = pd.to_datetime(frame['date_index'], unit='s')
         frame.reset_index(drop=True, inplace=True)
         interpolation_pt.downloaded_data = frame
-        ft.write_df(frame, interpolation_pt.downloaded_path)
+        ft.write_df(frame, output_filepath)
 
 # class DownloadedVelocityDataframe:
 #

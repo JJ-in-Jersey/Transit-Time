@@ -31,13 +31,6 @@ def waypoint_processing(route, cy, job_manager):
         # result = job.execute()
     job_manager.wait()
 
-    # print(f'\nSpline fitting data for INTERPOLATED DATA WAYPOINTS', flush=True)
-    # # normalizing the time points for interpolation, don't want too many points, so using 3 hour timestep
-    # for wp in filter(lambda w: isinstance(w, InterpolatedDataWP), route.waypoints):
-    #     # job = SplineFitVelocityJob(wp, 10800)  # 3 hour timestep
-    #     job = SplineFitVelocityJob(wp)
-    #     job_manager.put(job)
-    # job_manager.wait()
 
     print(f'\nInterpolating the data to approximate velocity for INTERPOLATED WAYPOINTS (1st day-1 to last day+4)', flush=True)
     for group in route.interpolation_groups:
