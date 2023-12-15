@@ -58,12 +58,12 @@ class ChartYear:
 
     def year(self): return self._year  # underscore _year to differentiate it from the method year()
 
-    def waypoint_start_index(self): return dtt.int_timestamp(self.first_day_minus_one)
+    def waypoint_start_index(self): return dtt.int_timestamp(self.first_day_minus)
     def waypoint_end_index(self): return dtt.int_timestamp(self.last_day_plus_four)
 
-    def edge_range(self): return range(dtt.int_timestamp(self.first_day_minus_one), dtt.int_timestamp(self.last_day_plus_three), TIMESTEP)
+    def edge_range(self): return range(dtt.int_timestamp(self.first_day_minus), dtt.int_timestamp(self.last_day_plus_three), TIMESTEP)
 
-    def transit_start_index(self): return dtt.int_timestamp(self.first_day_minus_one)
+    def transit_start_index(self): return dtt.int_timestamp(self.first_day_minus)
     def transit_end_index(self): return dtt.int_timestamp(self.last_day_plus_two)
     def transit_range(self): return range(self.transit_start_index(), self.transit_end_index(), TIMESTEP)
 
@@ -73,7 +73,7 @@ class ChartYear:
     def __init__(self, args):
         self._year = args['year']  # underscore _year to differentiate it from the method year()
         self.first_day = dp.parse('1/1/'+str(self._year))
-        self.first_day_minus_one = self.first_day - td(days=1)
+        self.first_day_minus = self.first_day - td(days=5)
         self.last_day = dp.parse('12/31/' + str(self._year))
         self.last_day_plus_one = self.last_day + td(days=1)
         self.last_day_plus_two = self.last_day + td(days=2)

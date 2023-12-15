@@ -65,8 +65,9 @@ if __name__ == '__main__':
 
     # ---------- WAYPOINT PROCESSING ----------
 
-    if check_edges(env):
-        waypoint_processing(route, cy, job_manager)
+    # if check_edges(env):
+    #     waypoint_processing(route, cy, job_manager)
+    waypoint_processing(route, cy, job_manager)
 
     # ---------- EDGE PROCESSING ----------
 
