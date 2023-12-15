@@ -31,7 +31,6 @@ def waypoint_processing(route, cy, job_manager):
         # result = job.execute()
     job_manager.wait()
 
-
     print(f'\nInterpolating the data to approximate velocity for INTERPOLATED WAYPOINTS (1st day-1 to last day+4)', flush=True)
     for group in route.interpolation_groups:
         interpolate_group(group, job_manager)

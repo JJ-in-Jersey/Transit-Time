@@ -106,7 +106,7 @@ class InterpolatePointJob(Job):
 
     def __init__(self, interpolation_pt, velocity_data, index):
 
-        date_indices = velocity_data[0]['date_time'].apply(lambda x: dtt.int_timestamp(x))
+        date_indices = velocity_data[0]['date_time'].apply(dtt.int_timestamp)
 
         result_key = str(id(interpolation_pt)) + '_' + str(index)
         interpolation_pt_data = tuple([interpolation_pt.unique_name, interpolation_pt.lat, interpolation_pt.lon])
@@ -134,10 +134,10 @@ def interpolate_group(waypoints, job_manager):
             # result = job.execute()
         job_manager.wait()
 
-        result_array = tuple([job_manager.get(str(id(interpolation_pt)) + '_' + str(i)).date_velo for i in range(len(velocity_data[0]))])
+        result_array = tuple([job_manager.get(str(id(interpolation_pt)) + '_' + str(i)).date_velocity for i in range(len(velocity_data[0]))])
         frame = pd.DataFrame(result_array, columns=['date_index', 'velocity'])
         frame.sort_values('date_index', inplace=True)
-        frame['date_time'] = pd.to_datetime(frame['date_index'], unit='s')
+        frame['date_time'] = frame['date_index'].apply(dtt.datetime)
         frame.reset_index(drop=True, inplace=True)
         interpolation_pt.downloaded_data = frame
         ft.write_df(frame, output_filepath)
