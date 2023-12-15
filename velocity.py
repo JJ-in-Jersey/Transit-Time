@@ -66,7 +66,7 @@ class SplineFitVelocityCSV:
         output_filepath = velocity_file.parent.joinpath(velocity_file.stem + '_spline_fit.csv')
 
         velocity_frame = ft.read_df(velocity_file)
-        velocity_frame['date_index'] = velocity_frame['Time'].apply(lambda x: dtt.int_timestamp(x))
+        velocity_frame['date_index'] = velocity_frame['Time'].apply(dtt.int_timestamp)
 
         if not ft.csv_npy_file_exists(output_filepath):
             cs = CubicSpline(velocity_frame['date_index'], velocity_frame[' Velocity_Major'])

@@ -61,7 +61,7 @@ class DownloadedTideDataframe:
 
             cd.driver.quit()
 
-            frame['date_index'] = frame['date_time'].apply(lambda x: dtt.int_timestamp(x))
+            frame['date_index'] = frame['date_time'].apply(dtt.int_timestamp)
             frame = frame[(start_index <= frame['date_index']) & (frame['date_index'] <= end_index)]
 
             ft.write_df(frame, download_path)
