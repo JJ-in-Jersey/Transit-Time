@@ -196,7 +196,7 @@ def check_arcs(env, year):
         speed_folder = env.transit_time_folder.joinpath(num2words(boat_speed))
         arcs_path = speed_folder.joinpath(str(year) + '_' + str(boat_speed) + '_arcs')
 
-        if not  arcs_path.exists():
+        if not arcs_path.exists():
             edge_processing_required = True
 
     return edge_processing_required

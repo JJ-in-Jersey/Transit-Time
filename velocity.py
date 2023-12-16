@@ -118,16 +118,11 @@ def interpolate_group(waypoints, job_manager):
 
     interpolation_pt = waypoints[0]
     data_waypoints = waypoints[1:]
-    output_filepath = interpolation_pt.folder.joinpath('haromic_velocity.csv')
+    output_filepath = interpolation_pt.folder.joinpath('harmonic_velocity.csv')
 
     if not output_filepath.exists():
 
-        # velocity_data = []
-        # for wp in data_waypoints:
-        #     print(wp.unique_name, wp.folder.joinpath('harmonic_velocity.csv'))
         velocity_data = [ft.read_df(wp.folder.joinpath('harmonic_velocity.csv')) for wp in data_waypoints]
-            # velocity_data.append(wp.folder.joinpath('harmonic_velocity.csv'))
-
         for i, wp in enumerate(data_waypoints):
             velocity_data[i]['lat'] = wp.lat
             velocity_data[i]['lon'] = wp.lon
