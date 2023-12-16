@@ -203,7 +203,7 @@ class SubordinateVelocityAdjustment:
         output_filepath = velocity_file.parent.joinpath('harmonic_velocity.csv')
         velocity_frame = ft.read_df(velocity_file)
 
-        start_index = dtt.int_timestamp(dp.parse('12/31/' + str(year - 1) + ' 00:00'))
+        start_index = dtt.int_timestamp(dp.parse('12/1/' + str(year - 1) + ' 00:00'))
         end_index = dtt.int_timestamp(dp.parse('1/31/' + str(year + 1) + ' 23:00'))
 
         if not output_filepath.exists():

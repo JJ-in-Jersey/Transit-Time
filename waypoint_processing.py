@@ -31,15 +31,9 @@ def waypoint_processing(route, cy, job_manager):
         # result = job.execute()
     job_manager.wait()
 
-    print(f'\nSpline fit data from INTERPOLATED DATA WAYPOINTS', flush=True)
+    print(f'\nAdjust subordinate INTERPOLATED DATA WAYPOINTS', flush=True)
     for wp in filter(lambda w: isinstance(w, InterpolatedDataWP) and w.type == 'Subordinate', route.waypoints):
         job = SubordinateVelocityAdjustmentJob(wp, cy.year)
-        job_manager.put(job)
-        # result = job.execute()
-    job_manager.wait()
-
-    for wp in filter(lambda w: isinstance(w, InterpolatedDataWP), route.waypoints):
-        job = SplineFitHarmonicVelocityJob(wp)
         job_manager.put(job)
         # result = job.execute()
     job_manager.wait()
@@ -47,6 +41,12 @@ def waypoint_processing(route, cy, job_manager):
     print(f'\nInterpolating the data to approximate velocity for INTERPOLATED WAYPOINTS (1st day-1 to last day+4)', flush=True)
     for group in route.interpolation_groups:
         interpolate_group(group, job_manager)
+
+    for wp in filter(lambda w: isinstance(w, InterpolatedDataWP), route.waypoints):
+        job = SplineFitHarmonicVelocityJob(wp)
+        job_manager.put(job)
+        # result = job.execute()
+    job_manager.wait()
 
     print(f'\nSpline fit data from INTERPOLATED WAYPOINTS', flush=True)
     for wp in filter(lambda w: isinstance(w, InterpolatedWP), route.waypoints):
