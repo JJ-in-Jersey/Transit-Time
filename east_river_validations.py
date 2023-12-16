@@ -13,7 +13,7 @@ class HellGateValidationDataframe:
 
     def __init__(self, downloaded_path, f_date, l_date):
 
-        if ft.csv_npy_file_exists(downloaded_path):
+        if downloaded_path.exists():
             best_df = ft.read_df(downloaded_path)
             best_df = best_df[best_df['Event'] == 'slack']
             best_df.drop(columns=['Event', 'Speed (knots)', 'date_index', 'velocity'], inplace=True)
@@ -38,7 +38,7 @@ class BatteryValidationDataframe:
 
     def __init__(self, download_path, f_date, l_date):
 
-        if ft.csv_npy_file_exists(download_path):
+        if download_path.exists():
             frame = ft.read_df(download_path)
 
             north_df = frame[frame['HL'] == 'L']
@@ -69,7 +69,7 @@ class HornsHookValidationDataframe:
 
     def __init__(self, download_path, f_date, l_date):
 
-        if ft.csv_npy_file_exists(download_path):
+        if download_path.exists():
             frame = ft.read_df(download_path)
 
             north_df = frame[frame['HL'] == 'L']

@@ -31,7 +31,7 @@ def minima_table(transit_array, tt_range, savgol_path):
     tt_df['departure_index'].astype('int')
     tt_df['plot'] = 0
     tt_df = tt_df.assign(tts=transit_array)
-    if ft.csv_npy_file_exists(savgol_path):
+    if savgol_path.exists():
         tt_df['midline'] = ft.read_arr(savgol_path)
     else:
         tt_df['midline'] = savgol_filter(transit_array, 50000, 1)
@@ -152,27 +152,24 @@ class ArcsDataframe:
         minima_path = speed_folder.joinpath(file_header + '_minima')
         arcs_path = speed_folder.joinpath(file_header + '_arcs')
 
-        if ft.csv_npy_file_exists(arcs_path):
+        if arcs_path.exists():
             self.frame = ft.read_df(arcs_path)
         else:
-            if ft.csv_npy_file_exists(transit_timesteps_path):
+            if transit_timesteps_path.exists():
                 transit_timesteps_arr = ft.read_arr(transit_timesteps_path)
             else:
                 row_range = range(len(tt_range))
                 transit_timesteps_arr = [total_transit_time(row, et_df, et_df.columns.to_list()) for row in row_range]
                 ft.write_arr(transit_timesteps_arr, transit_timesteps_path)
 
-            if ft.csv_npy_file_exists(minima_path):
+            if minima_path.exists():
                 minima_df = ft.read_df(minima_path)
             else:
                 minima_df = minima_table(transit_timesteps_arr, tt_range, savgol_path)
                 ft.write_df(minima_df, minima_path)
 
-            if ft.csv_npy_file_exists(arcs_path):
-                self.frame = ft.read_df(arcs_path)
-            else:
-                self.frame = create_arcs(minima_df, shape_name, f_date, l_date)
-                ft.write_df(self.frame, arcs_path)
+            self.frame = create_arcs(minima_df, shape_name, f_date, l_date)
+            ft.write_df(self.frame, arcs_path)
 
 
 class TransitTimeJob(Job):  # super -> job name, result key, function/object, arguments
@@ -199,7 +196,7 @@ def check_arcs(env, year):
         speed_folder = env.transit_time_folder.joinpath(num2words(boat_speed))
         arcs_path = speed_folder.joinpath(str(year) + '_' + str(boat_speed) + '_arcs')
 
-        if not ft.csv_npy_file_exists(arcs_path):
+        if not  arcs_path.exists():
             edge_processing_required = True
 
     return edge_processing_required

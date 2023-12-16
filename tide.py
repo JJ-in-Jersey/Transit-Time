@@ -45,7 +45,7 @@ class DownloadedTideDataframe:
     def __init__(self, year, download_path, folder, url, code, start_index, end_index):
         self.frame = None
 
-        if ft.csv_npy_file_exists(download_path):
+        if download_path.exists():
             self.frame = ft.read_df(download_path)
         else:
             frame = pd.DataFrame()

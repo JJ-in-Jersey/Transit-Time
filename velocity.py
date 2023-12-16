@@ -2,6 +2,7 @@ import pandas as pd
 from scipy.interpolate import CubicSpline
 from sympy import Point
 from pathlib import Path
+import dateparser as dp
 
 from tt_noaa_data.noaa_data import noaa_current_datafile
 # from tt_chrome_driver import chrome_driver as cd
@@ -23,12 +24,12 @@ def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 
 class DownloadedVelocityCSV:
 
-    def __init__(self, year: int, folder: Path, code: str):
+    def __init__(self, year: int, folder: Path, code: str, wp_type: str):
         # noaa columns:   'Time', ' Depth', ' Velocity_Major', ' meanFloodDir', ' meanEbbDir', ' Bin'
 
-        output_filepath = folder.joinpath('velocity.csv')
+        output_filepath = folder.joinpath(wp_type.lower() + '_velocity.csv')
 
-        if not ft.csv_npy_file_exists(output_filepath):
+        if not output_filepath.exists():
             frame = pd.DataFrame()
             station_bin = code.split('_')
 
@@ -55,39 +56,37 @@ class DownloadVelocityJob(Job):  # super -> job name, result key, function/objec
 
     def __init__(self, wp: DownloadedDataWP, year: int):
         result_key = id(wp)
-        arguments = tuple([year, wp.folder, wp.code])
+        arguments = tuple([year, wp.folder, wp.code, wp.type])
         super().__init__(wp.unique_name, result_key, DownloadedVelocityCSV, arguments)
 
 
-class SplineFitVelocityCSV:
+class SplineFitHarmonicVelocityCSV:
 
-    # def __init__(self, spline_fit_path, velocity_path: pd.DataFrame, timestep):
-    def __init__(self, velocity_file: Path, timestep):
+    def __init__(self, velocity_file: Path):
 
         output_filepath = velocity_file.parent.joinpath(velocity_file.stem + '_spline_fit.csv')
-
         velocity_frame = ft.read_df(velocity_file)
 
-        if not ft.csv_npy_file_exists(output_filepath):
+        if not output_filepath.exists():
             cs = CubicSpline(velocity_frame['date_index'], velocity_frame['velocity'])
             frame = pd.DataFrame()
-            frame['date_index'] = range(velocity_frame['date_index'].iloc[0], velocity_frame['date_index'].iloc[-1], timestep)
+            frame['date_index'] = range(velocity_frame['date_index'].iloc[0], velocity_frame['date_index'].iloc[-1], TIMESTEP)
             frame['date_time'] = pd.to_datetime(frame['date_index'], unit='s').round('min')
             frame['velocity'] = frame['date_index'].apply(cs)
             ft.write_df(frame, output_filepath)
 
 
-class SplineFitVelocityJob(Job):  # super -> job name, result key, function/object, arguments
+class SplineFitHarmonicVelocityJob(Job):  # super -> job name, result key, function/object, arguments
 
     def execute(self): return super().execute()
     def execute_callback(self, result): return super().execute_callback(result)
     def error_callback(self, result): return super().error_callback(result)
 
-    def __init__(self, waypoint, timestep=TIMESTEP):
+    def __init__(self, waypoint):
         result_key = id(waypoint)
-        filepath = waypoint.folder.joinpath('velocity.csv')
-        arguments = tuple([filepath, timestep])
-        super().__init__(waypoint.unique_name, result_key, SplineFitVelocityCSV, arguments)
+        filepath = waypoint.folder.joinpath('harmonic_velocity.csv')
+        arguments = tuple([filepath])
+        super().__init__(waypoint.unique_name, result_key, SplineFitHarmonicVelocityCSV, arguments)
 
 
 class InterpolatedPoint:
@@ -119,11 +118,16 @@ def interpolate_group(waypoints, job_manager):
 
     interpolation_pt = waypoints[0]
     data_waypoints = waypoints[1:]
-    output_filepath = interpolation_pt.folder.joinpath('velocity.csv')
+    output_filepath = interpolation_pt.folder.joinpath('haromic_velocity.csv')
 
-    if not ft.csv_npy_file_exists(output_filepath):
+    if not output_filepath.exists():
 
-        velocity_data = [ft.read_df(wp.folder.joinpath('velocity.csv')) for wp in data_waypoints]
+        # velocity_data = []
+        # for wp in data_waypoints:
+        #     print(wp.unique_name, wp.folder.joinpath('harmonic_velocity.csv'))
+        velocity_data = [ft.read_df(wp.folder.joinpath('harmonic_velocity.csv')) for wp in data_waypoints]
+            # velocity_data.append(wp.folder.joinpath('harmonic_velocity.csv'))
+
         for i, wp in enumerate(data_waypoints):
             velocity_data[i]['lat'] = wp.lat
             velocity_data[i]['lon'] = wp.lon
@@ -195,3 +199,35 @@ def interpolate_group(waypoints, job_manager):
 #         result_key = id(waypoint)
 #         arguments = tuple([year, waypoint.downloaded_path, waypoint.folder, waypoint.noaa_url, waypoint.code, start, end])
 #         super().__init__(waypoint.unique_name, result_key, DownloadedVelocityDataframe, arguments)
+
+
+class SubordinateVelocityAdjustment:
+
+    def __init__(self, velocity_file: Path, year: int):
+
+        output_filepath = velocity_file.parent.joinpath('harmonic_velocity.csv')
+        velocity_frame = ft.read_df(velocity_file)
+
+        start_index = dtt.int_timestamp(dp.parse('12/31/' + str(year - 1) + ' 00:00'))
+        end_index = dtt.int_timestamp(dp.parse('1/31/' + str(year + 1) + ' 23:00'))
+
+        if not output_filepath.exists():
+            cs = CubicSpline(velocity_frame['date_index'], velocity_frame['velocity'])
+            frame = pd.DataFrame()
+            frame['date_index'] = range(start_index, end_index, 3600)
+            frame['date_time'] = pd.to_datetime(frame['date_index'], unit='s').round('min')
+            frame['velocity'] = frame['date_index'].apply(cs)
+            ft.write_df(frame, output_filepath)
+
+
+class SubordinateVelocityAdjustmentJob(Job):  # super -> job name, result key, function/object, arguments
+
+    def execute(self): return super().execute()
+    def execute_callback(self, result): return super().execute_callback(result)
+    def error_callback(self, result): return super().error_callback(result)
+
+    def __init__(self, waypoint, year):
+        result_key = id(waypoint)
+        filepath = waypoint.folder.joinpath('subordinate_velocity.csv')
+        arguments = tuple([filepath, year])
+        super().__init__(waypoint.unique_name + ' ' + waypoint.type, result_key, SubordinateVelocityAdjustment, arguments)

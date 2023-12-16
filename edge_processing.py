@@ -9,7 +9,7 @@ def check_edges(env):
     waypoint_processing_required = False
     for s in BOAT_SPEEDS:
         speed_path = env.elapsed_time_folder.joinpath('elapsed_timesteps_'+str(s))
-        if not ft.csv_npy_file_exists(speed_path):
+        if not speed_path.exists():
             waypoint_processing_required = True
     return waypoint_processing_required
 
@@ -18,7 +18,7 @@ def edge_processing(route, env, cy, job_manager):
 
     for s in BOAT_SPEEDS:
         speed_path = env.elapsed_time_folder.joinpath('elapsed_timesteps_'+str(s))
-        if ft.csv_npy_file_exists(speed_path):
+        if speed_path.exists():
             elapsed_time_df = ft.read_df(speed_path)
         else:
             print(f'\nCalculating elapsed timesteps for edges at {s} kts (1st day-1 to last day+3)')

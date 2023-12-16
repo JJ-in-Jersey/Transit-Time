@@ -44,7 +44,7 @@ class ElapsedTimeDataframe:
         filename = name + '_' + str(speed)
         et_path = folder.joinpath(filename)
 
-        if ft.csv_npy_file_exists(et_path):
+        if et_path.exists():
             self.frame = ft.read_df(et_path)
         else:
             self.frame = pd.DataFrame(data={'departure_index': edge_range})
