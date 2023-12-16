@@ -42,6 +42,7 @@ class DownloadedVelocityCSV:
             file = noaa_current_datafile(folder, year + 1, 1, station_bin[0], station_bin[1])
             frame = pd.concat([frame, pd.read_csv(file, header='infer')])
             frame.rename(columns={'Time': 'date_time', ' Velocity_Major': 'velocity'}, inplace=True)
+            frame['date_index'] = frame['date_time'].apply(dtt.int_timestamp)
 
             ft.write_df(frame, output_filepath)
 
@@ -66,10 +67,9 @@ class SplineFitVelocityCSV:
         output_filepath = velocity_file.parent.joinpath(velocity_file.stem + '_spline_fit.csv')
 
         velocity_frame = ft.read_df(velocity_file)
-        velocity_frame['date_index'] = velocity_frame['Time'].apply(dtt.int_timestamp)
 
         if not ft.csv_npy_file_exists(output_filepath):
-            cs = CubicSpline(velocity_frame['date_index'], velocity_frame[' Velocity_Major'])
+            cs = CubicSpline(velocity_frame['date_index'], velocity_frame['velocity'])
             frame = pd.DataFrame()
             frame['date_index'] = range(velocity_frame['date_index'].iloc[0], velocity_frame['date_index'].iloc[-1], timestep)
             frame['date_time'] = pd.to_datetime(frame['date_index'], unit='s').round('min')
@@ -106,7 +106,7 @@ class InterpolatePointJob(Job):
 
     def __init__(self, interpolation_pt, velocity_data, index):
 
-        date_indices = velocity_data[0]['date_time'].apply(dtt.int_timestamp)
+        date_indices = velocity_data[0]['date_index']
 
         result_key = str(id(interpolation_pt)) + '_' + str(index)
         interpolation_pt_data = tuple([interpolation_pt.unique_name, interpolation_pt.lat, interpolation_pt.lon])
