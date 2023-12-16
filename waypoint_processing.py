@@ -44,7 +44,6 @@ def waypoint_processing(route, cy, job_manager):
 
     print(f'\nSpline fit data from INTERPOLATED WAYPOINTS', flush=True)
     for wp in filter(lambda w: isinstance(w, InterpolatedWP), route.waypoints):
-        print(wp.type)
         job = SplineFitHarmonicVelocityJob(wp)
         job_manager.put(job)
     job_manager.wait()

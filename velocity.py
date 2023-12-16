@@ -5,16 +5,12 @@ from pathlib import Path
 import dateparser as dp
 
 from tt_noaa_data.noaa_data import noaa_current_datafile
-# from tt_chrome_driver import chrome_driver as cd
 from tt_interpolation.velocity_interpolation import Interpolator as VInt
 from tt_file_tools import file_tools as ft
 from tt_date_time_tools import date_time_tools as dtt
 from tt_job_manager.job_manager import Job
 from tt_gpx.gpx import DownloadedDataWP
 
-# from selenium.webdriver.support.ui import Select
-# from selenium.webdriver.support import expected_conditions as ec
-# from selenium.webdriver.common.by import By
 
 from project_globals import TIMESTEP
 
@@ -141,6 +137,44 @@ def interpolate_group(waypoints, job_manager):
         interpolation_pt.downloaded_data = frame
         ft.write_df(frame, output_filepath)
 
+
+class SubordinateVelocityAdjustment:
+
+    def __init__(self, velocity_file: Path, year: int):
+
+        output_filepath = velocity_file.parent.joinpath('harmonic_velocity.csv')
+        velocity_frame = ft.read_df(velocity_file)
+
+        start_index = dtt.int_timestamp(dp.parse('12/1/' + str(year - 1) + ' 00:00'))
+        end_index = dtt.int_timestamp(dp.parse('1/31/' + str(year + 1) + ' 23:00'))
+
+        if not output_filepath.exists():
+            cs = CubicSpline(velocity_frame['date_index'], velocity_frame['velocity'])
+            frame = pd.DataFrame()
+            frame['date_index'] = range(start_index, end_index, 3600)
+            frame['date_time'] = pd.to_datetime(frame['date_index'], unit='s').round('min')
+            frame['velocity'] = frame['date_index'].apply(cs)
+            ft.write_df(frame, output_filepath)
+
+
+class SubordinateVelocityAdjustmentJob(Job):  # super -> job name, result key, function/object, arguments
+
+    def execute(self): return super().execute()
+    def execute_callback(self, result): return super().execute_callback(result)
+    def error_callback(self, result): return super().error_callback(result)
+
+    def __init__(self, waypoint, year):
+        result_key = id(waypoint)
+        filepath = waypoint.folder.joinpath('subordinate_velocity.csv')
+        arguments = tuple([filepath, year])
+        super().__init__(waypoint.unique_name + ' ' + waypoint.type, result_key, SubordinateVelocityAdjustment, arguments)
+
+
+# from tt_chrome_driver import chrome_driver as cd
+# from selenium.webdriver.support.ui import Select
+# from selenium.webdriver.support import expected_conditions as ec
+# from selenium.webdriver.common.by import By
+
 # class DownloadedVelocityDataframe:
 #
 #     @staticmethod
@@ -194,35 +228,3 @@ def interpolate_group(waypoints, job_manager):
 #         result_key = id(waypoint)
 #         arguments = tuple([year, waypoint.downloaded_path, waypoint.folder, waypoint.noaa_url, waypoint.code, start, end])
 #         super().__init__(waypoint.unique_name, result_key, DownloadedVelocityDataframe, arguments)
-
-
-class SubordinateVelocityAdjustment:
-
-    def __init__(self, velocity_file: Path, year: int):
-
-        output_filepath = velocity_file.parent.joinpath('harmonic_velocity.csv')
-        velocity_frame = ft.read_df(velocity_file)
-
-        start_index = dtt.int_timestamp(dp.parse('12/1/' + str(year - 1) + ' 00:00'))
-        end_index = dtt.int_timestamp(dp.parse('1/31/' + str(year + 1) + ' 23:00'))
-
-        if not output_filepath.exists():
-            cs = CubicSpline(velocity_frame['date_index'], velocity_frame['velocity'])
-            frame = pd.DataFrame()
-            frame['date_index'] = range(start_index, end_index, 3600)
-            frame['date_time'] = pd.to_datetime(frame['date_index'], unit='s').round('min')
-            frame['velocity'] = frame['date_index'].apply(cs)
-            ft.write_df(frame, output_filepath)
-
-
-class SubordinateVelocityAdjustmentJob(Job):  # super -> job name, result key, function/object, arguments
-
-    def execute(self): return super().execute()
-    def execute_callback(self, result): return super().execute_callback(result)
-    def error_callback(self, result): return super().error_callback(result)
-
-    def __init__(self, waypoint, year):
-        result_key = id(waypoint)
-        filepath = waypoint.folder.joinpath('subordinate_velocity.csv')
-        arguments = tuple([filepath, year])
-        super().__init__(waypoint.unique_name + ' ' + waypoint.type, result_key, SubordinateVelocityAdjustment, arguments)
