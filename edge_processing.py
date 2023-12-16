@@ -23,7 +23,9 @@ def edge_processing(route, env, cy, job_manager):
         else:
             print(f'\nCalculating elapsed timesteps for edges at {s} kts (1st day-1 to last day+3)')
             for edge in route.elapsed_time_path.edges:
-                job_manager.put(ElapsedTimeJob(edge, s))
+                job = ElapsedTimeJob(edge, s)
+                job_manager.put(job)
+                # result= job.execute()
             job_manager.wait()
 
             print(f'\nAggregating elapsed timesteps at {s} kts into a dataframe', flush=True)
