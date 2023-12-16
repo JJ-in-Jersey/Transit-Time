@@ -2,8 +2,6 @@
 from tt_gpx.gpx import InterpolatedDataWP, CurrentStationWP, InterpolatedWP, TideStationWP, SurrogateWP
 from velocity import DownloadVelocityJob, SplineFitVelocityJob, interpolate_group
 from tide import DownloadTideJob
-from project_globals import CHECKMARK
-# from tt_noaa_data.noaa_data import noaa_current_datafile
 
 
 def waypoint_processing(route, cy, job_manager):
@@ -49,20 +47,8 @@ def waypoint_processing(route, cy, job_manager):
         job_manager.put(job)
     job_manager.wait()
 
-    print(f'\nAdding downloaded data to CURRENT STATION and SURROGATE WAYPOINTS', flush=True)
-    for wp in filter(lambda w: isinstance(w, CurrentStationWP) or isinstance(w, SurrogateWP), route.waypoints):  # clear the result queue
-        result = job_manager.get(id(wp))
-        wp.downloaded_data = result.frame
-        print(f'{CHECKMARK}     {wp.unique_name}', flush=True)
-
     print(f'\nSpline fit data from CURRENT STATION and SURROGATE WAYPOINTS', flush=True)
     for wp in filter(lambda w: isinstance(w, CurrentStationWP) or isinstance(w, SurrogateWP), route.waypoints):
         job = SplineFitVelocityJob(wp)
         job_manager.put(job)
     job_manager.wait()
-
-    print(f'\nAdding spline data to CURRENT STATION and SURROGATE WAYPOINTS', flush=True)
-    for wp in filter(lambda w: isinstance(w, CurrentStationWP) or isinstance(w, SurrogateWP), route.waypoints):  # clear the result queue
-        result = job_manager.get(id(wp))
-        wp.spline_fit_data = result.frame
-        print(f'{CHECKMARK}     {wp.unique_name}', flush=True)
