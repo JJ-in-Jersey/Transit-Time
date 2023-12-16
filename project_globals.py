@@ -56,8 +56,6 @@ class Environment:
 
 class ChartYear:
 
-    def year(self): return self._year  # underscore _year to differentiate it from the method year()
-
     def waypoint_start_index(self): return dtt.int_timestamp(self.first_day_minus)
     def waypoint_end_index(self): return dtt.int_timestamp(self.last_day_plus_four)
 
@@ -71,10 +69,10 @@ class ChartYear:
     def last_day_index(self): return dtt.int_timestamp(self.last_day + td(days=1))  # need last full day - date + 24 hours
 
     def __init__(self, args):
-        self._year = args['year']  # underscore _year to differentiate it from the method year()
-        self.first_day = dp.parse('1/1/'+str(self._year))
+        self.year = args['year']
+        self.first_day = dp.parse('1/1/'+str(self.year))
         self.first_day_minus = self.first_day - td(days=5)
-        self.last_day = dp.parse('12/31/' + str(self._year))
+        self.last_day = dp.parse('12/31/' + str(self.year))
         self.last_day_plus_one = self.last_day + td(days=1)
         self.last_day_plus_two = self.last_day + td(days=2)
         self.last_day_plus_three = self.last_day + td(days=3)

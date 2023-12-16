@@ -71,7 +71,7 @@ if __name__ == '__main__':
 
     # ---------- EDGE PROCESSING ----------
 
-    # if check_arcs(env, cy.year()):
+    # if check_arcs(env, cy.year):
     edge_processing(route, env, cy, job_manager)
 
     # ---------- TRANSIT TIMES ----------
@@ -83,7 +83,7 @@ if __name__ == '__main__':
         l_date = cy.last_day.date()
         tt_range = cy.transit_range()
         tt_folder = env.transit_time_folder
-        job = TransitTimeJob(speed, cy.year(), f_date, l_date, tt_range, route.elapsed_time_lookup[speed], tt_folder)
+        job = TransitTimeJob(speed, cy.year, f_date, l_date, tt_range, route.elapsed_time_lookup[speed], tt_folder)
         job_manager.put(job)
     job_manager.wait()
 
