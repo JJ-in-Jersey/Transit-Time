@@ -29,9 +29,9 @@ class DownloadedTideCSV:
 
     def __init__(self, year: int, folder: Path, code: str):
 
-        output_filepath = folder.joinpath('tide.csv')
+        self.filepath = folder.joinpath('tide.csv')
 
-        if not output_filepath.exists():
+        if not self.filepath.exists():
             frame = pd.DataFrame()
 
             file = noaa_tide_datafile(folder, year - 1, 12, code)
@@ -44,7 +44,7 @@ class DownloadedTideCSV:
             file = noaa_tide_datafile(folder, year + 1, 1, code)
             frame = pd.concat([frame, TideXMLDataframe(file).frame])
 
-            ft.write_df(frame, output_filepath)
+            ft.write_df(frame, self.filepath)
 
 
 class DownloadTideJob(Job):

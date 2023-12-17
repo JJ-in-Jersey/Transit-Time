@@ -29,9 +29,9 @@ class DownloadedVelocityCSV:
     def __init__(self, year: int, folder: Path, code: str, wp_type: str):
         # noaa columns:   'Time', ' Depth', ' Velocity_Major', ' meanFloodDir', ' meanEbbDir', ' Bin'
 
-        output_filepath = folder.joinpath(wp_type.lower() + '_velocity.csv')
+        self.filepath = folder.joinpath(wp_type.lower() + '_velocity.csv')
 
-        if not output_filepath.exists():
+        if not self.filepath.exists():
             frame = pd.DataFrame()
             station_bin = code.split('_')
 
@@ -47,7 +47,7 @@ class DownloadedVelocityCSV:
             frame.rename(columns={'Time': 'date_time', ' Velocity_Major': 'velocity'}, inplace=True)
             frame['date_index'] = frame['date_time'].apply(dtt.int_timestamp)
 
-            ft.write_df(frame, output_filepath)
+            ft.write_df(frame, self.filepath)
 
 
 class DownloadVelocityJob(Job):  # super -> job name, result key, function/object, arguments
@@ -66,16 +66,16 @@ class SplineFitHarmonicVelocityCSV:
 
     def __init__(self, velocity_file: Path, year: int):
 
-        output_filepath = velocity_file.parent.joinpath(velocity_file.stem + '_spline_fit.csv')
+        self.filepath = velocity_file.parent.joinpath(velocity_file.stem + '_spline_fit.csv')
         velocity_frame = ft.read_df(velocity_file)
 
-        if not output_filepath.exists():
+        if not self.filepath.exists():
             cs = CubicSpline(velocity_frame['date_index'], velocity_frame['velocity'])
             frame = pd.DataFrame()
             frame['date_index'] = velocity_range(year, TIMESTEP)
             frame['date_time'] = pd.to_datetime(frame['date_index'], unit='s').round('min')
             frame['velocity'] = frame['date_index'].apply(cs)
-            ft.write_df(frame, output_filepath)
+            ft.write_df(frame, self.filepath)
 
 
 class SplineFitHarmonicVelocityJob(Job):  # super -> job name, result key, function/object, arguments
@@ -148,16 +148,16 @@ class SubordinateVelocityAdjustment:
 
     def __init__(self, velocity_file: Path, year: int):
 
-        output_filepath = velocity_file.parent.joinpath('harmonic_velocity.csv')
+        self.filepath = velocity_file.parent.joinpath('harmonic_velocity.csv')
         velocity_frame = ft.read_df(velocity_file)
 
-        if not output_filepath.exists():
+        if not self.filepath.exists():
             cs = CubicSpline(velocity_frame['date_index'], velocity_frame['velocity'])
             frame = pd.DataFrame()
             frame['date_index'] = velocity_range(year, 3600)
             frame['date_time'] = pd.to_datetime(frame['date_index'], unit='s').round('min')
             frame['velocity'] = frame['date_index'].apply(cs)
-            ft.write_df(frame, output_filepath)
+            ft.write_df(frame, self.filepath)
 
 
 class SubordinateVelocityAdjustmentJob(Job):  # super -> job name, result key, function/object, arguments
