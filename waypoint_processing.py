@@ -17,7 +17,7 @@ def waypoint_processing(route, cy, job_manager):
 
     # ---------- INTERPOLATION WAYPOINTS ----------Ï
 
-    print(f'\nDownloading current data for INTERPOLATED DATA WAYPOINTS (1st day-1 to last day+4)', flush=True)
+    print(f'\nDownloading current data for INTERPOLATED DATA WAYPOINTS', flush=True)
     for wp in filter(lambda w: isinstance(w, InterpolatedDataWP), route.waypoints):
         job = DownloadVelocityJob(wp, cy.year)
         job_manager.put(job)
@@ -30,7 +30,7 @@ def waypoint_processing(route, cy, job_manager):
         job_manager.put(job)
     job_manager.wait()
 
-    print(f'\nInterpolating the data to approximate velocity for INTERPOLATED WAYPOINTS (1st day-1 to last day+4)', flush=True)
+    print(f'\nInterpolating the data to approximate velocity for INTERPOLATED WAYPOINTS', flush=True)
     for group in route.interpolation_groups:
         interpolate_group(group, job_manager)
 
@@ -42,13 +42,13 @@ def waypoint_processing(route, cy, job_manager):
 
     # ---------- CURRENT STATION and SURROGATE WAYPOINTS ----------
 
-    print(f'\nDownloading current data for CURRENT STATION and SURROGATE WAYPOINTS (1st day-1 to last day+4)', flush=True)
+    print(f'\nDownloading current data for CURRENT STATION and SURROGATE WAYPOINTS', flush=True)
     for wp in filter(lambda w: (isinstance(w, CurrentStationWP) or isinstance(w, SurrogateWP)), route.waypoints):
         job = DownloadVelocityJob(wp, cy.year)
         job_manager.put(job)
     job_manager.wait()
 
-    print(f'\nAdjust SUBORDINATE INTERPOLATED DATA WAYPOINTS', flush=True)
+    print(f'\nAdjust SUBORDINATE CURRENT STATION and SURROGATE WAYPOINTS', flush=True)
     for wp in filter(lambda w: (isinstance(w, CurrentStationWP) or isinstance(w, SurrogateWP)) and w.type == 'Subordinate', route.waypoints):
         job = SubordinateVelocityAdjustmentJob(wp, cy.year)
         job_manager.put(job)
