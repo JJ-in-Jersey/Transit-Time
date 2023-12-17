@@ -9,18 +9,6 @@ from project_globals import TIMESTEP
 #  Elapsed times are reported in number of timesteps
 
 
-# def elapsed_time(distance_start_index, distances, length):  # returns number of timesteps
-#     distance_index = distance_start_index + 1  # distance at departure time is 0
-#     count = total = 0
-#     not_there_yet = True
-#     while not_there_yet:
-#         total += distances[distance_index]
-#         count += 1
-#         distance_index += 1
-#         not_there_yet = True if length > 0 and total < length or length < 0 and total > length else False
-#     return count  # count = number of time steps
-
-
 def elapsed_time(distance_start_index, distances, length):  # returns number of timesteps
     distance_index = distance_start_index + 1  # distance at departure time is 0
     count = total = 0
@@ -64,10 +52,8 @@ class ElapsedTimeJob(Job):  # super -> job name, result key, function/object, ar
     def __init__(self, edge: Edge, speed):
         job_name = edge.unique_name + ' ' + str(round(edge.length, 3)) + ' ' + str(speed)
         result_key = edge.unique_name + '_' + str(speed)
-        print(f'start: {edge.start.unique_name}')
         start_velocity = ft.read_df(edge.start.folder.joinpath('harmonic_velocity_spline_fit.csv'))
         init_velo = start_velocity['velocity'].to_numpy()
-        print(f'end: {edge.end.unique_name}')
         end_velocity = ft.read_df(edge.end.folder.joinpath('harmonic_velocity_spline_fit.csv'))
         final_velo = end_velocity['velocity'].to_numpy()
         arguments = tuple([edge.unique_name, edge.folder, init_velo, final_velo, edge.edge_range, edge.length, speed])
