@@ -1,6 +1,8 @@
 import pandas as pd
 from scipy.signal import savgol_filter
 from num2words import num2words
+from pathlib import Path
+import numpy as np
 
 from tt_file_tools import file_tools as ft
 from tt_geometry.geometry import Arc
@@ -35,7 +37,8 @@ def minima_table(transit_array, tt_range, savgol_path):
         tt_df['midline'] = ft.read_arr(savgol_path)
     else:
         tt_df['midline'] = savgol_filter(transit_array, 50000, 1)
-        ft.write_arr(tt_df['midline'], savgol_path)
+        np.save(savgol_path.with_suffix('.npy'), tt_df['midline'])
+
     min_segs = tt_df['tts'].lt(tt_df['midline']).to_list()  # list of True or False the same length as tt_df
     clump = []
     for row, val in enumerate(min_segs):  # rows in tt_df, not the departure index
@@ -138,7 +141,9 @@ def create_arcs(arc_frame, shape_name, f_date, l_date):
 
 class ArcsDataframe:
 
-    def __init__(self, speed, year, f_date, l_date, tt_range, et_df, tt_folder):
+    def __init__(self, speed, year, f_date, l_date, tt_range, et_file, tt_folder):
+
+        et_df = ft.read_df(et_file)
 
         self.frame = None
         sign = '+' if speed / abs(speed) > 0 else '-'
@@ -160,7 +165,7 @@ class ArcsDataframe:
             else:
                 row_range = range(len(tt_range))
                 transit_timesteps_arr = [total_transit_time(row, et_df, et_df.columns.to_list()) for row in row_range]
-                ft.write_arr(transit_timesteps_arr, transit_timesteps_path)
+                np.save(transit_timesteps_path.with_suffix('.npy'), transit_timesteps_arr)
 
             if minima_path.exists():
                 minima_df = ft.read_df(minima_path)
@@ -178,10 +183,10 @@ class TransitTimeJob(Job):  # super -> job name, result key, function/object, ar
     def execute_callback(self, result): return super().execute_callback(result)
     def error_callback(self, result): return super().error_callback(result)
 
-    def __init__(self, speed, year, f_date, l_date, t_range, et_df, tt_folder):
+    def __init__(self, speed, year, f_date, l_date, t_range, et_file: Path, tt_folder: Path):
         job_name = 'transit_time' + ' ' + str(speed)
         result_key = speed
-        arguments = tuple([speed, year, f_date, l_date, t_range, et_df, tt_folder])
+        arguments = tuple([speed, year, f_date, l_date, t_range, et_file, tt_folder])
         super().__init__(job_name, result_key, ArcsDataframe, arguments)
 
 

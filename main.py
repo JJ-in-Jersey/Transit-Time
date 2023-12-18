@@ -83,8 +83,11 @@ if __name__ == '__main__':
         l_date = cy.last_day.date()
         tt_range = cy.transit_range()
         tt_folder = env.transit_time_folder
-        job = TransitTimeJob(speed, cy.year, f_date, l_date, tt_range, route.elapsed_time_lookup[speed], tt_folder)
+        et_folder = env.elapsed_time_folder
+        et_file = env.elapsed_time_folder.joinpath('elapsed_timesteps_' + str(speed) + '.csv')
+        job = TransitTimeJob(speed, cy.year, f_date, l_date, tt_range, et_file, tt_folder)
         job_manager.put(job)
+        # result = job.execute()
     job_manager.wait()
 
     print(f'\nAdding transit time speed results to route')
