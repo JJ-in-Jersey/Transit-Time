@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from pathlib import Path
 
 from tt_gpx.gpx import Edge
 from tt_file_tools import file_tools as ft
@@ -27,19 +28,26 @@ class ElapsedTimeDataframe:
     def distance(water_vf, water_vi, boat_speed, ts_in_hr):
         return ((water_vf + water_vi) / 2 + boat_speed) * ts_in_hr  # distance is nm
 
-    def __init__(self, folder, init_velos, final_velos, edge_range, length, speed):
+    def __init__(self, folder: Path, init_velos, final_velos, edge_range, length, speed):
 
         filename = folder.name + '_' + str(speed) + '.csv'
         self.filepath = folder.joinpath(filename)
 
+        # if not self.filepath.exists():
+        #     frame = pd.DataFrame(data={'departure_index': edge_range})
+        #     dist = ElapsedTimeDataframe.distance(final_velos[1:], init_velos[:-1], speed, Globals.TIMESTEP/3600)
+        #     dist = np.insert(dist, 0, 0.0)  # distance uses an offset calculation VIx, VFx+1, need a zero at the beginning
+        #     frame[filename] = [elapsed_time(i, dist, length) for i in range(len(edge_range))]
+        #     frame.fillna(0, inplace=True)
+        #     ft.write_df(frame, self.filepath)
+
         if not self.filepath.exists():
             frame = pd.DataFrame(data={'departure_index': edge_range})
-            dist = ElapsedTimeDataframe.distance(final_velos[1:], init_velos[:-1], speed, Globals.TIMESTEP/3600)
+            dist = ElapsedTimeDataframe.distance(final_velos[1:], init_velos[:-1], speed, Globals.TIMESTEP / 3600)
             dist = np.insert(dist, 0, 0.0)  # distance uses an offset calculation VIx, VFx+1, need a zero at the beginning
             frame[filename] = [elapsed_time(i, dist, length) for i in range(len(edge_range))]
             frame.fillna(0, inplace=True)
             ft.write_df(frame, self.filepath)
-
 
 class ElapsedTimeJob(Job):  # super -> job name, result key, function/object, arguments
 
@@ -54,5 +62,5 @@ class ElapsedTimeJob(Job):  # super -> job name, result key, function/object, ar
         init_velo = start_velocity['velocity'].to_numpy()
         end_velocity = ft.read_df(edge.end.folder.joinpath('harmonic_velocity_spline_fit.csv'))
         final_velo = end_velocity['velocity'].to_numpy()
-        arguments = tuple([edge.folder, init_velo, final_velo, edge.edge_range, edge.length, speed])
+        arguments = tuple([edge.folder, init_velo, final_velo, Globals.ELAPSED_TIME_INDEX_RANGE, edge.length, speed])
         super().__init__(job_name, result_key, ElapsedTimeDataframe, arguments)
