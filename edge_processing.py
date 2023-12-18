@@ -15,11 +15,11 @@ def check_edges(env):
     return waypoint_processing_required
 
 
-def edge_processing(route, env, cy, job_manager):
+def edge_processing(route, env, job_manager):
 
     for s in Globals.BOAT_SPEEDS:
         speed_path = env.elapsed_time_folder.joinpath('elapsed_timesteps_'+str(s) + '.csv')
-        elapsed_time_df = pd.DataFrame(data={'departure_index': cy.edge_range()})  # add departure_index as the join column
+        elapsed_time_df = pd.DataFrame(data={'departure_index': Globals.ELAPSED_TIME_INDEX_RANGE})  # add departure_index as the join column
 
         print(f'\nCalculating elapsed timesteps for edges at {s} kts (1st day-1 to last day+3)')
         if not speed_path.exists():

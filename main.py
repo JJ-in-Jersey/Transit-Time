@@ -13,7 +13,7 @@ from edge_processing import edge_processing
 from east_river_validations import BatteryValidationDataframe, HellGateValidationDataframe, HornsHookValidationDataframe
 from cape_cod_canal_validations import CapeCodCanalRailBridgeDataframe
 from transit_time import TransitTimeJob
-from project_globals import Environment, ChartYear
+from project_globals import Environment
 
 
 if __name__ == '__main__':
@@ -35,7 +35,6 @@ if __name__ == '__main__':
 
     Globals.initialize_dates(args['year'])
     env = Environment(args)
-    cy = ChartYear()
 
     Waypoint.waypoints_folder = env.waypoint_folder
     Edge.elapsed_time_folder = env.elapsed_time_folder
@@ -62,9 +61,9 @@ if __name__ == '__main__':
 
     # ---------- CHECK CHROME ----------
 
-    chrome_driver.check_driver()
-    if chrome_driver.latest_stable_version > chrome_driver.installed_driver_version:
-        chrome_driver.install_stable_driver()
+    # chrome_driver.check_driver()
+    # if chrome_driver.latest_stable_version > chrome_driver.installed_driver_version:
+    #     chrome_driver.install_stable_driver()
 
     # ---------- WAYPOINT PROCESSING ----------
 
@@ -75,7 +74,7 @@ if __name__ == '__main__':
     # ---------- EDGE PROCESSING ----------
 
     # if check_arcs(env, cy.year):
-    edge_processing(route, env, cy, job_manager)
+    edge_processing(route, env, job_manager)
 
     # ---------- TRANSIT TIMES ----------
 
@@ -84,11 +83,10 @@ if __name__ == '__main__':
     for speed in Globals.BOAT_SPEEDS:
         f_date = Globals.FIRST_DAY_DATE
         l_date = Globals.LAST_DAY_DATE
-        tt_range = cy.transit_range()
         tt_folder = env.transit_time_folder
         et_folder = env.elapsed_time_folder
         et_file = env.elapsed_time_folder.joinpath('elapsed_timesteps_' + str(speed) + '.csv')
-        job = TransitTimeJob(speed, Globals.YEAR, f_date, l_date, tt_range, et_file, tt_folder)
+        job = TransitTimeJob(speed, Globals.YEAR, f_date, l_date, Globals.TRANSIT_TIME_INDEX_RANGE, et_file, tt_folder)
         job_manager.put(job)
         # result = job.execute()
     job_manager.wait()
