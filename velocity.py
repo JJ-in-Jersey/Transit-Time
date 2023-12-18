@@ -128,14 +128,11 @@ def interpolate_group(waypoints, job_manager):
         for i, wp in enumerate(data_waypoints):
             velocity_data[i]['lat'] = wp.lat
             velocity_data[i]['lon'] = wp.lon
-
-        for i in range(len(velocity_data[0])):
-            job = InterpolatePointJob(interpolation_pt, velocity_data, i)
-            job_manager.put(job)
-            # result = job.execute()
+            
+        keys = [job_manager.put(InterpolatePointJob(interpolation_pt, velocity_data, i)) for i in range(len(velocity_data[0]))]
         job_manager.wait()
 
-        result_array = tuple([job_manager.get(str(id(interpolation_pt)) + '_' + str(i)).date_velocity for i in range(len(velocity_data[0]))])
+        result_array = tuple([job_manager.get(key).date_velocity for key in keys])
         frame = pd.DataFrame(result_array, columns=['date_index', 'velocity'])
         frame.sort_values('date_index', inplace=True)
         frame['date_time'] = frame['date_index'].apply(dtt.datetime)
