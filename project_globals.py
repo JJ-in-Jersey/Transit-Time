@@ -2,21 +2,20 @@ from os import makedirs
 from num2words import num2words
 import shutil
 import pandas as pd
-import dateparser as dp
 import warnings
 from datetime import timedelta as td
 
+from tt_globals.globals import Globals
 from tt_date_time_tools import date_time_tools as dtt
 from tt_os_abstraction.os_abstraction import env
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 CHECKMARK = u'\N{check mark}'
-TIMESTEP = 15  # time steps used to calculate, seconds
 TIME_RESOLUTION = 5  # time shown on chart, rounded to minutes
 WINDOW_MARGIN = 20  # time on either side of best, minutes
-TIMESTEP_MARGIN = int(WINDOW_MARGIN * 60 / TIMESTEP)  # number of timesteps to add to minimum to find edges of time windows
-FIVE_HOURS_OF_TIMESTEPS = int(5*3600 / TIMESTEP)  # only consider windows of transit times less than the midline that are at least 5 ours long (6 hour tide change)
+TIMESTEP_MARGIN = int(WINDOW_MARGIN * 60 / Globals.TIMESTEP)  # number of timesteps to add to minimum to find edges of time windows
+FIVE_HOURS_OF_TIMESTEPS = int(5*3600 / Globals.TIMESTEP)  # only consider windows of transit times less than the midline that are at least 5 ours long (6 hour tide change)
 BOAT_SPEEDS = [v for v in range(-7, -2, 2)]+[v for v in range(3, 8, 2)]  # knots
 
 
@@ -56,26 +55,13 @@ class Environment:
 
 class ChartYear:
 
-    def waypoint_start_index(self): return dtt.int_timestamp(self.first_day_minus)
-    def waypoint_end_index(self): return dtt.int_timestamp(self.last_day_plus_four)
+    def edge_range(self): return range(dtt.int_timestamp(self.first_day_minus), dtt.int_timestamp(self.last_day_plus_three), Globals.TIMESTEP)
 
-    def edge_range(self): return range(dtt.int_timestamp(self.first_day_minus), dtt.int_timestamp(self.last_day_plus_three), TIMESTEP)
+    def transit_range(self): return range(dtt.int_timestamp(self.first_day_minus), dtt.int_timestamp(self.last_day_plus_two), Globals.TIMESTEP)
 
-    def transit_start_index(self): return dtt.int_timestamp(self.first_day_minus)
-    def transit_end_index(self): return dtt.int_timestamp(self.last_day_plus_two)
-    def transit_range(self): return range(self.transit_start_index(), self.transit_end_index(), TIMESTEP)
-
-    def first_day_index(self): return dtt.int_timestamp(self.first_day)
-    def last_day_index(self): return dtt.int_timestamp(self.last_day + td(days=1))  # need last full day - date + 24 hours
-
-    def __init__(self, args):
-        self.year = args['year']
-        self.first_day = dp.parse('1/1/'+str(self.year))
-        self.first_day_minus = self.first_day - td(days=5)
-        self.last_day = dp.parse('12/31/' + str(self.year))
-        self.last_day_plus_one = self.last_day + td(days=1)
-        self.last_day_plus_two = self.last_day + td(days=2)
-        self.last_day_plus_three = self.last_day + td(days=3)
-        self.last_day_plus_four = self.last_day + td(days=4)
-        self.first_date = None
-        self.last_date = None
+    def __init__(self):
+        self.first_day_minus = Globals.FIRST_DAY - td(days=5)
+        self.last_day_plus_one = Globals.LAST_DAY + td(days=1)
+        self.last_day_plus_two = Globals.LAST_DAY + td(days=2)
+        self.last_day_plus_three = Globals.LAST_DAY + td(days=3)
+        self.last_day_plus_four = Globals.LAST_DAY + td(days=4)

@@ -5,6 +5,7 @@ from tt_gpx.gpx import Route, Waypoint, Edge
 from tt_file_tools import file_tools as ft
 from tt_chrome_driver import chrome_driver
 from tt_job_manager.job_manager import JobManager
+from tt_globals.globals import Globals
 
 from waypoint_processing import waypoint_processing
 from edge_processing import edge_processing
@@ -32,8 +33,9 @@ if __name__ == '__main__':
 
     # ---------- SET UP GLOBALS ----------
 
+    Globals.initialize_dates(args['year'])
     env = Environment(args)
-    cy = ChartYear(args)
+    cy = ChartYear()
 
     Waypoint.waypoints_folder = env.waypoint_folder
     Edge.elapsed_time_folder = env.elapsed_time_folder
@@ -67,7 +69,7 @@ if __name__ == '__main__':
 
     # if check_edges(env):
     #     waypoint_processing(route, cy, job_manager)
-    waypoint_processing(route, cy, job_manager)
+    waypoint_processing(route, job_manager)
 
     # ---------- EDGE PROCESSING ----------
 
@@ -79,13 +81,13 @@ if __name__ == '__main__':
     # calculate the number of timesteps from first node to last node
     print(f'\nCalculating transit timesteps (1st day-1 to last day+2)')
     for speed in BOAT_SPEEDS:
-        f_date = cy.first_day.date()
-        l_date = cy.last_day.date()
+        f_date = Globals.FIRST_DAY_DATE
+        l_date = Globals.LAST_DAY_DATE
         tt_range = cy.transit_range()
         tt_folder = env.transit_time_folder
         et_folder = env.elapsed_time_folder
         et_file = env.elapsed_time_folder.joinpath('elapsed_timesteps_' + str(speed) + '.csv')
-        job = TransitTimeJob(speed, cy.year, f_date, l_date, tt_range, et_file, tt_folder)
+        job = TransitTimeJob(speed, Globals.YEAR, f_date, l_date, tt_range, et_file, tt_folder)
         job_manager.put(job)
         # result = job.execute()
     job_manager.wait()
@@ -107,25 +109,25 @@ if __name__ == '__main__':
     if args['hell_gate']:
         print(f'\nHell Gate validation')
         path = list(filter(lambda wpt: not bool(wpt.unique_name.find('Hell_Gate')), route.waypoints))[0].downloaded_path
-        frame = HellGateValidationDataframe(path, cy.first_day.date(), cy.last_day.date()).frame
+        frame = HellGateValidationDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
         ft.write_df(frame, env.transit_time_folder.joinpath('hell_gate_validation'))
 
     if args['battery']:
         print(f'\nEast River Battery validation')
         path = list(filter(lambda wpt: not bool(wpt.unique_name.find('NEW_YORK')), route.waypoints))[0].downloaded_path
-        frame = BatteryValidationDataframe(path, cy.first_day.date(), cy.last_day.date()).frame
+        frame = BatteryValidationDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
         ft.write_df(frame, env.transit_time_folder.joinpath('battery_validation'))
 
     if args['horns_hook']:
         print(f'\nEast River Horns Hook validation')
         path = list(filter(lambda wpt: not bool(wpt.unique_name.find('Horns_Hook')), route.waypoints))[0].downloaded_path
-        frame = HornsHookValidationDataframe(path, cy.first_day.date(), cy.last_day.date()).frame
+        frame = HornsHookValidationDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
         ft.write_df(frame, env.transit_time_folder.joinpath('horns_hook_validation'))
 
     if args['cape_cod_canal']:
         print(f'\nCape Cod Canal Battery validation')
         path = list(filter(lambda wpt: not bool(wpt.unique_name.find('Cape_Cod_Canal_RR')), route.waypoints))[0].downloaded_path
-        frame = CapeCodCanalRailBridgeDataframe(path, cy.first_day.date(), cy.last_day.date()).frame
+        frame = CapeCodCanalRailBridgeDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
         ft.write_df(frame, env.transit_time_folder.joinpath('cape_cod_canal_validation'))
 
     print(f'\nProcess Complete')

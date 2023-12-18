@@ -8,8 +8,9 @@ from tt_file_tools import file_tools as ft
 from tt_geometry.geometry import Arc
 from tt_job_manager.job_manager import Job
 from tt_date_time_tools import date_time_tools as dtt
+from tt_globals.globals import Globals
 
-from project_globals import TIMESTEP, TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS, BOAT_SPEEDS
+from project_globals import TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS, BOAT_SPEEDS
 
 
 def none_row(row, df):
@@ -71,7 +72,7 @@ def minima_table(transit_array, tt_range, savgol_path):
                 tt_df.at[tt_df_min_row, 'plot'] = min(transit_array)
                 tt_df.at[tt_df_end_row, 'plot'] = max(transit_array)
             clump = []
-    tt_df['transit_time'] = pd.to_timedelta(tt_df['tts']*TIMESTEP, unit='s').round('min')
+    tt_df['transit_time'] = pd.to_timedelta(tt_df['tts']*Globals.TIMESTEP, unit='s').round('min')
     tt_df = tt_df.dropna(axis=0).sort_index().reset_index(drop=True)  # make minima_df easier to write
     tt_df.drop(['tts', 'departure_index', 'plot', 'midline'], axis=1, inplace=True)  # make minima_df easier to write
     return tt_df

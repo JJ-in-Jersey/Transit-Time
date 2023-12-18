@@ -4,7 +4,7 @@ import pandas as pd
 from tt_gpx.gpx import Edge
 from tt_file_tools import file_tools as ft
 from tt_job_manager.job_manager import Job
-from project_globals import TIMESTEP
+from tt_globals.globals import Globals
 
 #  Elapsed times are reported in number of timesteps
 
@@ -34,7 +34,7 @@ class ElapsedTimeDataframe:
 
         if not self.filepath.exists():
             frame = pd.DataFrame(data={'departure_index': edge_range})
-            dist = ElapsedTimeDataframe.distance(final_velos[1:], init_velos[:-1], speed, TIMESTEP/3600)
+            dist = ElapsedTimeDataframe.distance(final_velos[1:], init_velos[:-1], speed, Globals.TIMESTEP/3600)
             dist = np.insert(dist, 0, 0.0)  # distance uses an offset calculation VIx, VFx+1, need a zero at the beginning
             frame[filename] = [elapsed_time(i, dist, length) for i in range(len(edge_range))]
             frame.fillna(0, inplace=True)

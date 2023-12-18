@@ -10,9 +10,7 @@ from tt_file_tools import file_tools as ft
 from tt_date_time_tools import date_time_tools as dtt
 from tt_job_manager.job_manager import Job
 from tt_gpx.gpx import DownloadedDataWP, Waypoint
-
-
-from project_globals import TIMESTEP
+from tt_globals.globals import Globals
 
 
 def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
@@ -72,7 +70,7 @@ class SplineFitHarmonicVelocityCSV:
         if not self.filepath.exists():
             cs = CubicSpline(velocity_frame['date_index'], velocity_frame['velocity'])
             frame = pd.DataFrame()
-            frame['date_index'] = velocity_range(year, TIMESTEP)
+            frame['date_index'] = velocity_range(year, Globals.TIMESTEP)
             frame['date_time'] = pd.to_datetime(frame['date_index'], unit='s').round('min')
             frame['velocity'] = frame['date_index'].apply(cs)
             ft.write_df(frame, self.filepath)
