@@ -2,12 +2,12 @@ import pandas as pd
 from scipy.interpolate import CubicSpline
 from sympy import Point
 from pathlib import Path
-import dateparser as dp
+from dateparser import parse
 
 from tt_noaa_data.noaa_data import noaa_current_datafile
 from tt_interpolation.velocity_interpolation import Interpolator as VInt
 from tt_file_tools import file_tools as ft
-from tt_date_time_tools import date_time_tools as dtt
+from tt_date_time_tools.date_time_tools import int_timestamp as date_time_index
 from tt_job_manager.job_manager import Job
 from tt_gpx.gpx import DownloadedDataWP, Waypoint
 from tt_globals.globals import Globals
@@ -37,7 +37,7 @@ class DownloadedVelocityCSV:
             file = noaa_current_datafile(folder, year + 1, 1, station_bin[0], station_bin[1])
             frame = pd.concat([frame, pd.read_csv(file, header='infer')])
             frame.rename(columns={'Time': 'date_time', ' Velocity_Major': 'velocity'}, inplace=True)
-            frame['date_index'] = frame['date_time'].apply(dtt.int_timestamp)
+            frame['date_index'] = frame['date_time'].apply(date_time_index)
 
             ft.write_df(frame, self.filepath)
 
@@ -127,7 +127,7 @@ def interpolate_group(waypoints, job_manager):
         result_array = tuple([job_manager.get(key).date_velocity for key in keys])
         frame = pd.DataFrame(result_array, columns=['date_index', 'velocity'])
         frame.sort_values('date_index', inplace=True)
-        frame['date_time'] = frame['date_index'].apply(dtt.datetime)
+        frame['date_time'] = frame['date_index'].apply(date_time_index)
         frame.reset_index(drop=True, inplace=True)
         interpolation_pt.downloaded_data = frame
         ft.write_df(frame, output_filepath)
@@ -143,7 +143,7 @@ class SubordinateVelocityAdjustment:
         if not self.filepath.exists():
             cs = CubicSpline(velocity_frame['date_index'], velocity_frame['velocity'])
             frame = pd.DataFrame()
-            frame['date_index'] = range(dtt.int_timestamp(dp.parse('12/1/' + str(year - 1))), dtt.int_timestamp(dp.parse('2/1/' + str(year + 1))), 3600)
+            frame['date_index'] = range(date_time_index(parse('12/1/' + str(year - 1))), date_time_index(parse('2/1/' + str(year + 1))), 3600)
             frame['date_time'] = pd.to_datetime(frame['date_index'], unit='s').round('min')
             frame['velocity'] = frame['date_index'].apply(cs)
             ft.write_df(frame, self.filepath)
