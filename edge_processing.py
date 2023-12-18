@@ -2,13 +2,13 @@ import pandas as pd
 from tt_file_tools import file_tools as ft
 from tt_file_tools.file_tools import print_file_exists
 from elapsed_time import ElapsedTimeJob
-from project_globals import BOAT_SPEEDS
+from tt_globals.globals import Globals
 
 
 def check_edges(env):
 
     waypoint_processing_required = False
-    for s in BOAT_SPEEDS:
+    for s in Globals.BOAT_SPEEDS:
         speed_path = env.elapsed_time_folder.joinpath('elapsed_timesteps_'+str(s) + '.csv')
         if not speed_path.exists():
             waypoint_processing_required = True
@@ -17,7 +17,7 @@ def check_edges(env):
 
 def edge_processing(route, env, cy, job_manager):
 
-    for s in BOAT_SPEEDS:
+    for s in Globals.BOAT_SPEEDS:
         speed_path = env.elapsed_time_folder.joinpath('elapsed_timesteps_'+str(s) + '.csv')
         elapsed_time_df = pd.DataFrame(data={'departure_index': cy.edge_range()})  # add departure_index as the join column
 
