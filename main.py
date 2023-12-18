@@ -7,11 +7,11 @@ from tt_chrome_driver import chrome_driver
 from tt_job_manager.job_manager import JobManager
 
 from waypoint_processing import waypoint_processing
-from edge_processing import edge_processing, check_edges
+from edge_processing import edge_processing
 
 from east_river_validations import BatteryValidationDataframe, HellGateValidationDataframe, HornsHookValidationDataframe
 from cape_cod_canal_validations import CapeCodCanalRailBridgeDataframe
-from transit_time import TransitTimeJob, check_arcs
+from transit_time import TransitTimeJob
 from project_globals import WINDOW_MARGIN, BOAT_SPEEDS, CHECKMARK, Environment, ChartYear
 
 

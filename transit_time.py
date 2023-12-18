@@ -34,7 +34,7 @@ def minima_table(transit_array, tt_range, savgol_path):
     tt_df['plot'] = 0
     tt_df = tt_df.assign(tts=transit_array)
     if savgol_path.exists():
-        tt_df['midline'] = ft.read_arr(savgol_path)
+        tt_df['midline'] = np.load(savgol_path.with_suffix('.npy'))
     else:
         tt_df['midline'] = savgol_filter(transit_array, 50000, 1)
         np.save(savgol_path.with_suffix('.npy'), tt_df['midline'])
@@ -161,7 +161,7 @@ class ArcsDataframe:
             self.frame = ft.read_df(arcs_path)
         else:
             if transit_timesteps_path.exists():
-                transit_timesteps_arr = ft.read_arr(transit_timesteps_path)
+                transit_timesteps_arr = np.load(transit_timesteps_path.with_suffix('.npy'))
             else:
                 row_range = range(len(tt_range))
                 transit_timesteps_arr = [total_transit_time(row, et_df, et_df.columns.to_list()) for row in row_range]
