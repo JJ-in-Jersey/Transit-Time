@@ -11,16 +11,6 @@ from tt_os_abstraction.os_abstraction import env
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
-CHECKMARK = u'\N{check mark}'
-TIME_RESOLUTION = 5  # time shown on chart, rounded to minutes
-WINDOW_MARGIN = 20  # time on either side of best, minutes
-TIMESTEP_MARGIN = int(WINDOW_MARGIN * 60 / Globals.TIMESTEP)  # number of timesteps to add to minimum to find edges of time windows
-FIVE_HOURS_OF_TIMESTEPS = int(5*3600 / Globals.TIMESTEP)  # only consider windows of transit times less than the midline that are at least 5 ours long (6 hour tide change)
-BOAT_SPEEDS = [v for v in range(-7, -2, 2)]+[v for v in range(3, 8, 2)]  # knots
-
-
-def sign(value): return value/abs(value)
-
 
 class Environment:
 
@@ -39,7 +29,7 @@ class Environment:
         makedirs(self.elapsed_time_folder, exist_ok=True)
         makedirs(self.transit_time_folder, exist_ok=True)
 
-        for s in BOAT_SPEEDS:
+        for s in Globals.BOAT_SPEEDS:
             makedirs(self.transit_time_folder.joinpath(num2words(s)), exist_ok=True)
 
     def edge_folder(self, name):

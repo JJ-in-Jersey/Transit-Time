@@ -1,7 +1,7 @@
 from argparse import ArgumentParser as argParser
 from pathlib import Path
 from pandas import concat as concat
-from tt_gpx.gpx import Route, Waypoint, Edge
+from tt_gpx.gpx import Route, Waypoint, Edge, EdgeNode
 from tt_file_tools import file_tools as ft
 from tt_chrome_driver import chrome_driver
 from tt_job_manager.job_manager import JobManager
@@ -13,7 +13,7 @@ from edge_processing import edge_processing
 from east_river_validations import BatteryValidationDataframe, HellGateValidationDataframe, HornsHookValidationDataframe
 from cape_cod_canal_validations import CapeCodCanalRailBridgeDataframe
 from transit_time import TransitTimeJob
-from project_globals import WINDOW_MARGIN, BOAT_SPEEDS, CHECKMARK, Environment, ChartYear
+from project_globals import Environment, ChartYear
 
 
 if __name__ == '__main__':
@@ -42,13 +42,14 @@ if __name__ == '__main__':
 
     # ---------- ROUTE OBJECT ----------
 
-    route = Route(args['filepath'], cy.edge_range())
+    route = Route(args['filepath'])
 
     print(f'\nCalculating route "{route.filepath.stem}"')
     print(f'total waypoints: {len(route.waypoints)}')
+    print(f'total edge nodes: {len(list(filter(lambda w: isinstance(w, EdgeNode), route.waypoints)))}')
     print(f'total edges: {len(route.elapsed_time_edges)}')
-    print(f'transit time window: {WINDOW_MARGIN}')
-    print(f'boat speeds: {BOAT_SPEEDS}')
+    print(f'transit time window: {Globals.WINDOW_MARGIN}')
+    print(f'boat speeds: {Globals.BOAT_SPEEDS}')
     print(f'length {round(route.elapsed_time_path.length, 1)} nm')
     print(f'direction {route.elapsed_time_path.direction}')
     print(f'heading {route.elapsed_time_path.heading}\n')
@@ -80,7 +81,7 @@ if __name__ == '__main__':
 
     # calculate the number of timesteps from first node to last node
     print(f'\nCalculating transit timesteps (1st day-1 to last day+2)')
-    for speed in BOAT_SPEEDS:
+    for speed in Globals.BOAT_SPEEDS:
         f_date = Globals.FIRST_DAY_DATE
         l_date = Globals.LAST_DAY_DATE
         tt_range = cy.transit_range()
@@ -93,10 +94,10 @@ if __name__ == '__main__':
     job_manager.wait()
 
     print(f'\nAdding transit time speed results to route')
-    for speed in BOAT_SPEEDS:
+    for speed in Globals.BOAT_SPEEDS:
         result = job_manager.get(speed)
         route.transit_time_lookup[speed] = result.frame
-        print(f'{CHECKMARK}     tt {speed}', flush=True)
+        print(f'{Globals.CHECKMARK}     tt {speed}', flush=True)
 
     arcs_df = concat([route.transit_time_lookup[key] for key in route.transit_time_lookup])
     arcs_df.sort_values(['start_date', 'name'], ignore_index=True, inplace=True)

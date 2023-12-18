@@ -16,12 +16,6 @@ from tt_globals.globals import Globals
 def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 
 
-def velocity_range(year, timestep):
-    start_date = dp.parse('12/1/' + str(year - 1) + ' 00:00:00')
-    end_date = dp.parse('2/1/' + str(year + 1) + ' 00:00:00')
-    return range(dtt.int_timestamp(start_date), dtt.int_timestamp(end_date), timestep)
-
-
 class DownloadedVelocityCSV:
 
     def __init__(self, year: int, folder: Path, code: str, wp_type: str):
@@ -62,7 +56,7 @@ class DownloadVelocityJob(Job):  # super -> job name, result key, function/objec
 
 class SplineFitHarmonicVelocityCSV:
 
-    def __init__(self, velocity_file: Path, year: int):
+    def __init__(self, velocity_file: Path, download_range: range):
 
         self.filepath = velocity_file.parent.joinpath(velocity_file.stem + '_spline_fit.csv')
         velocity_frame = ft.read_df(velocity_file)
@@ -70,7 +64,7 @@ class SplineFitHarmonicVelocityCSV:
         if not self.filepath.exists():
             cs = CubicSpline(velocity_frame['date_index'], velocity_frame['velocity'])
             frame = pd.DataFrame()
-            frame['date_index'] = velocity_range(year, Globals.TIMESTEP)
+            frame['date_index'] = download_range
             frame['date_time'] = pd.to_datetime(frame['date_index'], unit='s').round('min')
             frame['velocity'] = frame['date_index'].apply(cs)
             ft.write_df(frame, self.filepath)
@@ -82,10 +76,10 @@ class SplineFitHarmonicVelocityJob(Job):  # super -> job name, result key, funct
     def execute_callback(self, result): return super().execute_callback(result)
     def error_callback(self, result): return super().error_callback(result)
 
-    def __init__(self, waypoint: Waypoint, year: int):
+    def __init__(self, waypoint: Waypoint):
         result_key = id(waypoint)
         filepath = waypoint.folder.joinpath('harmonic_velocity.csv')
-        arguments = tuple([filepath, year])
+        arguments = tuple([filepath, Globals.DOWNLOAD_INDEX_RANGE])
         super().__init__(waypoint.unique_name, result_key, SplineFitHarmonicVelocityCSV, arguments)
 
 
@@ -149,7 +143,7 @@ class SubordinateVelocityAdjustment:
         if not self.filepath.exists():
             cs = CubicSpline(velocity_frame['date_index'], velocity_frame['velocity'])
             frame = pd.DataFrame()
-            frame['date_index'] = velocity_range(year, 3600)
+            frame['date_index'] = range(dtt.int_timestamp(dp.parse('12/1/' + str(year - 1))), dtt.int_timestamp(dp.parse('2/1/' + str(year + 1))), 3600)
             frame['date_time'] = pd.to_datetime(frame['date_index'], unit='s').round('min')
             frame['velocity'] = frame['date_index'].apply(cs)
             ft.write_df(frame, self.filepath)
@@ -161,10 +155,10 @@ class SubordinateVelocityAdjustmentJob(Job):  # super -> job name, result key, f
     def execute_callback(self, result): return super().execute_callback(result)
     def error_callback(self, result): return super().error_callback(result)
 
-    def __init__(self, waypoint: Waypoint, year: int):
+    def __init__(self, waypoint: Waypoint):
         result_key = id(waypoint)
         filepath = waypoint.folder.joinpath('subordinate_velocity.csv')
-        arguments = tuple([filepath, year])
+        arguments = tuple([filepath, Globals.YEAR])
         super().__init__(waypoint.unique_name + ' ' + waypoint.type, result_key, SubordinateVelocityAdjustment, arguments)
 
 
