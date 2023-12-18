@@ -107,25 +107,25 @@ if __name__ == '__main__':
 
     if args['hell_gate']:
         print(f'\nHell Gate validation')
-        path = list(filter(lambda wpt: not bool(wpt.unique_name.find('Hell_Gate')), route.waypoints))[0].downloaded_path
+        path = list(filter(lambda w: 'Hell_Gate' in w.unique_name, route.waypoints))[0].folder.joinpath('tide.csv')
         frame = HellGateValidationDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
         ft.write_df(frame, env.transit_time_folder.joinpath('hell_gate_validation'))
 
     if args['battery']:
         print(f'\nEast River Battery validation')
-        path = list(filter(lambda wpt: not bool(wpt.unique_name.find('NEW_YORK')), route.waypoints))[0].downloaded_path
+        path = list(filter(lambda w: 'NEW_YORK' in w.unique_name, route.waypoints))[0].folder.joinpath('tide.csv')
         frame = BatteryValidationDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
         ft.write_df(frame, env.transit_time_folder.joinpath('battery_validation'))
 
     if args['horns_hook']:
         print(f'\nEast River Horns Hook validation')
-        path = list(filter(lambda wpt: not bool(wpt.unique_name.find('Horns_Hook')), route.waypoints))[0].downloaded_path
+        path = list(filter(lambda w: 'Horns_Hook' in w.unique_name, route.waypoints))[0].folder.joinpath('tide.csv')
         frame = HornsHookValidationDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
         ft.write_df(frame, env.transit_time_folder.joinpath('horns_hook_validation'))
 
     if args['cape_cod_canal']:
         print(f'\nCape Cod Canal Battery validation')
-        path = list(filter(lambda wpt: not bool(wpt.unique_name.find('Cape_Cod_Canal_RR')), route.waypoints))[0].downloaded_path
+        path = list(filter(lambda w: 'Cape_Cod_Canal_RR' in w.unique_name, route.waypoints))[0].folder.joinpath('tide.csv')
         frame = CapeCodCanalRailBridgeDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
         ft.write_df(frame, env.transit_time_folder.joinpath('cape_cod_canal_validation'))
 
