@@ -10,8 +10,6 @@ from tt_job_manager.job_manager import Job
 from tt_date_time_tools import date_time_tools as dtt
 from tt_globals.globals import Globals
 
-from project_globals import TIMESTEP_MARGIN, FIVE_HOURS_OF_TIMESTEPS, BOAT_SPEEDS
-
 
 def none_row(row, df):
     for c in range(len(df.columns)):
@@ -45,13 +43,13 @@ def minima_table(transit_array, tt_range, savgol_path):
     for row, val in enumerate(min_segs):  # rows in tt_df, not the departure index
         if val:
             clump.append(row)  # list of the rows within the clump of True min_segs
-        elif len(clump) > FIVE_HOURS_OF_TIMESTEPS:  # ignore clumps caused by small fluctuations in midline or end conditions ( ~ 5-hour tide window )
+        elif len(clump) > Globals.FIVE_HOURS_OF_TIMESTEPS:  # ignore clumps caused by small fluctuations in midline or end conditions ( ~ 5-hour tide window )
             segment_df = tt_df[clump[0]:clump[-1]]  # subset of tt_df from first True to last True in clump
             seg_min_df = segment_df[segment_df['tts'] == segment_df.min()['tts']]  # segment rows equal to the minimum
             median_index = seg_min_df['departure_index'].median()  # median departure index of segment minima rows
             abs_diff = segment_df['departure_index'].sub(median_index).abs()  # absolute value of difference between actual index and median index
             min_index = segment_df.at[abs_diff[abs_diff == abs_diff.min()].index[0], 'departure_index']  # actual index closest to median index, may not be minimum tts
-            offset = segment_df['tts'].min() + TIMESTEP_MARGIN  # minimum tss + margin for window
+            offset = segment_df['tts'].min() + Globals.TIMESTEP_MARGIN  # minimum tss + margin for window
             if min_index != clump[0] and min_index != clump[-1]:  # ignore minima at edges
                 start_segment = segment_df[segment_df['departure_index'].le(min_index)]  # portion of segment from start to minimum
                 start_row = start_segment[start_segment['tts'].le(offset)].index[0]
@@ -194,7 +192,7 @@ class TransitTimeJob(Job):  # super -> job name, result key, function/object, ar
 def check_arcs(env, year):
 
     edge_processing_required = False
-    for speed in BOAT_SPEEDS:
+    for speed in Globals.BOAT_SPEEDS:
 
         sign = '+' if speed / abs(speed) > 0 else '-'
         boat_speed = sign + str(abs(speed))
