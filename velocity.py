@@ -4,7 +4,7 @@ from sympy import Point
 from pathlib import Path
 from dateparser import parse
 
-from tt_noaa_data.noaa_data import noaa_current_datafile
+from tt_noaa_data.noaa_data import noaa_current_14_months
 from tt_interpolation.velocity_interpolation import Interpolator as VInt
 from tt_file_tools import file_tools as ft
 from tt_date_time_tools.date_time_tools import int_timestamp as date_time_index
@@ -18,24 +18,18 @@ def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 
 class DownloadedVelocityCSV:
 
-    def __init__(self, year: int, folder: Path, code: str, wp_type: str):
+    def __init__(self, year: int, folder: Path, interval, code: str, wp_type: str):
         # noaa columns:   'Time', ' Depth', ' Velocity_Major', ' meanFloodDir', ' meanEbbDir', ' Bin'
 
-        self.filepath = folder.joinpath(wp_type.lower() + '_velocity.csv')
+        if str(interval) == '60':
+            self.filepath = folder.joinpath(wp_type.lower() + '_velocity.csv')
+        elif str(interval) == 'MAX_SLACK':
+            self.filepath = folder.joinpath('MAX_SLACK_velocity.csv')
 
         if not self.filepath.exists():
-            frame = pd.DataFrame()
             station_bin = code.split('_')
 
-            file = noaa_current_datafile(folder, year - 1, 12, station_bin[0], station_bin[1])
-            frame = pd.concat([frame, pd.read_csv(file, header='infer')])
-
-            for m in range(1, 13):
-                file = noaa_current_datafile(folder, year, m, station_bin[0], station_bin[1])
-                frame = pd.concat([frame, pd.read_csv(file, header='infer')])
-
-            file = noaa_current_datafile(folder, year + 1, 1, station_bin[0], station_bin[1])
-            frame = pd.concat([frame, pd.read_csv(file, header='infer')])
+            frame = noaa_current_14_months(folder, year, interval, station_bin[0], station_bin[1])
             frame.rename(columns={'Time': 'date_time', ' Velocity_Major': 'velocity'}, inplace=True)
             frame['date_index'] = frame['date_time'].apply(date_time_index)
 
@@ -48,9 +42,9 @@ class DownloadVelocityJob(Job):  # super -> job name, result key, function/objec
     def execute_callback(self, result): return super().execute_callback(result)
     def error_callback(self, result): return super().error_callback(result)
 
-    def __init__(self, wp: DownloadedDataWP, year: int):
+    def __init__(self, year: int, wp: DownloadedDataWP):
         result_key = id(wp)
-        arguments = tuple([year, wp.folder, wp.code, wp.type])
+        arguments = tuple([year, wp.folder, 60, wp.code, wp.type])
         super().__init__(wp.unique_name, result_key, DownloadedVelocityCSV, arguments)
 
 

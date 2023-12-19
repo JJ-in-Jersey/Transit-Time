@@ -1,8 +1,8 @@
 from argparse import ArgumentParser as argParser
 from pathlib import Path
 from pandas import concat as concat
-from tt_gpx.gpx import Route, Waypoint, Edge, EdgeNode, TideStationWP
-from tt_file_tools.file_tools import print_file_exists, write_df, read_df
+from tt_gpx.gpx import Route, Waypoint, Edge, EdgeNode, CurrentStationWP
+from tt_file_tools.file_tools import write_df, read_df
 from tt_chrome_driver import chrome_driver
 from tt_job_manager.job_manager import JobManager
 from tt_globals.globals import Globals
@@ -10,7 +10,7 @@ from tt_globals.globals import Globals
 from waypoint_processing import waypoint_processing
 from edge_processing import edge_processing
 
-from east_river_validations import BatteryValidationDataframe, HellGateValidationDataframe, HornsHookValidationDataframe
+from east_river_validations import BatteryValidationDataframe, HellGateCurrentValidationDataframe, HornsHookValidationDataframe
 from cape_cod_canal_validations import CapeCodCanalRailBridgeDataframe
 from transit_time import TransitTimeJob
 
@@ -92,10 +92,14 @@ if __name__ == '__main__':
     write_df(arcs_df, Globals.TRANSIT_TIMES_FOLDER.joinpath('arcs.csv'))
 
     if args['hell_gate']:
-        print(f'\nHell Gate validation')
-        path = list(filter(lambda w: 'Hell_Gate' in w.unique_name, filter(lambda w: isinstance(w, TideStationWP), route.waypoints)))[0].folder.joinpath('tide.csv')
-        frame = HellGateValidationDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
-        write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('hell_gate_validation.csv'))
+        print(f'\nHell Gate validations')
+        folder = list(filter(lambda w: 'Hell_Gate_Current' in w.unique_name, filter(lambda w: isinstance(w, CurrentStationWP), route.waypoints)))[0]
+        frame = HellGateCurrentValidationDataframe(folder, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
+        write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('hell_gate_current_validation.csv'))
+
+        # path = list(filter(lambda w: 'Hell_Gate_Tide' in w.unique_name, filter(lambda w: isinstance(w, TideStationWP), route.waypoints)))[0].folder.joinpath('tide.csv')
+        # frame = HellGateTideValidationDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
+        # write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('hell_gate_tide_validation.csv'))
 
     if args['battery']:
         print(f'\nEast River Battery validation')

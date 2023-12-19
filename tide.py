@@ -1,28 +1,12 @@
-import pandas as pd
 from pathlib import Path
-import dateparser as dp
 
 from tt_file_tools import file_tools as ft
 from tt_job_manager.job_manager import Job
-from tt_noaa_data.noaa_data import noaa_tide_datafile
+from tt_noaa_data.noaa_data import noaa_tide_14_months
 from tt_gpx.gpx import TideStationWP
 
 
 def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
-
-
-class TideXMLDataframe:
-
-    def __init__(self, filepath):
-        tree = ft.XMLFile(filepath).tree
-
-        self.frame = pd.DataFrame(columns=['date_time', 'date', 'time', 'HL'])
-        for pr in tree.find_all('pr'):
-            date_time = dp.parse(pr.get('t'))
-            date = date_time.date()
-            time = date_time.time()
-            hl = pr.get('type')
-            self.frame.loc[len(self.frame)] = [date_time, date, time, hl]
 
 
 class DownloadedTideCSV:
@@ -32,18 +16,7 @@ class DownloadedTideCSV:
         self.filepath = folder.joinpath('tide.csv')
 
         if not self.filepath.exists():
-            frame = pd.DataFrame()
-
-            file = noaa_tide_datafile(folder, year - 1, 12, code)
-            frame = pd.concat([frame, TideXMLDataframe(file).frame])
-
-            for m in range(1, 13):
-                file = noaa_tide_datafile(folder, year, m, code)
-                frame = pd.concat([frame, TideXMLDataframe(file).frame])
-
-            file = noaa_tide_datafile(folder, year + 1, 1, code)
-            frame = pd.concat([frame, TideXMLDataframe(file).frame])
-
+            frame = noaa_tide_14_months(folder, year, code)
             ft.write_df(frame, self.filepath)
 
 
