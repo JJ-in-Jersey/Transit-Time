@@ -2,7 +2,7 @@ from argparse import ArgumentParser as argParser
 from pathlib import Path
 from pandas import concat as concat
 from tt_gpx.gpx import Route, Waypoint, Edge, EdgeNode
-from tt_file_tools.file_tools import print_file_exists, write_df
+from tt_file_tools.file_tools import print_file_exists, write_df, read_df
 from tt_chrome_driver import chrome_driver
 from tt_job_manager.job_manager import JobManager
 from tt_globals.globals import Globals
@@ -81,46 +81,39 @@ if __name__ == '__main__':
     keys = [job_manager.put(TransitTimeJob(speed, Globals.EDGES_FOLDER.joinpath('elapsed_timesteps_' + str(speed) + '.csv'), Globals.TRANSIT_TIMES_FOLDER)) for speed in Globals.BOAT_SPEEDS]
     job_manager.wait()
 
-    for path in [job_manager.get(key).filepath for key in keys]:
-        print_file_exists(path)
+    # frames = [read_df(path) for path in [job_manager.get(key).filepath for key in keys]]
 
-    print(f'\nAdding transit time speed results to route')
-    for speed in Globals.BOAT_SPEEDS:
-        result = job_manager.get(speed)
-        route.transit_time_lookup[speed] = result.frame
-        print(f'{Globals.CHECKMARK}     tt {speed}', flush=True)
-
-    arcs_df = concat([route.transit_time_lookup[key] for key in route.transit_time_lookup])
+    arcs_df = concat([read_df(path) for path in [job_manager.get(key).filepath for key in keys]])
     arcs_df.sort_values(['start_date', 'name'], ignore_index=True, inplace=True)
     min_rotation_df = arcs_df[arcs_df['min_angle'].notna()]
     min_rotation_df = min_rotation_df.replace(to_replace=r'arc', value='min', regex=True)
 
-    write_df(min_rotation_df, Globals.TRANSIT_TIMES_FOLDER.joinpath('minima'))
-    write_df(arcs_df, Globals.TRANSIT_TIMES_FOLDER.joinpath('arcs'))
+    write_df(min_rotation_df, Globals.TRANSIT_TIMES_FOLDER.joinpath('minima.csv'))
+    write_df(arcs_df, Globals.TRANSIT_TIMES_FOLDER.joinpath('arcs.csv'))
 
     if args['hell_gate']:
         print(f'\nHell Gate validation')
         path = list(filter(lambda w: 'Hell_Gate' in w.unique_name, route.waypoints))[0].folder.joinpath('tide.csv')
         frame = HellGateValidationDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
-        write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('hell_gate_validation'))
+        write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('hell_gate_validation.csv'))
 
     if args['battery']:
         print(f'\nEast River Battery validation')
         path = list(filter(lambda w: 'NEW_YORK' in w.unique_name, route.waypoints))[0].folder.joinpath('tide.csv')
         frame = BatteryValidationDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
-        write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('battery_validation'))
+        write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('battery_validation.csv'))
 
     if args['horns_hook']:
         print(f'\nEast River Horns Hook validation')
         path = list(filter(lambda w: 'Horns_Hook' in w.unique_name, route.waypoints))[0].folder.joinpath('tide.csv')
         frame = HornsHookValidationDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
-        write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('horns_hook_validation'))
+        write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('horns_hook_validation.csv'))
 
     if args['cape_cod_canal']:
         print(f'\nCape Cod Canal Battery validation')
         path = list(filter(lambda w: 'Cape_Cod_Canal_RR' in w.unique_name, route.waypoints))[0].folder.joinpath('tide.csv')
         frame = CapeCodCanalRailBridgeDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
-        write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('cape_cod_canal_validation'))
+        write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('cape_cod_canal_validation.csv'))
 
     print(f'\nProcess Complete')
 
