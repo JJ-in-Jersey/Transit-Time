@@ -4,7 +4,7 @@ from num2words import num2words
 from pathlib import Path
 import numpy as np
 
-from tt_file_tools import file_tools as ft
+from tt_file_tools.file_tools import read_df, write_df
 from tt_geometry.geometry import Arc
 from tt_job_manager.job_manager import Job
 from tt_date_time_tools import date_time_tools as dtt
@@ -142,7 +142,7 @@ class ArcsDataframe:
 
     def __init__(self, speed, year, f_date, l_date, tt_range, et_file, tt_folder):
 
-        et_df = ft.read_df(et_file)
+        et_df = read_df(et_file)
 
         self.frame = None
         sign = '+' if speed / abs(speed) > 0 else '-'
@@ -154,11 +154,11 @@ class ArcsDataframe:
         transit_timesteps_path = speed_folder.joinpath(file_header + '_timesteps')
         savgol_path = speed_folder.joinpath(file_header + '_savgol')
         minima_path = speed_folder.joinpath(file_header + '_minima')
-        arcs_path = speed_folder.joinpath(file_header + '_arcs')
 
-        if arcs_path.exists():
-            self.frame = ft.read_df(arcs_path)
-        else:
+        self.filepath = speed_folder.joinpath(file_header + '_arcs')
+
+        if not self.filepath.exists():
+
             if transit_timesteps_path.exists():
                 transit_timesteps_arr = np.load(transit_timesteps_path.with_suffix('.npy'))
             else:
@@ -167,13 +167,13 @@ class ArcsDataframe:
                 np.save(transit_timesteps_path.with_suffix('.npy'), transit_timesteps_arr)
 
             if minima_path.exists():
-                minima_df = ft.read_df(minima_path)
+                minima_df = read_df(minima_path)
             else:
                 minima_df = minima_table(transit_timesteps_arr, tt_range, savgol_path)
-                ft.write_df(minima_df, minima_path)
+                write_df(minima_df, minima_path)
 
-            self.frame = create_arcs(minima_df, shape_name, f_date, l_date)
-            ft.write_df(self.frame, arcs_path)
+            frame = create_arcs(minima_df, shape_name, f_date, l_date)
+            write_df(frame, self.filepath)
 
 
 class TransitTimeJob(Job):  # super -> job name, result key, function/object, arguments
@@ -182,10 +182,11 @@ class TransitTimeJob(Job):  # super -> job name, result key, function/object, ar
     def execute_callback(self, result): return super().execute_callback(result)
     def error_callback(self, result): return super().error_callback(result)
 
-    def __init__(self, speed, year, f_date, l_date, t_range, et_file: Path, tt_folder: Path):
+    def __init__(self, speed, et_file: Path, tt_folder: Path):
+
         job_name = 'transit_time' + ' ' + str(speed)
         result_key = speed
-        arguments = tuple([speed, year, f_date, l_date, t_range, et_file, tt_folder])
+        arguments = tuple([speed, Globals.YEAR, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE, Globals.TRANSIT_TIME_INDEX_RANGE, et_file, tt_folder])
         super().__init__(job_name, result_key, ArcsDataframe, arguments)
 
 

@@ -9,7 +9,7 @@ def waypoint_processing(route, job_manager):
 
     # ---------- TIDE STATION WAYPOINTS ----------
 
-    print(f'\nDownloading tide data for TIDE STATION WAYPOINTS (1st day-1 to last day+4)', flush=True)
+    print(f'\nDownloading tide data for TIDE STATION WAYPOINTS', flush=True)
     keys = [job_manager.put(DownloadTideJob(Globals.YEAR, wp)) for wp in filter(lambda w: isinstance(w, TideStationWP), route.waypoints)]
     job_manager.wait()
     for path in [job_manager.get(key).filepath for key in keys]:
