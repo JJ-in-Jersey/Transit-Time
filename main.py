@@ -1,7 +1,7 @@
 from argparse import ArgumentParser as argParser
 from pathlib import Path
 from pandas import concat as concat
-from tt_gpx.gpx import Route, Waypoint, Edge, EdgeNode
+from tt_gpx.gpx import Route, Waypoint, Edge, EdgeNode, TideStationWP
 from tt_file_tools.file_tools import print_file_exists, write_df, read_df
 from tt_chrome_driver import chrome_driver
 from tt_job_manager.job_manager import JobManager
@@ -93,7 +93,7 @@ if __name__ == '__main__':
 
     if args['hell_gate']:
         print(f'\nHell Gate validation')
-        path = list(filter(lambda w: 'Hell_Gate' in w.unique_name, route.waypoints))[0].folder.joinpath('tide.csv')
+        path = list(filter(lambda w: 'Hell_Gate' in w.unique_name, filter(lambda w: isinstance(w, TideStationWP), route.waypoints)))[0].folder.joinpath('tide.csv')
         frame = HellGateValidationDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
         write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('hell_gate_validation.csv'))
 
