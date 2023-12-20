@@ -27,7 +27,7 @@ class HellGateCurrentValidationDataframe:
             best_df['angle'] = best_df['time'].apply(time_to_degrees)
             best_df = best_df.filter(['start_date', 'time', 'angle'])
             best_df = best_df[best_df['start_date'] >= f_date]
-            best_df = best_df[best_df['start_date'] <= l_date]
+            best_df = best_df[best_df['start_date'] < l_date]
             best_df = best_df.assign(graphic_name='HG')
             self.frame = index_arc_df(best_df)
         else:
@@ -59,7 +59,7 @@ class BatteryValidationDataframe:
             best_df['angle'] = best_df['time'].apply(time_to_degrees)
             best_df = best_df.drop(['best_time'], axis=1)
             best_df = best_df[best_df['start_date'] >= f_date]
-            best_df = best_df[best_df['start_date'] <= l_date]
+            best_df = best_df[best_df['start_date'] < l_date]
             self.frame = index_arc_df(best_df)
         else:
             raise FileExistsError
@@ -91,7 +91,7 @@ class HellGateTideValidationDataframe:
             best_df['angle'] = best_df['time'].apply(time_to_degrees)
             best_df = best_df.drop(['best_time'], axis=1)
             best_df = best_df[best_df['start_date'] >= f_date]
-            best_df = best_df[best_df['start_date'] <= l_date]
+            best_df = best_df[best_df['start_date'] < l_date]
             self.frame = index_arc_df(best_df)
         else:
             raise FileExistsError
@@ -123,7 +123,7 @@ class HornsHookValidationDataframe:
             best_df['angle'] = best_df['time'].apply(time_to_degrees)
             best_df = best_df.drop(['best_time'], axis=1)
             best_df = best_df[best_df['start_date'] >= f_date]
-            best_df = best_df[best_df['start_date'] <= l_date]
+            best_df = best_df[best_df['start_date'] < l_date]
             self.frame = index_arc_df(best_df)
         else:
             raise FileExistsError
