@@ -153,9 +153,9 @@ class ArcsDataframe:
 
         transit_timesteps_path = speed_folder.joinpath(file_header + '_timesteps')
         savgol_path = speed_folder.joinpath(file_header + '_savgol')
-        minima_path = speed_folder.joinpath(file_header + '_minima')
+        minima_path = speed_folder.joinpath(file_header + '_minima.csv')
 
-        self.filepath = speed_folder.joinpath(file_header + '_arcs')
+        self.filepath = speed_folder.joinpath(file_header + '_arcs.csv')
 
         if not self.filepath.exists():
 
