@@ -33,10 +33,10 @@ def minima_table(transit_array, tt_range, savgol_path):
     tt_df['plot'] = 0
     tt_df = tt_df.assign(tts=transit_array)
     if savgol_path.exists():
-        tt_df['midline'] = np.load(savgol_path.with_suffix('.npy'))
+        tt_df['midline'] = np.load(savgol_path)
     else:
         tt_df['midline'] = savgol_filter(transit_array, 50000, 1)
-        np.save(savgol_path.with_suffix('.npy'), tt_df['midline'])
+        np.save(savgol_path, tt_df['midline'])
 
     min_segs = tt_df['tts'].lt(tt_df['midline']).to_list()  # list of True or False the same length as tt_df
     clump = []
@@ -126,8 +126,8 @@ def create_arcs(arc_frame, shape_name, f_date, l_date):
     arcs = [Arc(*row.values.tolist()) for i, row in arc_frame.iterrows()]
 
     whole_arc_rows = [a.info() for a in filter(lambda a: not a.fractured, arcs)]
-    start_day_rows = [a.start_day_arc.info() for a in filter(lambda a: a.fractured, arcs)]
-    end_day_rows = [a.end_day_arc.info() for a in filter(lambda a: a.fractured, arcs)]
+    start_day_rows = [a.start_day_arc.info() for a in filter(lambda a: a.fractured and a.start_day_arc, arcs)]
+    end_day_rows = [a.end_day_arc.info() for a in filter(lambda a: a.fractured and a.end_day_arc, arcs)]
 
     arcs_df = pd.DataFrame(whole_arc_rows + start_day_rows + end_day_rows)
     arcs_df.columns = Arc.columns
@@ -151,8 +151,8 @@ class ArcsDataframe:
         file_header = str(year) + '_' + boat_speed
         speed_folder = tt_folder.joinpath(num2words(speed))
 
-        transit_timesteps_path = speed_folder.joinpath(file_header + '_timesteps')
-        savgol_path = speed_folder.joinpath(file_header + '_savgol')
+        transit_timesteps_path = speed_folder.joinpath(file_header + '_timesteps.npy')
+        savgol_path = speed_folder.joinpath(file_header + '_savgol.npy')
         minima_path = speed_folder.joinpath(file_header + '_minima.csv')
 
         self.filepath = speed_folder.joinpath(file_header + '_arcs.csv')
@@ -160,11 +160,11 @@ class ArcsDataframe:
         if not self.filepath.exists():
 
             if transit_timesteps_path.exists():
-                transit_timesteps_arr = np.load(transit_timesteps_path.with_suffix('.npy'))
+                transit_timesteps_arr = np.load(transit_timesteps_path)
             else:
                 row_range = range(len(tt_range))
                 transit_timesteps_arr = [total_transit_time(row, et_df, et_df.columns.to_list()) for row in row_range]
-                np.save(transit_timesteps_path.with_suffix('.npy'), transit_timesteps_arr)
+                np.save(transit_timesteps_path, transit_timesteps_arr)
 
             if minima_path.exists():
                 minima_df = read_df(minima_path)

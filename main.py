@@ -79,6 +79,9 @@ if __name__ == '__main__':
     # calculate the number of timesteps from first node to last node
     print(f'\nCalculating transit timesteps')
     keys = [job_manager.put(TransitTimeJob(speed, Globals.EDGES_FOLDER.joinpath('elapsed_timesteps_' + str(speed) + '.csv'), Globals.TRANSIT_TIMES_FOLDER)) for speed in Globals.BOAT_SPEEDS]
+    # for speed in Globals.BOAT_SPEEDS:
+    #     job = TransitTimeJob(speed, Globals.EDGES_FOLDER.joinpath('elapsed_timesteps_' + str(speed) + '.csv'), Globals.TRANSIT_TIMES_FOLDER)
+    #     job.execute()
     job_manager.wait()
 
     # frames = [read_df(path) for path in [job_manager.get(key).filepath for key in keys]]
