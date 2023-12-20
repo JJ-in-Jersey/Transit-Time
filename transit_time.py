@@ -133,7 +133,7 @@ def create_arcs(arc_frame, shape_name, f_date, l_date):
     arcs_df.columns = Arc.columns
     arcs_df = index_arc_df(arcs_df)
     arcs_df = arcs_df[arcs_df['start_date'] >= f_date]
-    arcs_df = arcs_df[arcs_df['start_date'] <= l_date]
+    arcs_df = arcs_df[arcs_df['start_date'] < l_date]
 
     return arcs_df
 
