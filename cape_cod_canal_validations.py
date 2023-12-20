@@ -30,7 +30,7 @@ class CapeCodCanalRailBridgeDataframe:
             best_df['angle'] = best_df['time'].apply(time_to_degrees)
             best_df = best_df.drop(['best_time'], axis=1)
             best_df = best_df[best_df['date'] >= f_date]
-            best_df = best_df[best_df['date'] <= l_date]
+            best_df = best_df[best_df['date'] < l_date]
             self.frame = index_arc_df(best_df)
         else:
             raise FileExistsError
