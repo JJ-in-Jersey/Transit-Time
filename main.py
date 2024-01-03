@@ -53,15 +53,15 @@ if __name__ == '__main__':
 
     Globals.TRANSIT_TIMES_FOLDER.joinpath(str(route.edge_path.heading) + '.heading').touch()
 
+    # ---------- CHECK CHROME ----------
+
+    chrome_driver.check_driver()
+    if chrome_driver.latest_stable_version > chrome_driver.installed_driver_version:
+        chrome_driver.install_stable_driver()
+
     # ---------- START MULTIPROCESSING ----------
 
     job_manager = JobManager()
-
-    # ---------- CHECK CHROME ----------
-
-    # chrome_driver.check_driver()
-    # if chrome_driver.latest_stable_version > chrome_driver.installed_driver_version:
-    #     chrome_driver.install_stable_driver()
 
     # ---------- WAYPOINT PROCESSING ----------
 
