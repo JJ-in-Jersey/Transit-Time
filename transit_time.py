@@ -27,10 +27,10 @@ def total_transit_time(init_row, d_frame, cols):
 
 
 def minima_table(transit_array, tt_range, savgol_path):
+    noise_size = 100
     tt_df = pd.DataFrame()
     tt_df['departure_index'] = tt_range
     tt_df['departure_index'].astype('int')
-    tt_df['plot'] = 0
     tt_df = tt_df.assign(tts=transit_array)
     if savgol_path.exists():
         tt_df['midline'] = np.load(savgol_path)
@@ -38,41 +38,36 @@ def minima_table(transit_array, tt_range, savgol_path):
         tt_df['midline'] = savgol_filter(transit_array, 50000, 1)
         np.save(savgol_path, tt_df['midline'])
 
-    min_segs = tt_df['tts'].lt(tt_df['midline']).to_list()  # list of True or False the same length as tt_df
-    clump = []
-    for row, val in enumerate(min_segs):  # rows in tt_df, not the departure index
-        if val:
-            clump.append(row)  # list of the rows within the clump of True min_segs
-        elif len(clump) > Globals.FIVE_HOURS_OF_TIMESTEPS:  # ignore clumps caused by small fluctuations in midline or end conditions ( ~ 5-hour tide window )
-            segment_df = tt_df[clump[0]:clump[-1]]  # subset of tt_df from first True to last True in clump
-            seg_min_df = segment_df[segment_df['tts'] == segment_df.min()['tts']]  # segment rows equal to the minimum
-            median_index = seg_min_df['departure_index'].median()  # median departure index of segment minima rows
-            abs_diff = segment_df['departure_index'].sub(median_index).abs()  # absolute value of difference between actual index and median index
-            min_index = segment_df.at[abs_diff[abs_diff == abs_diff.min()].index[0], 'departure_index']  # actual index closest to median index, may not be minimum tts
-            offset = segment_df['tts'].min() + Globals.TIMESTEP_MARGIN  # minimum tss + margin for window
-            if min_index != clump[0] and min_index != clump[-1]:  # ignore minima at edges
-                start_segment = segment_df[segment_df['departure_index'].le(min_index)]  # portion of segment from start to minimum
-                start_row = start_segment[start_segment['tts'].le(offset)].index[0]
-                start_index = start_segment.at[start_row, 'departure_index']
-                end_segment = segment_df[segment_df['departure_index'].ge(min_index)]  # portion of segment from minimum to end
-                end_row = end_segment[end_segment['tts'].ge(offset)].index[0]
-                end_index = end_segment.at[end_row, 'departure_index']
-                tt_df_start_row = tt_df[tt_df['departure_index'] == start_index].index[0]
-                tt_df_min_row = tt_df[tt_df['departure_index'] == min_index].index[0]
-                tt_df_end_row = tt_df[tt_df['departure_index'] == end_index].index[0]
-                tt_df.at[tt_df_min_row, 'start_index'] = start_index
-                tt_df.at[tt_df_min_row, 'start_datetime'] = dtt.datetime(start_index)
-                tt_df.at[tt_df_min_row, 'min_index'] = min_index
-                tt_df.at[tt_df_min_row, 'min_datetime'] = dtt.datetime(min_index)
-                tt_df.at[tt_df_min_row, 'end_index'] = end_index
-                tt_df.at[tt_df_min_row, 'end_datetime'] = dtt.datetime(end_index)
-                tt_df.at[tt_df_start_row, 'plot'] = max(transit_array)
-                tt_df.at[tt_df_min_row, 'plot'] = min(transit_array)
-                tt_df.at[tt_df_end_row, 'plot'] = max(transit_array)
-            clump = []
+    tt_df['TF'] = tt_df['tts'].lt(tt_df['midline'])  # Above midline = False,  below midline = True
+    tt_df['block'] = (tt_df['TF'] != tt_df['TF'].shift(1)).cumsum()  # index the blocks of True and False
+    clump_lookup = {index: df for index, df in tt_df.groupby('block') if df['TF'].any()}  # select only the True blocks
+    clump_lookup = {index: df.drop(['TF', 'block', 'midline'], axis=1).reset_index() for index, df in clump_lookup.items() if len(df) > noise_size}  # remove the tiny blocks caused by noise at the inflections
+
+    for index, clump_df in clump_lookup.items():
+        median_departure_index = clump_df[clump_df['tts'] == clump_df.min()['tts']]['departure_index'].median()  # median of the departure indices among the tts minimum values
+        abs_diff = clump_df['departure_index'].sub(median_departure_index).abs()  # series of abs differences
+        minimum_index = abs_diff[abs_diff == abs_diff.min()].index[0]  # row closest to median departure index
+        minimum_tts = clump_df.at[minimum_index, 'tts']
+
+        minimum_row = clump_df.iloc[minimum_index]
+        minimum_departure_index = minimum_row['departure_index']  # departure index at row closest to median departure index
+
+        offset = minimum_tts + Globals.TIMESTEP_MARGIN
+        start_row = clump_df.iloc[0] if clump_df.iloc[0]['tts'] < offset else clump_df[clump_df['departure_index'].le(minimum_departure_index) & clump_df['tts'].ge(offset)].iloc[-1]
+        start_departure_index = start_row['departure_index']
+        end_row = clump_df.iloc[-1] if clump_df.iloc[-1]['tts'] < offset else clump_df[clump_df['departure_index'].ge(minimum_departure_index) & clump_df['tts'].ge(offset)].iloc[0]
+        end_departure_index = end_row['departure_index']
+
+        tt_df.at[minimum_row['index'], 'start_index'] = start_departure_index
+        tt_df.at[minimum_row['index'], 'start_datetime'] = dtt.datetime(start_departure_index)
+        tt_df.at[minimum_row['index'], 'min_index'] = minimum_departure_index
+        tt_df.at[minimum_row['index'], 'min_datetime'] = dtt.datetime(minimum_departure_index)
+        tt_df.at[minimum_row['index'], 'end_index'] = end_departure_index
+        tt_df.at[minimum_row['index'], 'end_datetime'] = dtt.datetime(end_departure_index)
+
     tt_df['transit_time'] = pd.to_timedelta(tt_df['tts']*Globals.TIMESTEP, unit='s').round('min')
     tt_df = tt_df.dropna(axis=0).sort_index().reset_index(drop=True)  # make minima_df easier to write
-    tt_df.drop(['tts', 'departure_index', 'plot', 'midline'], axis=1, inplace=True)  # make minima_df easier to write
+    tt_df.drop(['tts', 'departure_index', 'midline', 'block', 'TF'], axis=1, inplace=True)  # make minima_df easier to write
     return tt_df
 
 

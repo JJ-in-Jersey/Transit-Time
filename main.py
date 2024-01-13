@@ -49,9 +49,9 @@ if __name__ == '__main__':
     print(f'boat speeds: {Globals.BOAT_SPEEDS}')
     print(f'length {round(route.edge_path.length, 1)} nm')
     print(f'direction {route.edge_path.direction}')
-    print(f'heading {route.edge_path.heading}\n')
+    print(f'heading {route.edge_path.route_heading}\n')
 
-    Globals.TRANSIT_TIMES_FOLDER.joinpath(str(route.edge_path.heading) + '.heading').touch()
+    Globals.TRANSIT_TIMES_FOLDER.joinpath(str(route.edge_path.route_heading) + '.heading').touch()
 
     # ---------- CHECK CHROME ----------
 
