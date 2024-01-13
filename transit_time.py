@@ -43,27 +43,27 @@ def minima_table(transit_array, tt_range, savgol_path):
     clump_lookup = {index: df for index, df in tt_df.groupby('block') if df['TF'].any()}  # select only the True blocks
     clump_lookup = {index: df.drop(['TF', 'block', 'midline'], axis=1).reset_index() for index, df in clump_lookup.items() if len(df) > noise_size}  # remove the tiny blocks caused by noise at the inflections
 
-    for index, clump_df in clump_lookup.items():
-        median_departure_index = clump_df[clump_df['tts'] == clump_df.min()['tts']]['departure_index'].median()  # median of the departure indices among the tts minimum values
-        abs_diff = clump_df['departure_index'].sub(median_departure_index).abs()  # series of abs differences
+    for index, clump in clump_lookup.items():
+        median_departure_index = clump[clump['tts'] == clump.min()['tts']]['departure_index'].median()  # median of the departure indices among the tts minimum values
+        abs_diff = clump['departure_index'].sub(median_departure_index).abs()  # series of abs differences
         minimum_index = abs_diff[abs_diff == abs_diff.min()].index[0]  # row closest to median departure index
-        minimum_tts = clump_df.at[minimum_index, 'tts']
+        minimum_tts = clump.at[minimum_index, 'tts']
 
-        minimum_row = clump_df.iloc[minimum_index]
-        minimum_departure_index = minimum_row['departure_index']  # departure index at row closest to median departure index
+        minimum_row = clump.iloc[minimum_index]
+        minimum_departure = minimum_row['departure_index']  # departure index at row closest to median departure index
 
         offset = minimum_tts + Globals.TIMESTEP_MARGIN
-        start_row = clump_df.iloc[0] if clump_df.iloc[0]['tts'] < offset else clump_df[clump_df['departure_index'].le(minimum_departure_index) & clump_df['tts'].ge(offset)].iloc[-1]
-        start_departure_index = start_row['departure_index']
-        end_row = clump_df.iloc[-1] if clump_df.iloc[-1]['tts'] < offset else clump_df[clump_df['departure_index'].ge(minimum_departure_index) & clump_df['tts'].ge(offset)].iloc[0]
-        end_departure_index = end_row['departure_index']
+        start_row = clump.iloc[0] if clump.iloc[0]['tts'] < offset else clump[clump['departure_index'].le(minimum_departure) & clump['tts'].ge(offset)].iloc[-1]
+        start_departure = start_row['departure_index']
+        end_row = clump.iloc[-1] if clump.iloc[-1]['tts'] < offset else clump[clump['departure_index'].ge(minimum_departure) & clump['tts'].ge(offset)].iloc[0]
+        end_departure = end_row['departure_index']
 
-        tt_df.at[minimum_row['index'], 'start_index'] = start_departure_index
-        tt_df.at[minimum_row['index'], 'start_datetime'] = dtt.datetime(start_departure_index)
-        tt_df.at[minimum_row['index'], 'min_index'] = minimum_departure_index
-        tt_df.at[minimum_row['index'], 'min_datetime'] = dtt.datetime(minimum_departure_index)
-        tt_df.at[minimum_row['index'], 'end_index'] = end_departure_index
-        tt_df.at[minimum_row['index'], 'end_datetime'] = dtt.datetime(end_departure_index)
+        tt_df.at[minimum_row['index'], 'start_index'] = start_departure
+        tt_df.at[minimum_row['index'], 'start_datetime'] = dtt.datetime(start_departure)
+        tt_df.at[minimum_row['index'], 'min_index'] = minimum_departure
+        tt_df.at[minimum_row['index'], 'min_datetime'] = dtt.datetime(minimum_departure)
+        tt_df.at[minimum_row['index'], 'end_index'] = end_departure
+        tt_df.at[minimum_row['index'], 'end_datetime'] = dtt.datetime(end_departure)
 
     tt_df['transit_time'] = pd.to_timedelta(tt_df['tts']*Globals.TIMESTEP, unit='s').round('min')
     tt_df = tt_df.dropna(axis=0).sort_index().reset_index(drop=True)  # make minima_df easier to write
