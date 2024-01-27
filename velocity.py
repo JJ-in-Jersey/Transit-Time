@@ -2,9 +2,9 @@ import pandas as pd
 from scipy.interpolate import CubicSpline
 from sympy import Point
 from pathlib import Path
-from dateparser import parse
 
-from tt_noaa_data.noaa_data import noaa_current_14_months
+# from tt_noaa_data.noaa_data import noaa_current_14_months
+from tt_noaa_data.noaa_data import noaa_current_dataframe
 from tt_interpolation.velocity_interpolation import Interpolator as VInt
 from tt_file_tools import file_tools as ft
 from tt_date_time_tools.date_time_tools import int_timestamp as date_time_index
@@ -18,18 +18,14 @@ def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 
 class DownloadedVelocityCSV:
 
-    def __init__(self, year: int, folder: Path, interval, code: str, wp_type: str):
-        # noaa columns:   'Time', ' Depth', ' Velocity_Major', ' meanFloodDir', ' meanEbbDir', ' Bin'
+    def __init__(self, start, end, folder: Path, code: str, wp_type: str):
 
-        if str(interval) == '60':
-            self.filepath = folder.joinpath(wp_type.lower() + '_velocity.csv')
-        elif str(interval) == 'MAX_SLACK':
-            self.filepath = folder.joinpath('MAX_SLACK_velocity.csv')
+        self.filepath = folder.joinpath(wp_type.lower() + '_velocity.csv')
 
         if not self.filepath.exists():
             station_bin = code.split('_')
 
-            frame = noaa_current_14_months(folder, year, interval, station_bin[0], station_bin[1])
+            frame = noaa_current_dataframe(start, end, folder, station_bin[0], station_bin[1])
             frame.rename(columns={'Time': 'date_time', ' Velocity_Major': 'velocity'}, inplace=True)
             frame['date_index'] = frame['date_time'].apply(date_time_index)
 
@@ -42,23 +38,23 @@ class DownloadVelocityJob(Job):  # super -> job name, result key, function/objec
     def execute_callback(self, result): return super().execute_callback(result)
     def error_callback(self, result): return super().error_callback(result)
 
-    def __init__(self, year: int, wp: DownloadedDataWP):
+    def __init__(self, start, end, wp: DownloadedDataWP):
         result_key = id(wp)
-        arguments = tuple([year, wp.folder, 60, wp.code, wp.type])
+        arguments = tuple([start, end, wp.folder, wp.code, wp.type])
         super().__init__(wp.unique_name, result_key, DownloadedVelocityCSV, arguments)
 
 
 class SplineFitHarmonicVelocityCSV:
 
-    def __init__(self, velocity_file: Path, download_range: range):
-
+    # def __init__(self, velocity_file: Path, download_range: range):
+    def __init__(self, index_range, velocity_file):
         self.filepath = velocity_file.parent.joinpath(velocity_file.stem + '_spline_fit.csv')
         velocity_frame = ft.read_df(velocity_file)
 
         if not self.filepath.exists():
             cs = CubicSpline(velocity_frame['date_index'], velocity_frame['velocity'])
             frame = pd.DataFrame()
-            frame['date_index'] = download_range
+            frame['date_index'] = index_range
             frame['date_time'] = pd.to_datetime(frame['date_index'], unit='s').round('min')
             frame['velocity'] = frame['date_index'].apply(cs)
             ft.write_df(frame, self.filepath)
@@ -70,10 +66,10 @@ class SplineFitHarmonicVelocityJob(Job):  # super -> job name, result key, funct
     def execute_callback(self, result): return super().execute_callback(result)
     def error_callback(self, result): return super().error_callback(result)
 
-    def __init__(self, waypoint: Waypoint):
+    def __init__(self, index_range, waypoint: Waypoint):
         result_key = id(waypoint)
         filepath = waypoint.folder.joinpath('harmonic_velocity.csv')
-        arguments = tuple([filepath, Globals.DOWNLOAD_INDEX_RANGE])
+        arguments = tuple([index_range, filepath])
         super().__init__(waypoint.unique_name, result_key, SplineFitHarmonicVelocityCSV, arguments)
 
 
@@ -129,7 +125,7 @@ def interpolate_group(waypoints, job_manager):
 
 class SubordinateVelocityAdjustment:
 
-    def __init__(self, velocity_file: Path, year: int):
+    def __init__(self, index_range, velocity_file: Path):
 
         self.filepath = velocity_file.parent.joinpath('harmonic_velocity.csv')
         velocity_frame = ft.read_df(velocity_file)
@@ -137,7 +133,7 @@ class SubordinateVelocityAdjustment:
         if not self.filepath.exists():
             cs = CubicSpline(velocity_frame['date_index'], velocity_frame['velocity'])
             frame = pd.DataFrame()
-            frame['date_index'] = range(date_time_index(parse('12/1/' + str(year - 1))), date_time_index(parse('2/1/' + str(year + 1))), 3600)
+            frame['date_index'] = index_range
             frame['date_time'] = pd.to_datetime(frame['date_index'], unit='s').round('min')
             frame['velocity'] = frame['date_index'].apply(cs)
             ft.write_df(frame, self.filepath)
@@ -152,7 +148,7 @@ class SubordinateVelocityAdjustmentJob(Job):  # super -> job name, result key, f
     def __init__(self, waypoint: Waypoint):
         result_key = id(waypoint)
         filepath = waypoint.folder.joinpath('subordinate_velocity.csv')
-        arguments = tuple([filepath, Globals.YEAR])
+        arguments = tuple([Globals.DOWNLOAD_INDEX_RANGE, filepath])
         super().__init__(waypoint.unique_name + ' ' + waypoint.type, result_key, SubordinateVelocityAdjustment, arguments)
 
 

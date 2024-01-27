@@ -10,11 +10,7 @@ def waypoint_processing(route, job_manager):
     # ---------- TIDE STATION WAYPOINTS ----------
 
     print(f'\nDownloading tide data for TIDE STATION WAYPOINTS', flush=True)
-    keys = [job_manager.put(DownloadTideJob(Globals.YEAR, wp)) for wp in filter(lambda w: isinstance(w, TideStationWP), route.waypoints)]
-    # for wp in filter(lambda w: isinstance(w, TideStationWP), route.waypoints):
-    #     print(wp.unique_name)
-    #     job = DownloadTideJob(Globals.YEAR, wp)
-    #     result = job.execute()
+    keys = [job_manager.put(DownloadTideJob(Globals.FIRST_DOWNLOAD_DAY, Globals.LAST_DOWNLOAD_DAY, wp)) for wp in filter(lambda w: isinstance(w, TideStationWP), route.waypoints)]
     job_manager.wait()
     for path in [job_manager.get(key).filepath for key in keys]:
         print_file_exists(path)
@@ -22,10 +18,7 @@ def waypoint_processing(route, job_manager):
     # ---------- INTERPOLATION WAYPOINTS ----------Ï
 
     print(f'\nDownloading current data for INTERPOLATED DATA WAYPOINTS', flush=True)
-    keys = [job_manager.put(DownloadVelocityJob(Globals.YEAR, wp)) for wp in filter(lambda w: isinstance(w, InterpolatedDataWP), route.waypoints)]
-    # for wp in filter(lambda w: isinstance(w, InterpolatedDataWP), route.waypoints):
-    #     job = DownloadVelocityJob(wp, Globals.YEAR)
-    #     result = job.execute()
+    keys = [job_manager.put(DownloadVelocityJob(Globals.FIRST_DOWNLOAD_DAY, Globals.LAST_DOWNLOAD_DAY, wp)) for wp in filter(lambda w: isinstance(w, InterpolatedDataWP), route.waypoints)]
     job_manager.wait()
     for path in [job_manager.get(key).filepath for key in keys]:
         print_file_exists(path)
@@ -41,7 +34,7 @@ def waypoint_processing(route, job_manager):
         interpolate_group(group, job_manager)
 
     print(f'\nSpline fit data from INTERPOLATED WAYPOINTS', flush=True)
-    keys = [job_manager.put(SplineFitHarmonicVelocityJob(wp)) for wp in filter(lambda w: isinstance(w, InterpolatedWP), route.waypoints)]
+    keys = [job_manager.put(SplineFitHarmonicVelocityJob(Globals.DOWNLOAD_INDEX_RANGE, wp)) for wp in filter(lambda w: isinstance(w, InterpolatedWP), route.waypoints)]
     job_manager.wait()
     for path in [job_manager.get(key).filepath for key in keys]:
         print_file_exists(path)
@@ -49,7 +42,7 @@ def waypoint_processing(route, job_manager):
     # ---------- CURRENT STATION and SURROGATE WAYPOINTS ----------
 
     print(f'\nDownloading current data for CURRENT STATION and SURROGATE WAYPOINTS', flush=True)
-    keys = [job_manager.put(DownloadVelocityJob(Globals.YEAR, wp)) for wp in filter(lambda w: (isinstance(w, CurrentStationWP) or isinstance(w, SurrogateWP)), route.waypoints)]
+    keys = [job_manager.put(DownloadVelocityJob(Globals.FIRST_DOWNLOAD_DAY, Globals.LAST_DOWNLOAD_DAY, wp)) for wp in filter(lambda w: (isinstance(w, CurrentStationWP) or isinstance(w, SurrogateWP)), route.waypoints)]
     job_manager.wait()
     for path in [job_manager.get(key).filepath for key in keys]:
         print_file_exists(path)
@@ -61,7 +54,7 @@ def waypoint_processing(route, job_manager):
         print_file_exists(path)
 
     print(f'\nSpline fit data from CURRENT STATION and SURROGATE WAYPOINTS', flush=True)
-    keys = [job_manager.put(SplineFitHarmonicVelocityJob(wp)) for wp in filter(lambda w: isinstance(w, CurrentStationWP) or isinstance(w, SurrogateWP), route.waypoints)]
+    keys = [job_manager.put(SplineFitHarmonicVelocityJob(Globals.DOWNLOAD_INDEX_RANGE, wp)) for wp in filter(lambda w: isinstance(w, CurrentStationWP) or isinstance(w, SurrogateWP), route.waypoints)]
     job_manager.wait()
     for path in [job_manager.get(key).filepath for key in keys]:
         print_file_exists(path)

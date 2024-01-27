@@ -113,9 +113,8 @@ def index_arc_df(frame):
     return arc_frame
 
 
-def create_arcs(arc_frame, shape_name, f_date, l_date):
+def create_arcs(f_day, l_day, arc_frame, shape_name):
 
-    # arc_frame = minima_df.drop(['departure_index', 'plot', 'tts', 'midline'], axis=1)
     Arc.name = shape_name
 
     arcs = [Arc(*row.values.tolist()) for i, row in arc_frame.iterrows()]
@@ -126,16 +125,17 @@ def create_arcs(arc_frame, shape_name, f_date, l_date):
 
     arcs_df = pd.DataFrame(whole_arc_rows + start_day_rows + end_day_rows)
     arcs_df.columns = Arc.columns
+
     arcs_df = index_arc_df(arcs_df)
-    arcs_df = arcs_df[arcs_df['start_date'] >= f_date]
-    arcs_df = arcs_df[arcs_df['start_date'] < l_date]
+    arcs_df = arcs_df[arcs_df['start_date'] <= l_day.date()]
+    arcs_df = arcs_df[arcs_df['start_date'] >= f_day.date()]
 
     return arcs_df
 
 
 class ArcsDataframe:
 
-    def __init__(self, speed, year, f_date, l_date, tt_range, et_file, tt_folder):
+    def __init__(self, speed, tt_range, et_file, tt_folder, f_day, l_day):
 
         et_df = read_df(et_file)
 
@@ -143,7 +143,7 @@ class ArcsDataframe:
         sign = '+' if speed / abs(speed) > 0 else '-'
         boat_speed = sign + str(abs(speed))
         shape_name = 'arc ' + boat_speed
-        file_header = str(year) + '_' + boat_speed
+        file_header = str(f_day.date().year) + '_' + boat_speed
         speed_folder = tt_folder.joinpath(num2words(speed))
 
         transit_timesteps_path = speed_folder.joinpath(file_header + '_timesteps.npy')
@@ -167,7 +167,7 @@ class ArcsDataframe:
                 minima_df = minima_table(transit_timesteps_arr, tt_range, savgol_path)
                 write_df(minima_df, minima_path)
 
-            frame = create_arcs(minima_df, shape_name, f_date, l_date)
+            frame = create_arcs(f_day, l_day, minima_df, shape_name)
             write_df(frame, self.filepath)
 
 
@@ -181,7 +181,7 @@ class TransitTimeJob(Job):  # super -> job name, result key, function/object, ar
 
         job_name = 'transit_time' + ' ' + str(speed)
         result_key = speed
-        arguments = tuple([speed, Globals.YEAR, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE, Globals.TRANSIT_TIME_INDEX_RANGE, et_file, tt_folder])
+        arguments = tuple([speed, Globals.TRANSIT_TIME_INDEX_RANGE, et_file, tt_folder, Globals.FIRST_DAY, Globals.LAST_DAY])
         super().__init__(job_name, result_key, ArcsDataframe, arguments)
 
 
