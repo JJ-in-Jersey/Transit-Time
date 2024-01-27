@@ -1,5 +1,6 @@
 from argparse import ArgumentParser as argParser
 from pathlib import Path
+
 from pandas import concat as concat
 from tt_gpx.gpx import Route, Waypoint, Edge, EdgeNode, CurrentStationWP
 from tt_file_tools.file_tools import write_df, read_df
@@ -42,6 +43,9 @@ if __name__ == '__main__':
     route = Route(args['filepath'])
 
     print(f'\nCalculating route "{route.filepath.stem}"')
+    print(f'calendar year: {Globals.YEAR}')
+    print(f'start date: {Globals.FIRST_DAY_DATE}')
+    print(f'end date: {Globals.LAST_DAY_DATE}')
     print(f'total waypoints: {len(route.waypoints)}')
     print(f'total edge nodes: {len(list(filter(lambda w: isinstance(w, EdgeNode), route.waypoints)))}')
     print(f'total edges: {len(route.edges)}')
@@ -65,13 +69,10 @@ if __name__ == '__main__':
 
     # ---------- WAYPOINT PROCESSING ----------
 
-    # if check_edges(env):
-    #     waypoint_processing(route, cy, job_manager)
     waypoint_processing(route, job_manager)
 
     # ---------- EDGE PROCESSING ----------
 
-    # if check_arcs(env, cy.year):
     edge_processing(route, job_manager)
 
     # ---------- TRANSIT TIMES ----------
@@ -79,14 +80,10 @@ if __name__ == '__main__':
     # calculate the number of timesteps from first node to last node
     print(f'\nCalculating transit timesteps')
     keys = [job_manager.put(TransitTimeJob(speed, Globals.EDGES_FOLDER.joinpath('elapsed_timesteps_' + str(speed) + '.csv'), Globals.TRANSIT_TIMES_FOLDER)) for speed in Globals.BOAT_SPEEDS]
-    # for speed in Globals.BOAT_SPEEDS:
-    #     job = TransitTimeJob(speed, Globals.EDGES_FOLDER.joinpath('elapsed_timesteps_' + str(speed) + '.csv'), Globals.TRANSIT_TIMES_FOLDER)
-    #     job.execute()
     job_manager.wait()
 
-    # frames = [read_df(path) for path in [job_manager.get(key).filepath for key in keys]]
-
     arcs_df = concat([read_df(path) for path in [job_manager.get(key).filepath for key in keys]])
+
     arcs_df.sort_values(['start_date', 'name'], ignore_index=True, inplace=True)
     min_rotation_df = arcs_df[arcs_df['min_angle'].notna()]
     min_rotation_df = min_rotation_df.replace(to_replace=r'arc', value='min', regex=True)
