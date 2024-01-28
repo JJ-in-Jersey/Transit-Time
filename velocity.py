@@ -4,7 +4,7 @@ from sympy import Point
 from pathlib import Path
 
 # from tt_noaa_data.noaa_data import noaa_current_14_months
-from tt_noaa_data.noaa_data import noaa_current_dataframe
+from tt_noaa_data.noaa_data import noaa_current_dataframe, noaa_slack_dataframe
 from tt_interpolation.velocity_interpolation import Interpolator as VInt
 from tt_file_tools import file_tools as ft
 from tt_date_time_tools.date_time_tools import int_timestamp as date_time_index
@@ -23,9 +23,8 @@ class DownloadedVelocityCSV:
         self.filepath = folder.joinpath(wp_type.lower() + '_velocity.csv')
 
         if not self.filepath.exists():
-            station_bin = code.split('_')
 
-            frame = noaa_current_dataframe(start, end, folder, station_bin[0], station_bin[1])
+            frame = noaa_current_dataframe(start, end, folder, code)
             frame.rename(columns={'Time': 'date_time', ' Velocity_Major': 'velocity'}, inplace=True)
             frame['date_index'] = frame['date_time'].apply(date_time_index)
 
@@ -151,6 +150,20 @@ class SubordinateVelocityAdjustmentJob(Job):  # super -> job name, result key, f
         arguments = tuple([Globals.DOWNLOAD_INDEX_RANGE, filepath])
         super().__init__(waypoint.unique_name + ' ' + waypoint.type, result_key, SubordinateVelocityAdjustment, arguments)
 
+
+class DownloadedSlackCSV:
+
+    def __init__(self, start, end, folder: Path, station: str):
+
+        self.filepath = folder.joinpath(station + '_slack.csv')
+
+        if not self.filepath.exists():
+
+            frame = noaa_slack_dataframe(start, end, folder, station)
+            frame.rename(columns={'Time': 'date_time', ' Velocity_Major': 'velocity'}, inplace=True)
+            frame['date_index'] = frame['date_time'].apply(date_time_index)
+
+            ft.write_df(frame, self.filepath)
 
 # from tt_chrome_driver import chrome_driver as cd
 # from selenium.webdriver.support.ui import Select
