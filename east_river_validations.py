@@ -2,7 +2,7 @@ import pandas as pd
 from tt_file_tools import file_tools as ft
 from tt_geometry.geometry import time_to_degrees
 from validations import index_arc_df
-from velocity import DownloadedVelocityCSV
+from velocity import DownloadedSlackCSV
 from tt_globals.globals import Globals
 from tt_gpx.gpx import CurrentStationWP
 
@@ -16,7 +16,7 @@ class HellGateCurrentValidationDataframe:
 
     def __init__(self, wp: CurrentStationWP, f_date, l_date):
 
-        filepath = DownloadedVelocityCSV(Globals.YEAR, wp.folder, 'MAX_SLACK', wp.code, wp.type).filepath
+        filepath = DownloadedSlackCSV(Globals.FIRST_DAY, Globals.LAST_DAY, wp.folder, wp.code).filepath
 
         if filepath.exists():
             best_df = ft.read_df(filepath)
