@@ -2,7 +2,7 @@ from pathlib import Path
 
 from tt_file_tools import file_tools as ft
 from tt_job_manager.job_manager import Job
-from tt_noaa_data.noaa_data import noaa_tide_14_months
+from tt_noaa_data.noaa_data import noaa_tide_dataframe
 from tt_gpx.gpx import TideStationWP
 
 
@@ -11,12 +11,12 @@ def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 
 class DownloadedTideCSV:
 
-    def __init__(self, year: int, folder: Path, code: str):
+    def __init__(self, f_day, l_day, folder: Path, code: str):
 
         self.filepath = folder.joinpath('tide.csv')
 
         if not self.filepath.exists():
-            frame = noaa_tide_14_months(folder, year, code)
+            frame = noaa_tide_dataframe(f_day, l_day, folder, code)
             ft.write_df(frame, self.filepath)
 
 
@@ -26,9 +26,9 @@ class DownloadTideJob(Job):
     def execute_callback(self, result): return super().execute_callback(result)
     def error_callback(self, result): return super().error_callback(result)
 
-    def __init__(self, year: int, waypoint: TideStationWP):
+    def __init__(self, f_day, l_day, waypoint: TideStationWP):
         result_key = id(waypoint)
-        arguments = tuple([year, waypoint.folder, waypoint.code])
+        arguments = tuple([f_day, l_day, waypoint.folder, waypoint.code])
         super().__init__(waypoint.unique_name, result_key, DownloadedTideCSV, arguments)
 
 
