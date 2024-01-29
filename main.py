@@ -1,6 +1,7 @@
 from argparse import ArgumentParser as argParser
 from pathlib import Path
 
+import pandas as pd
 from pandas import concat as concat
 from tt_gpx.gpx import Route, Waypoint, Edge, EdgeNode, CurrentStationWP
 from tt_file_tools.file_tools import write_df, read_df
@@ -12,7 +13,6 @@ from waypoint_processing import waypoint_processing
 from edge_processing import edge_processing
 
 from east_river_validations import BatteryValidationDataframe, HellGateCurrentValidationDataframe
-from cape_cod_canal_validations import CapeCodCanalRailBridgeDataframe
 from transit_time import TransitTimeJob
 
 if __name__ == '__main__':
@@ -24,10 +24,8 @@ if __name__ == '__main__':
     ap.add_argument('filepath', type=Path, help='path to gpx file')
     ap.add_argument('year', type=int, help='calendar year for analysis')
     ap.add_argument('-dd', '--delete_data', action='store_true')
-    ap.add_argument('-hg', '--hell_gate', action='store_true')
-    ap.add_argument('-bat', '--battery', action='store_true')
-    ap.add_argument('-hh', '--horns_hook', action='store_true')
-    ap.add_argument('-ccc', '--cape_cod_canal', action='store_true')
+    ap.add_argument('-er', '--east_river', action='store_true')
+    ap.add_argument('-cdc', '--chesapeake_delaware_canal', action='store_true')
     args = vars(ap.parse_args())
 
     # ---------- SET UP GLOBALS ----------
@@ -91,23 +89,35 @@ if __name__ == '__main__':
     write_df(min_rotation_df, Globals.TRANSIT_TIMES_FOLDER.joinpath('minima.csv'))
     write_df(arcs_df, Globals.TRANSIT_TIMES_FOLDER.joinpath('arcs.csv'))
 
-    if args['hell_gate']:
-        print(f'\nHell Gate validation')
+    if args['east_river']:
+        print(f'\nEast River validation')
+        er_frame = pd.DataFrame()
+
         wp = list(filter(lambda w: 'Hell_Gate_Current' in w.unique_name, filter(lambda w: isinstance(w, CurrentStationWP), route.waypoints)))[0]
         frame = HellGateCurrentValidationDataframe(wp).frame
-        write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('hell_gate_current_validation.csv'))
+        er_frame = pd.concat([er_frame, frame])
 
-    if args['battery']:
-        print(f'\nBattery validation')
         path = list(filter(lambda w: 'NEW_YORK' in w.unique_name, route.waypoints))[0].folder.joinpath('tide.csv')
         frame = BatteryValidationDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
-        write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('battery_validation.csv'))
+        er_frame = pd.concat([er_frame, frame])
 
-    if args['cape_cod_canal']:
-        print(f'\nCape Cod Canal Battery validation')
-        path = list(filter(lambda w: 'Cape_Cod_Canal_RR' in w.unique_name, route.waypoints))[0].folder.joinpath('tide.csv')
-        frame = CapeCodCanalRailBridgeDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
-        write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('cape_cod_canal_validation.csv'))
+        er_frame.sort_values(['start_date'], ignore_index=True, inplace=True)
+        write_df(er_frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('east_river_validation.csv'))
+
+    # if args['chesapeake_delaware_canal']:
+    #     print(f'\nChesapeake Delaware Canal validation')
+    #     cdc_frame = pd.DataFrame()
+    #
+    #     path = list(filter(lambda w: 'Chesapeake City' in w.unique_name, route.waypoints))[0].folder.joinpath('tide.csv')
+    #     frame = ChesapeakeCityDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
+    #     cdc_frame = pd.concat([cdc_frame, frame])
+    #
+    #     path = list(filter(lambda w: 'Reedy Point Radio Tower' in w.unique_name, route.waypoints))[0].folder.joinpath('tide.csv')
+    #     frame = ReedyPointTowerDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
+    #     cdc_frame = pd.concat([cdc_frame, frame])
+    #
+    #     cdc_frame.sort_values(['start_date'], ignore_index=True, inplace=True)
+    #     write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('cape_cod_canal_validation.csv'))
 
     print(f'\nProcess Complete')
 
