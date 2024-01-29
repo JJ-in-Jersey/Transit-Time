@@ -93,13 +93,9 @@ if __name__ == '__main__':
 
     if args['hell_gate']:
         print(f'\nHell Gate validations')
-        folder = list(filter(lambda w: 'Hell_Gate_Current' in w.unique_name, filter(lambda w: isinstance(w, CurrentStationWP), route.waypoints)))[0]
-        frame = HellGateCurrentValidationDataframe(folder, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
+        wp = list(filter(lambda w: 'Hell_Gate_Current' in w.unique_name, filter(lambda w: isinstance(w, CurrentStationWP), route.waypoints)))[0]
+        frame = HellGateCurrentValidationDataframe(wp, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
         write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('hell_gate_current_validation.csv'))
-
-        # path = list(filter(lambda w: 'Hell_Gate_Tide' in w.unique_name, filter(lambda w: isinstance(w, TideStationWP), route.waypoints)))[0].folder.joinpath('tide.csv')
-        # frame = HellGateTideValidationDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
-        # write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('hell_gate_tide_validation.csv'))
 
     if args['battery']:
         print(f'\nEast River Battery validation')
