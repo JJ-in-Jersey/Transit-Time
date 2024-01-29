@@ -26,8 +26,8 @@ class HellGateCurrentValidationDataframe:
             best_df['time'] = best_df['date_time'].apply(pd.to_datetime).dt.time
             best_df['angle'] = best_df['time'].apply(time_to_degrees)
             best_df = best_df.filter(['start_date', 'time', 'angle'])
-            best_df = best_df[best_df['start_date'] >= f_date]
-            best_df = best_df[best_df['start_date'] < l_date]
+            # best_df = best_df[best_df['start_date'] >= f_date]
+            # best_df = best_df[best_df['start_date'] < l_date]
             best_df = best_df.assign(graphic_name='HG')
             self.frame = index_arc_df(best_df)
         else:
