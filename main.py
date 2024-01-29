@@ -11,7 +11,7 @@ from tt_globals.globals import Globals
 from waypoint_processing import waypoint_processing
 from edge_processing import edge_processing
 
-from east_river_validations import BatteryValidationDataframe, HellGateCurrentValidationDataframe, HornsHookValidationDataframe
+from east_river_validations import BatteryValidationDataframe, HellGateCurrentValidationDataframe
 from cape_cod_canal_validations import CapeCodCanalRailBridgeDataframe
 from transit_time import TransitTimeJob
 
@@ -92,22 +92,16 @@ if __name__ == '__main__':
     write_df(arcs_df, Globals.TRANSIT_TIMES_FOLDER.joinpath('arcs.csv'))
 
     if args['hell_gate']:
-        print(f'\nHell Gate validations')
+        print(f'\nHell Gate validation')
         wp = list(filter(lambda w: 'Hell_Gate_Current' in w.unique_name, filter(lambda w: isinstance(w, CurrentStationWP), route.waypoints)))[0]
-        frame = HellGateCurrentValidationDataframe(wp, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
+        frame = HellGateCurrentValidationDataframe(wp).frame
         write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('hell_gate_current_validation.csv'))
 
     if args['battery']:
-        print(f'\nEast River Battery validation')
+        print(f'\nBattery validation')
         path = list(filter(lambda w: 'NEW_YORK' in w.unique_name, route.waypoints))[0].folder.joinpath('tide.csv')
         frame = BatteryValidationDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
         write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('battery_validation.csv'))
-
-    if args['horns_hook']:
-        print(f'\nEast River Horns Hook validation')
-        path = list(filter(lambda w: 'Horns_Hook' in w.unique_name, route.waypoints))[0].folder.joinpath('tide.csv')
-        frame = HornsHookValidationDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
-        write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('horns_hook_validation.csv'))
 
     if args['cape_cod_canal']:
         print(f'\nCape Cod Canal Battery validation')
