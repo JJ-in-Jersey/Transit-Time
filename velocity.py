@@ -24,7 +24,7 @@ class DownloadedVelocityCSV:
 
         if not self.filepath.exists():
 
-            frame = noaa_current_dataframe(start, end, folder, code)
+            frame = noaa_current_dataframe(start, end, code)
             frame.rename(columns={'Time': 'date_time', ' Velocity_Major': 'velocity'}, inplace=True)
             frame['date_index'] = frame['date_time'].apply(date_time_index)
 
@@ -159,7 +159,7 @@ class DownloadedSlackCSV:
 
         if not self.filepath.exists():
 
-            frame = noaa_slack_dataframe(start, end, folder, station)
+            frame = noaa_slack_dataframe(start, end, station)
             frame.rename(columns={'Time': 'date_time', ' Velocity_Major': 'velocity'}, inplace=True)
             frame['date_index'] = frame['date_time'].apply(date_time_index)
 

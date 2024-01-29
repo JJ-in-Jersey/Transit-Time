@@ -11,12 +11,12 @@ def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 
 class DownloadedTideCSV:
 
-    def __init__(self, f_day, l_day, folder: Path, code: str):
+    def __init__(self, f_day, l_day, folder, code):
 
         self.filepath = folder.joinpath('tide.csv')
 
         if not self.filepath.exists():
-            frame = noaa_tide_dataframe(f_day, l_day, folder, code)
+            frame = noaa_tide_dataframe(f_day, l_day, code)
             ft.write_df(frame, self.filepath)
 
 
