@@ -70,13 +70,11 @@ def battery_validation():
     return best_df
 
 
-
 def chesapeake_city_validation():
     # eastbound depart 3 minutes before "Slack Water Flood Begins" at the Chesapeake City station for the very beginning of a fair current
-
     pass
+
 
 def reedy_point_tower_validation():
     # westbound depart 7 minutes before "Slack Water Ebb Begins" at the Reedy Point Tower station for the very beginning of a fair current
     pass
-
