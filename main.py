@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 from pandas import concat as concat
-from tt_gpx.gpx import Route, Waypoint, Edge, EdgeNode, CurrentStationWP
+from tt_gpx.gpx import Route, Waypoint, Edge, EdgeNode
 from tt_file_tools.file_tools import write_df, read_df
 from tt_chrome_driver import chrome_driver
 from tt_job_manager.job_manager import JobManager
@@ -12,8 +12,9 @@ from tt_globals.globals import Globals
 from waypoint_processing import waypoint_processing
 from edge_processing import edge_processing
 
-from east_river_validations import BatteryValidationDataframe, HellGateCurrentValidationDataframe
 from transit_time import TransitTimeJob
+
+from validations import hell_gate_validation, battery_validation
 
 if __name__ == '__main__':
 
@@ -55,6 +56,9 @@ if __name__ == '__main__':
 
     Globals.TRANSIT_TIMES_FOLDER.joinpath(str(route.edge_path.route_heading) + '.heading').touch()
 
+    for name in Waypoint.name_lookup.keys():
+        print(name, Waypoint.name_lookup[name].name)
+
     # ---------- CHECK CHROME ----------
 
     chrome_driver.check_driver()
@@ -91,14 +95,13 @@ if __name__ == '__main__':
 
     if args['east_river']:
         print(f'\nEast River validation')
+
         er_frame = pd.DataFrame()
 
-        wp = list(filter(lambda w: 'Hell_Gate_Current' in w.unique_name, filter(lambda w: isinstance(w, CurrentStationWP), route.waypoints)))[0]
-        frame = HellGateCurrentValidationDataframe(wp).frame
+        frame = hell_gate_validation()
         er_frame = pd.concat([er_frame, frame])
 
-        path = list(filter(lambda w: 'NEW_YORK' in w.unique_name, route.waypoints))[0].folder.joinpath('tide.csv')
-        frame = BatteryValidationDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
+        frame = battery_validation()
         er_frame = pd.concat([er_frame, frame])
 
         er_frame.sort_values(['start_date'], ignore_index=True, inplace=True)

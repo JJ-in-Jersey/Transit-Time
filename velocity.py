@@ -151,19 +151,6 @@ class SubordinateVelocityAdjustmentJob(Job):  # super -> job name, result key, f
         super().__init__(waypoint.unique_name + ' ' + waypoint.type, result_key, SubordinateVelocityAdjustment, arguments)
 
 
-class DownloadedSlackCSV:
-
-    def __init__(self, start, end, folder: Path, station: str):
-
-        self.filepath = folder.joinpath(station + '_slack.csv')
-
-        if not self.filepath.exists():
-
-            frame = noaa_slack_dataframe(start, end, station)
-            frame.rename(columns={'Time': 'date_time', ' Velocity_Major': 'velocity'}, inplace=True)
-            frame['date_index'] = frame['date_time'].apply(date_time_index)
-
-            ft.write_df(frame, self.filepath)
 
 # from tt_chrome_driver import chrome_driver as cd
 # from selenium.webdriver.support.ui import Select
