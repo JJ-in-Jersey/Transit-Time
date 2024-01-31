@@ -14,7 +14,7 @@ from edge_processing import edge_processing
 
 from transit_time import TransitTimeJob
 
-from validations import hell_gate_validation, battery_validation
+import validations
 
 if __name__ == '__main__':
 
@@ -96,31 +96,30 @@ if __name__ == '__main__':
     if args['east_river']:
         print(f'\nEast River validation')
 
-        er_frame = pd.DataFrame()
+        validation_frame = pd.DataFrame()
 
-        frame = hell_gate_validation()
-        er_frame = pd.concat([er_frame, frame])
+        frame = validations.hell_gate_validation()
+        validation_frame = pd.concat([validation_frame, frame])
 
-        frame = battery_validation()
-        er_frame = pd.concat([er_frame, frame])
+        frame = validations.battery_validation()
+        validation_frame = pd.concat([validation_frame, frame])
 
-        er_frame.sort_values(['start_date'], ignore_index=True, inplace=True)
-        write_df(er_frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('east_river_validation.csv'))
+        validation_frame.sort_values(['start_date'], ignore_index=True, inplace=True)
+        write_df(validation_frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('east_river_validation.csv'))
 
-    # if args['chesapeake_delaware_canal']:
-    #     print(f'\nChesapeake Delaware Canal validation')
-    #     cdc_frame = pd.DataFrame()
-    #
-    #     path = list(filter(lambda w: 'Chesapeake City' in w.unique_name, route.waypoints))[0].folder.joinpath('tide.csv')
-    #     frame = ChesapeakeCityDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
-    #     cdc_frame = pd.concat([cdc_frame, frame])
-    #
-    #     path = list(filter(lambda w: 'Reedy Point Radio Tower' in w.unique_name, route.waypoints))[0].folder.joinpath('tide.csv')
-    #     frame = ReedyPointTowerDataframe(path, Globals.FIRST_DAY_DATE, Globals.LAST_DAY_DATE).frame
-    #     cdc_frame = pd.concat([cdc_frame, frame])
-    #
-    #     cdc_frame.sort_values(['start_date'], ignore_index=True, inplace=True)
-    #     write_df(frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('cape_cod_canal_validation.csv'))
+    if args['chesapeake_delaware_canal']:
+        print(f'\nChesapeake Delaware Canal validation')
+
+        validation_frame = pd.DataFrame()
+
+        frame = validations.chesapeake_city_validation()
+        validation_frame = pd.concat([validation_frame, frame])
+
+        frame = validations.reedy_point_tower_validation()
+        validation_frame = pd.concat([validation_frame, frame])
+
+        validation_frame.sort_values(['start_date'], ignore_index=True, inplace=True)
+        write_df(validation_frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('chesapeake_delaware_validation.csv'))
 
     print(f'\nProcess Complete')
 

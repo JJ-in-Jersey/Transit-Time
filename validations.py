@@ -32,10 +32,10 @@ def hell_gate_validation():
     wp_code = "NYH1924"
 
     noaa_frame = noaa_slack_dataframe(Globals.FIRST_DAY, Globals.LAST_DAY, wp_code)
-    noaa_frame.rename(columns={'Time': 'date_time', ' Velocity_Major': 'velocity'}, inplace=True)
+    noaa_frame.rename(columns={'Time': 'date_time', ' Velocity_Major': 'velocity', ' Type': 'type'}, inplace=True)
     noaa_frame['date_index'] = noaa_frame['date_time'].apply(date_time_index)
 
-    slack_frame = noaa_frame[noaa_frame[' Type'] == 'slack']
+    slack_frame = noaa_frame[noaa_frame['type'] == 'slack']
     slack_frame.sort_values('date_time')
     slack_frame['start_date'] = slack_frame['date_time'].apply(pd.to_datetime).dt.date
     slack_frame['time'] = slack_frame['date_time'].apply(pd.to_datetime).dt.time
@@ -72,9 +72,43 @@ def battery_validation():
 
 def chesapeake_city_validation():
     # eastbound depart 3 minutes before "Slack Water Flood Begins" at the Chesapeake City station for the very beginning of a fair current
-    pass
+    wp_code = "cb1301"
+
+    noaa_frame = noaa_slack_dataframe(Globals.FIRST_DOWNLOAD_DAY, Globals.LAST_DOWNLOAD_DAY, wp_code)
+    noaa_frame.rename(columns={'Time': 'date_time', ' Velocity_Major': 'velocity', ' Type': 'type'}, inplace=True)
+    slack_frame = noaa_frame[noaa_frame['type'].shift(-1) == 'flood']
+    slack_frame['date_time'] = slack_frame['date_time'].apply(pd.to_datetime) - pd.Timedelta(minutes=3)
+    slack_frame = slack_frame[slack_frame['date_time'] >= Globals.FIRST_DAY]
+    slack_frame = slack_frame[slack_frame['date_time'] < Globals.LAST_DAY]
+    slack_frame['date_index'] = slack_frame['date_time'].apply(date_time_index)
+
+    slack_frame['start_date'] = slack_frame['date_time'].apply(pd.to_datetime).dt.date
+    slack_frame['time'] = slack_frame['date_time'].apply(pd.to_datetime).dt.time
+    slack_frame['angle'] = slack_frame['time'].apply(time_to_degrees)
+
+    slack_frame = slack_frame.filter(['start_date', 'time', 'angle'])
+    slack_frame = slack_frame.assign(graphic_name='CC')
+    slack_frame = index_arc_df(slack_frame)
+    return slack_frame
 
 
 def reedy_point_tower_validation():
     # westbound depart 7 minutes before "Slack Water Ebb Begins" at the Reedy Point Tower station for the very beginning of a fair current
-    pass
+    wp_code = "ACT6256"
+
+    noaa_frame = noaa_slack_dataframe(Globals.FIRST_DOWNLOAD_DAY, Globals.LAST_DOWNLOAD_DAY, wp_code)
+    noaa_frame.rename(columns={'Time': 'date_time', ' Velocity_Major': 'velocity', ' Type': 'type'}, inplace=True)
+    slack_frame = noaa_frame[noaa_frame['type'].shift(-1) == 'ebb']
+    slack_frame['date_time'] = slack_frame['date_time'].apply(pd.to_datetime) - pd.Timedelta(minutes=7)
+    slack_frame = slack_frame[slack_frame['date_time'] >= Globals.FIRST_DAY]
+    slack_frame = slack_frame[slack_frame['date_time'] < Globals.LAST_DAY]
+    slack_frame['date_index'] = slack_frame['date_time'].apply(date_time_index)
+
+    slack_frame['start_date'] = slack_frame['date_time'].apply(pd.to_datetime).dt.date
+    slack_frame['time'] = slack_frame['date_time'].apply(pd.to_datetime).dt.time
+    slack_frame['angle'] = slack_frame['time'].apply(time_to_degrees)
+
+    slack_frame = slack_frame.filter(['start_date', 'time', 'angle'])
+    slack_frame = slack_frame.assign(graphic_name='RP')
+    slack_frame = index_arc_df(slack_frame)
+    return slack_frame
