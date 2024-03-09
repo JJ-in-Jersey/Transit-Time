@@ -168,6 +168,7 @@ class ArcsDataframe:
                 write_df(minima_df, minima_path)
 
             frame = create_arcs(f_day, l_day, minima_df, shape_name)
+            frame['speed'] = speed
             write_df(frame, self.filepath)
 
 
