@@ -96,6 +96,7 @@ def index_arc_df(frame):
         elapsed_time_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('elapsed_time')])
 
     arc_frame = pd.DataFrame(columns=Arc.columns)
+    arc_frame.insert(loc=1, column='index', value=None)
     for date in date_keys:
         names = name_dict[date]
         start_times = start_time_dict[date]
@@ -107,7 +108,7 @@ def index_arc_df(frame):
         elapsed_times = elapsed_time_dict[date]
 
         for i in range(len(names)):
-            arc_frame.loc[len(arc_frame)] = [names[i] + ' ' + str(i + 1), date,
+            arc_frame.loc[len(arc_frame)] = [names[i] + ' ' + str(i + 1), i+1, date,
                                              start_times[i], start_angles[i], min_times[i], min_angles[i],
                                              end_times[i], end_angels[i], elapsed_times[i]]
     return arc_frame
