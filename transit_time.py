@@ -108,6 +108,7 @@ def index_arc_df(frame):
         elapsed_times = elapsed_time_dict[date]
 
         for i in range(len(names)):
+            print(f'i={i} len={len(arc_frame)} name={names[i]} {i+1} date={start_times[i]}')
             arc_frame.loc[len(arc_frame)] = [names[i] + ' ' + str(i + 1), i+1, date,
                                              start_times[i], start_angles[i], min_times[i], min_angles[i],
                                              end_times[i], end_angels[i], elapsed_times[i]]
@@ -126,7 +127,7 @@ def create_arcs(f_day, l_day, arc_frame, shape_name):
 
     arcs_df = pd.DataFrame(whole_arc_rows + start_day_rows + end_day_rows)
     arcs_df.columns = Arc.columns
-
+    arcs_df.sort_values(by=['start_date', 'start_time'], inplace=True)
     arcs_df = index_arc_df(arcs_df)
     arcs_df = arcs_df[arcs_df['start_date'] <= l_day.date()]
     arcs_df = arcs_df[arcs_df['start_date'] >= f_day.date()]
