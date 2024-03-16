@@ -108,7 +108,6 @@ def index_arc_df(frame):
         elapsed_times = elapsed_time_dict[date]
 
         for i in range(len(names)):
-            print(f'i={i} len={len(arc_frame)} name={names[i]} {i+1} date={start_times[i]}')
             arc_frame.loc[len(arc_frame)] = [names[i] + ' ' + str(i + 1), i+1, date,
                                              start_times[i], start_angles[i], min_times[i], min_angles[i],
                                              end_times[i], end_angels[i], elapsed_times[i]]
