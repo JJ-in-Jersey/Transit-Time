@@ -3,8 +3,8 @@ from scipy.interpolate import CubicSpline
 from sympy import Point
 from pathlib import Path
 
-# from tt_noaa_data.noaa_data import noaa_current_14_months
-from tt_noaa_data.noaa_data import noaa_current_dataframe, noaa_slack_dataframe
+# from tt_noaa_data.noaa_data import noaa_current_dataframe, noaa_slack_dataframe
+from tt_noaa_data.noaa_data import noaa_current_dataframe
 from tt_interpolation.velocity_interpolation import Interpolator as VInt
 from tt_file_tools import file_tools as ft
 from tt_date_time_tools.date_time_tools import int_timestamp as date_time_index
@@ -109,6 +109,8 @@ def interpolate_group(waypoints, job_manager):
         for i, wp in enumerate(data_waypoints):
             velocity_data[i]['lat'] = wp.lat
             velocity_data[i]['lon'] = wp.lon
+
+        print(f'length of velocity data {len(velocity_data[0])}')
             
         keys = [job_manager.put(InterpolatePointJob(interpolation_pt, velocity_data, i)) for i in range(len(velocity_data[0]))]
         job_manager.wait()
