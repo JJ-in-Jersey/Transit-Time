@@ -25,9 +25,10 @@ class DownloadedVelocityCSV:
         if not self.filepath.exists():
 
             frame = noaa_current_dataframe(start, end, code)
+            ft.write_df(frame, folder.joinpath('orig_velocity_download.csv'))
+
             frame.rename(columns={'Time': 'date_time', ' Velocity_Major': 'velocity'}, inplace=True)
             frame['date_index'] = frame['date_time'].apply(date_time_index)
-
             ft.write_df(frame, self.filepath)
 
 
