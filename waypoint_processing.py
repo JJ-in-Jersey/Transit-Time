@@ -22,10 +22,6 @@ def waypoint_processing(route, job_manager):
     for path in [job_manager.get(key).filepath for key in keys]:
         print_file_exists(path)
 
-    # for wp in filter(lambda w: isinstance(w, InterpolatedDataWP), route.waypoints):
-    #     job = DownloadVelocityJob(Globals.FIRST_DOWNLOAD_DAY, Globals.LAST_DOWNLOAD_DAY, wp)
-    #     xxx = job.execute()
-
     print(f'\nInterpolating the data to approximate velocity for INTERPOLATED WAYPOINTS', flush=True)
     for group in route.interpolation_groups:
         interpolate_group(group, job_manager)
