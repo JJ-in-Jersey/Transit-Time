@@ -1,7 +1,7 @@
 from tt_globals.globals import Globals
 from tt_gpx.gpx import InterpolatedDataWP, CurrentStationWP, InterpolatedWP, TideStationWP, SurrogateWP
 from tt_file_tools.file_tools import print_file_exists
-from velocity import DownloadVelocityJob, SubordinateVelocityAdjustmentJob, SplineFitHarmonicVelocityJob, interpolate_group
+from velocity import DownloadVelocityJob, SplineFitHarmonicVelocityJob, interpolate_group
 
 
 def waypoint_processing(route, job_manager):
