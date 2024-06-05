@@ -7,7 +7,7 @@ from pathlib import Path
 from tt_noaa_data.noaa_data import noaa_current_dataframe
 from tt_interpolation.velocity_interpolation import Interpolator as VInt
 from tt_file_tools import file_tools as ft
-from tt_date_time_tools.date_time_tools import int_timestamp as date_time_index
+from tt_date_time_tools.date_time_tools import date_to_index
 from tt_job_manager.job_manager import Job
 from tt_gpx.gpx import DownloadedDataWP, Waypoint
 from tt_globals.globals import Globals
@@ -18,18 +18,26 @@ def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
 
 class DownloadedVelocityCSV:
 
-    def __init__(self, start, end, folder: Path, code: str, wp_type: str):
+    def __init__(self, fdd, ldd, ndd, ndi, folder: Path, code: str):
 
-        self.filepath = folder.joinpath(wp_type.lower() + '_velocity.csv')
+        self.filepath = folder.joinpath('normalized_velocity.csv')
 
-        if not self.filepath.exists():
+        if self.filepath.exists():
+            self.frame = ft.read_df(self.filepath)
+        else:
+            downloaded_frame = noaa_current_dataframe(fdd, ldd, code)
+            downloaded_frame['date_index'] = downloaded_frame['Time'].apply(date_to_index)
+            ft.write_df(downloaded_frame, folder.joinpath('orig_velocity_download.csv'))
 
-            frame = noaa_current_dataframe(start, end, code)
-            ft.write_df(frame, folder.joinpath('orig_velocity_download.csv'))
+            self.frame = pd.DataFrame()
+            self.frame['date_time'] = ndd
+            self.frame['date_index'] = ndi
 
-            frame.rename(columns={'Time': 'date_time', ' Velocity_Major': 'velocity'}, inplace=True)
-            frame['date_index'] = frame['date_time'].apply(date_time_index)
-            ft.write_df(frame, self.filepath)
+            cs = CubicSpline(downloaded_frame['date_index'], downloaded_frame[' Velocity_Major'])
+            self.frame['velocity'] = self.frame['date_index'].apply(cs)
+            self.frame['velocity'] = self.frame['velocity'].round(decimals=3)
+
+            ft.write_df(self.frame, self.filepath)
 
 
 class DownloadVelocityJob(Job):  # super -> job name, result key, function/object, arguments
@@ -38,9 +46,9 @@ class DownloadVelocityJob(Job):  # super -> job name, result key, function/objec
     def execute_callback(self, result): return super().execute_callback(result)
     def error_callback(self, result): return super().error_callback(result)
 
-    def __init__(self, start, end, wp: DownloadedDataWP):
+    def __init__(self, global_class, wp: DownloadedDataWP):
         result_key = id(wp)
-        arguments = tuple([start, end, wp.folder, wp.code, wp.type])
+        arguments = tuple([global_class.FIRST_DOWNLOAD_DAY, global_class.LAST_DOWNLOAD_DAY, global_class.NORMALIZED_DOWNLOAD_DATES, global_class.NORMALIZED_DOWNLOAD_INDICES, wp.folder, wp.code])
         super().__init__(wp.unique_name, result_key, DownloadedVelocityCSV, arguments)
 
 
@@ -102,24 +110,26 @@ def interpolate_group(waypoints, job_manager):
 
     interpolation_pt = waypoints[0]
     data_waypoints = waypoints[1:]
-    output_filepath = interpolation_pt.folder.joinpath('harmonic_velocity.csv')
+    output_filepath = interpolation_pt.folder.joinpath('interpolated_velocity.csv')
 
     if not output_filepath.exists():
 
-        velocity_data = [ft.read_df(wp.folder.joinpath('harmonic_velocity.csv')) for wp in data_waypoints]
+        velocity_data = []
+        for i, wp in enumerate(data_waypoints):
+            velocity_data.append(ft.read_df(wp.folder.joinpath('normalized_velocity.csv')))
+            print(i, len(velocity_data[i]), wp.name)
+
         for i, wp in enumerate(data_waypoints):
             velocity_data[i]['lat'] = wp.lat
             velocity_data[i]['lon'] = wp.lon
 
-        print(f'length of velocity data {len(velocity_data[0])}')
-            
         keys = [job_manager.put(InterpolatePointJob(interpolation_pt, velocity_data, i)) for i in range(len(velocity_data[0]))]
         job_manager.wait()
 
         result_array = tuple([job_manager.get(key).date_velocity for key in keys])
         frame = pd.DataFrame(result_array, columns=['date_index', 'velocity'])
         frame.sort_values('date_index', inplace=True)
-        frame['date_time'] = frame['date_index'].apply(date_time_index)
+        frame['date_time'] = frame['date_index'].apply(date_to_index)
         frame.reset_index(drop=True, inplace=True)
         interpolation_pt.downloaded_data = frame
         ft.write_df(frame, output_filepath)
@@ -152,8 +162,6 @@ class SubordinateVelocityAdjustmentJob(Job):  # super -> job name, result key, f
         filepath = waypoint.folder.joinpath('subordinate_velocity.csv')
         arguments = tuple([Globals.DOWNLOAD_INDEX_RANGE, filepath])
         super().__init__(waypoint.unique_name + ' ' + waypoint.type, result_key, SubordinateVelocityAdjustment, arguments)
-
-
 
 # from tt_chrome_driver import chrome_driver as cd
 # from selenium.webdriver.support.ui import Select
