@@ -2,7 +2,7 @@ import pandas as pd
 from tt_geometry.geometry import time_to_degrees
 from tt_globals.globals import Globals
 from tt_noaa_data.noaa_data import noaa_tide_dataframe, noaa_slack_dataframe
-from tt_date_time_tools.date_time_tools import int_timestamp as date_time_index
+from tt_date_time_tools.date_time_tools import date_to_index
 
 
 def index_arc_df(frame):
@@ -33,7 +33,7 @@ def hell_gate_validation():
 
     noaa_frame = noaa_slack_dataframe(Globals.FIRST_DAY, Globals.LAST_DAY, wp_code)
     noaa_frame.rename(columns={'Time': 'date_time', ' Velocity_Major': 'velocity', ' Type': 'type'}, inplace=True)
-    noaa_frame['date_index'] = noaa_frame['date_time'].apply(date_time_index)
+    noaa_frame['date_index'] = noaa_frame['date_time'].apply(date_to_index)
 
     slack_frame = noaa_frame[noaa_frame['type'] == 'slack']
     slack_frame.sort_values('date_time')
@@ -80,7 +80,7 @@ def chesapeake_city_validation():
     slack_frame['date_time'] = slack_frame['date_time'].apply(pd.to_datetime) - pd.Timedelta(minutes=3)
     slack_frame = slack_frame[slack_frame['date_time'] >= Globals.FIRST_DAY]
     slack_frame = slack_frame[slack_frame['date_time'] < Globals.LAST_DAY]
-    slack_frame['date_index'] = slack_frame['date_time'].apply(date_time_index)
+    slack_frame['date_index'] = slack_frame['date_time'].apply(date_to_index)
 
     slack_frame['start_date'] = slack_frame['date_time'].apply(pd.to_datetime).dt.date
     slack_frame['time'] = slack_frame['date_time'].apply(pd.to_datetime).dt.time
@@ -102,7 +102,7 @@ def reedy_point_tower_validation():
     slack_frame['date_time'] = slack_frame['date_time'].apply(pd.to_datetime) - pd.Timedelta(minutes=7)
     slack_frame = slack_frame[slack_frame['date_time'] >= Globals.FIRST_DAY]
     slack_frame = slack_frame[slack_frame['date_time'] < Globals.LAST_DAY]
-    slack_frame['date_index'] = slack_frame['date_time'].apply(date_time_index)
+    slack_frame['date_index'] = slack_frame['date_time'].apply(date_to_index)
 
     slack_frame['start_date'] = slack_frame['date_time'].apply(pd.to_datetime).dt.date
     slack_frame['time'] = slack_frame['date_time'].apply(pd.to_datetime).dt.time
