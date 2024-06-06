@@ -10,7 +10,6 @@ from tt_file_tools import file_tools as ft
 from tt_date_time_tools.date_time_tools import date_to_index, index_to_date
 from tt_job_manager.job_manager import Job
 from tt_gpx.gpx import DownloadedDataWP, Waypoint
-from tt_globals.globals import Globals
 
 
 def dash_to_zero(value): return 0.0 if str(value).strip() == '-' else value
@@ -52,7 +51,7 @@ class DownloadVelocityJob(Job):  # super -> job name, result key, function/objec
         super().__init__(wp.unique_name, result_key, DownloadedVelocityCSV, arguments)
 
 
-class SplineFitHarmonicVelocityCSV:
+class SplineFitNormalizedVelocityCSV:
 
     # def __init__(self, velocity_file: Path, download_range: range):
     def __init__(self, index_range, velocity_file):
@@ -68,7 +67,7 @@ class SplineFitHarmonicVelocityCSV:
             ft.write_df(frame, self.filepath)
 
 
-class SplineFitHarmonicVelocityJob(Job):  # super -> job name, result key, function/object, arguments
+class SplineFitNormalizedVelocityJob(Job):  # super -> job name, result key, function/object, arguments
 
     def execute(self): return super().execute()
     def execute_callback(self, result): return super().execute_callback(result)
@@ -76,9 +75,9 @@ class SplineFitHarmonicVelocityJob(Job):  # super -> job name, result key, funct
 
     def __init__(self, index_range, waypoint: Waypoint):
         result_key = id(waypoint)
-        filepath = waypoint.folder.joinpath('harmonic_velocity.csv')
+        filepath = waypoint.folder.joinpath('normalized_velocity.csv')
         arguments = tuple([index_range, filepath])
-        super().__init__(waypoint.unique_name, result_key, SplineFitHarmonicVelocityCSV, arguments)
+        super().__init__(waypoint.unique_name, result_key, SplineFitNormalizedVelocityCSV, arguments)
 
 
 class InterpolatedPoint:
