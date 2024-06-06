@@ -1,5 +1,5 @@
 from tt_globals.globals import Globals
-from tt_gpx.gpx import CurrentStationWP, InterpolatedWP, SurrogateWP
+from tt_gpx.gpx import InterpolatedWP, EdgeNode
 from tt_file_tools.file_tools import print_file_exists
 from velocity import DownloadVelocityJob, SplineFitNormalizedVelocityJob
 
@@ -25,18 +25,18 @@ def waypoint_processing(route, job_manager):
 
         print(f'\nInterpolating the data to approximate velocity for INTERPOLATED WAYPOINTS', flush=True)
         iwp.interpolate(job_manager)
-        print_file_exists(iwp.folder.joinpath('normalized_velocity.csv'))
+        print_file_exists(iwp.folder.joinpath(Globals.WAYPOINT_DATAFILE_NAME))
 
-    # ---------- CURRENT STATION and SURROGATE WAYPOINTS ----------
+    # ---------- REMAINING EDGE NODES ----------
 
-    print(f'\nDownloading current data for CURRENT STATION and SURROGATE WAYPOINTS', flush=True)
-    keys = [job_manager.put(DownloadVelocityJob(Globals, wp)) for wp in filter(lambda w: (isinstance(w, CurrentStationWP) or isinstance(w, SurrogateWP)), route.waypoints)]
+    print(f'\nDownloading current data for remaining EDGE NODES', flush=True)
+    keys = [job_manager.put(DownloadVelocityJob(Globals, wp)) for wp in filter(lambda w: isinstance(w, EdgeNode) and not isinstance(w, InterpolatedWP), route.waypoints)]
     job_manager.wait()
     for path in [job_manager.get(key).filepath for key in keys]:
         print_file_exists(path)
 
-    print(f'\nSpline fit data from CURRENT STATION and SURROGATE WAYPOINTS', flush=True)
-    keys = [job_manager.put(SplineFitNormalizedVelocityJob(Globals.DOWNLOAD_INDEX_RANGE, wp)) for wp in filter(lambda w: isinstance(w, CurrentStationWP) or isinstance(w, SurrogateWP), route.waypoints)]
+    print(f'\nSpline fit EDGE NODES', flush=True)
+    keys = [job_manager.put(SplineFitNormalizedVelocityJob(Globals.DOWNLOAD_INDEX_RANGE, wp)) for wp in filter(lambda w: isinstance(w, EdgeNode), route.waypoints)]
     job_manager.wait()
     for path in [job_manager.get(key).filepath for key in keys]:
         print_file_exists(path)

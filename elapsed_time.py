@@ -52,9 +52,9 @@ class ElapsedTimeJob(Job):  # super -> job name, result key, function/object, ar
     def __init__(self, edge: Edge, speed):
         job_name = edge.unique_name + ' ' + str(round(edge.length, 3)) + ' ' + str(speed)
         result_key = edge.unique_name + '_' + str(speed)
-        start_velocity = ft.read_df(edge.start.folder.joinpath('harmonic_velocity_spline_fit.csv'))
+        start_velocity = ft.read_df(edge.start.folder.joinpath(Globals.EDGE_DATAFILE_NAME))
         init_velo = start_velocity['velocity'].to_numpy()
-        end_velocity = ft.read_df(edge.end.folder.joinpath('harmonic_velocity_spline_fit.csv'))
+        end_velocity = ft.read_df(edge.end.folder.joinpath(Globals.EDGE_DATAFILE_NAME))
         final_velo = end_velocity['velocity'].to_numpy()
         arguments = tuple([edge.folder, init_velo, final_velo, Globals.ELAPSED_TIME_INDEX_RANGE, edge.length, speed])
         super().__init__(job_name, result_key, ElapsedTimeDataframe, arguments)
