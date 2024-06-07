@@ -24,11 +24,6 @@ def edge_processing(route, job_manager):
         print(f'\nCalculating elapsed timesteps for edges at {s} kts')
         if not speed_path.exists():
             keys = [job_manager.put(ElapsedTimeJob(edge, s)) for edge in route.edges]
-
-            # for edge in route.edges:
-            #     job = ElapsedTimeJob(edge, s)
-            #     job.execute()
-
             job_manager.wait()
             filepaths = [job_manager.get(key).filepath for key in keys]
             for path in filepaths:
