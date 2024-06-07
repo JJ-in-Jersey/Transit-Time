@@ -29,13 +29,13 @@ def waypoint_processing(route, job_manager):
 
     # ---------- REMAINING EDGE NODES ----------
 
-    print(f'\nDownloading current data for remaining EDGE NODES', flush=True)
+    print(f'\nDownloading current data for non-interpolated EDGE NODE waypoints', flush=True)
     keys = [job_manager.put(DownloadVelocityJob(Globals, wp)) for wp in filter(lambda w: isinstance(w, EdgeNode) and not isinstance(w, InterpolatedWP), route.waypoints)]
     job_manager.wait()
     for path in [job_manager.get(key).filepath for key in keys]:
         print_file_exists(path)
 
-    print(f'\nSpline fit EDGE NODES', flush=True)
+    print(f'\nSpline fitting all EDGE NODE waypoints', flush=True)
     keys = [job_manager.put(SplineFitNormalizedVelocityJob(Globals.DOWNLOAD_INDEX_RANGE, wp)) for wp in filter(lambda w: isinstance(w, EdgeNode), route.waypoints)]
     job_manager.wait()
     for path in [job_manager.get(key).filepath for key in keys]:
