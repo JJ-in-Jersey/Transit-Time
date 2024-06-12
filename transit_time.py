@@ -188,20 +188,3 @@ class TransitTimeJob(Job):  # super -> job name, result key, function/object, ar
         result_key = speed
         arguments = tuple([speed, Globals.TRANSIT_TIME_INDEX_RANGE, et_file, tt_folder, Globals.FIRST_DAY, Globals.LAST_DAY])
         super().__init__(job_name, result_key, ArcsDataframe, arguments)
-
-
-# def check_arcs(env, year):
-#
-#     edge_processing_required = False
-#     for speed in Globals.BOAT_SPEEDS:
-#
-#         sign = '+' if speed / abs(speed) > 0 else '-'
-#         boat_speed = sign + str(abs(speed))
-#
-#         speed_folder = env.transit_time_folder.joinpath(num2words(boat_speed))
-#         arcs_path = speed_folder.joinpath(str(year) + '_' + str(boat_speed) + '_arcs')
-#
-#         if not arcs_path.exists():
-#             edge_processing_required = True
-#
-#     return edge_processing_required
