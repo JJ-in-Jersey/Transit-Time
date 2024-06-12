@@ -149,13 +149,12 @@ class ArcsDataframe:
         sign = '+' if speed / abs(speed) > 0 else '-'
         boat_speed = sign + str(abs(speed))
         shape_name = 'arc ' + boat_speed
-        file_header = str(f_day.date().year) + '_' + boat_speed
         speed_folder = tt_folder.joinpath(num2words(speed))
 
-        transit_timesteps_path = speed_folder.joinpath(file_header + '_timesteps.npy')
-        savgol_path = speed_folder.joinpath(file_header + '_savgol.npy')
-        minima_path = speed_folder.joinpath(file_header + '_minima.csv')
-        self.filepath = speed_folder.joinpath(file_header + '_arcs.csv')
+        transit_timesteps_path = speed_folder.joinpath('timesteps.npy')
+        savgol_path = speed_folder.joinpath('savgol.npy')
+        minima_path = speed_folder.joinpath('minima.csv')
+        self.filepath = speed_folder.joinpath('arcs.csv')
 
         if not self.filepath.exists():
             if transit_timesteps_path.exists():
