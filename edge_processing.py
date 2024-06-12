@@ -5,14 +5,14 @@ from elapsed_time import ElapsedTimeJob
 from tt_globals.globals import Globals
 
 
-def check_edges(env):
-
-    waypoint_processing_required = False
-    for s in Globals.BOAT_SPEEDS:
-        speed_path = env.elapsed_time_folder.joinpath('elapsed_timesteps_'+str(s) + '.csv')
-        if not speed_path.exists():
-            waypoint_processing_required = True
-    return waypoint_processing_required
+# def check_edges(env):
+#
+#     waypoint_processing_required = False
+#     for s in Globals.BOAT_SPEEDS:
+#         speed_path = env.elapsed_time_folder.joinpath('elapsed_timesteps_'+str(s) + '.csv')
+#         if not speed_path.exists():
+#             waypoint_processing_required = True
+#     return waypoint_processing_required
 
 
 def edge_processing(route, job_manager):
