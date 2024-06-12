@@ -7,7 +7,7 @@ import numpy as np
 from tt_file_tools.file_tools import read_df, write_df
 from tt_geometry.geometry import Arc
 from tt_job_manager.job_manager import Job
-from tt_date_time_tools.date_time_tools import index_to_date
+from tt_date_time_tools.date_time_tools import index_to_date, round_time
 from tt_globals.globals import Globals
 
 
@@ -28,19 +28,19 @@ def total_transit_time(init_row, d_frame, cols):
 
 def minima_table(transit_array, tt_range, savgol_path):
     noise_size = 100
-    tt_df = pd.DataFrame()
-    tt_df['departure_index'] = tt_range
-    tt_df['departure_index'].astype('int')
-    tt_df = tt_df.assign(tts=transit_array)
+    min_df = pd.DataFrame()
+    min_df['departure_index'] = tt_range
+    min_df['departure_index'].astype('int')
+    min_df = min_df.assign(tts=transit_array)
     if savgol_path.exists():
-        tt_df['midline'] = np.load(savgol_path)
+        min_df['midline'] = np.load(savgol_path)
     else:
-        tt_df['midline'] = savgol_filter(transit_array, 50000, 1)
-        np.save(savgol_path, tt_df['midline'])
+        min_df['midline'] = savgol_filter(transit_array, 50000, 1)
+        np.save(savgol_path, min_df['midline'])
 
-    tt_df['TF'] = tt_df['tts'].lt(tt_df['midline'])  # Above midline = False,  below midline = True
-    tt_df['block'] = (tt_df['TF'] != tt_df['TF'].shift(1)).cumsum()  # index the blocks of True and False
-    clump_lookup = {index: df for index, df in tt_df.groupby('block') if df['TF'].any()}  # select only the True blocks
+    min_df['TF'] = min_df['tts'].lt(min_df['midline'])  # Above midline = False,  below midline = True
+    min_df['block'] = (min_df['TF'] != min_df['TF'].shift(1)).cumsum()  # index the blocks of True and False
+    clump_lookup = {index: df for index, df in min_df.groupby('block') if df['TF'].any()}  # select only the True blocks
     clump_lookup = {index: df.drop(['TF', 'block', 'midline'], axis=1).reset_index() for index, df in clump_lookup.items() if len(df) > noise_size}  # remove the tiny blocks caused by noise at the inflections
 
     for index, clump in clump_lookup.items():
@@ -58,17 +58,21 @@ def minima_table(transit_array, tt_range, savgol_path):
         end_row = clump.iloc[-1] if clump.iloc[-1]['tts'] < offset else clump[clump['departure_index'].ge(minimum_departure) & clump['tts'].ge(offset)].iloc[0]
         end_departure = end_row['departure_index']
 
-        tt_df.at[minimum_row['index'], 'start_index'] = start_departure
-        tt_df.at[minimum_row['index'], 'start_datetime'] = index_to_date(start_departure)
-        tt_df.at[minimum_row['index'], 'min_index'] = minimum_departure
-        tt_df.at[minimum_row['index'], 'min_datetime'] = index_to_date(minimum_departure)
-        tt_df.at[minimum_row['index'], 'end_index'] = end_departure
-        tt_df.at[minimum_row['index'], 'end_datetime'] = index_to_date(end_departure)
+        min_df.at[minimum_row['index'], 'start_index'] = start_departure
+        min_df.at[minimum_row['index'], 'start_datetime'] = index_to_date(start_departure)
+        min_df.at[minimum_row['index'], 'min_index'] = minimum_departure
+        min_df.at[minimum_row['index'], 'min_datetime'] = index_to_date(minimum_departure)
+        min_df.at[minimum_row['index'], 'end_index'] = end_departure
+        min_df.at[minimum_row['index'], 'end_datetime'] = index_to_date(end_departure)
 
-    tt_df['transit_time'] = pd.to_timedelta(tt_df['tts']*Globals.TIMESTEP, unit='s').round('min')
-    tt_df = tt_df.dropna(axis=0).sort_index().reset_index(drop=True)  # make minima_df easier to write
-    tt_df.drop(['tts', 'departure_index', 'midline', 'block', 'TF'], axis=1, inplace=True)  # make minima_df easier to write
-    return tt_df
+    min_df['transit_time'] = pd.to_timedelta(min_df['tts']*Globals.TIMESTEP, unit='s').round('min')
+
+    min_df = min_df.dropna(axis=0).sort_index().reset_index(drop=True)  # remove lines with NA
+    min_df.drop(['tts', 'departure_index', 'midline', 'block', 'TF'], axis=1, inplace=True)  # delete unwanted columns
+    min_df['round_start'] = min_df['start_datetime'].apply(round_time)
+    min_df['round_min'] = min_df['min_datetime'].apply(round_time)
+    min_df['round_end'] = min_df['end_datetime'].apply(round_time)
+    return min_df
 
 
 def index_arc_df(frame):
@@ -151,11 +155,9 @@ class ArcsDataframe:
         transit_timesteps_path = speed_folder.joinpath(file_header + '_timesteps.npy')
         savgol_path = speed_folder.joinpath(file_header + '_savgol.npy')
         minima_path = speed_folder.joinpath(file_header + '_minima.csv')
-
         self.filepath = speed_folder.joinpath(file_header + '_arcs.csv')
 
         if not self.filepath.exists():
-
             if transit_timesteps_path.exists():
                 transit_timesteps_arr = np.load(transit_timesteps_path)
             else:
@@ -188,18 +190,18 @@ class TransitTimeJob(Job):  # super -> job name, result key, function/object, ar
         super().__init__(job_name, result_key, ArcsDataframe, arguments)
 
 
-def check_arcs(env, year):
-
-    edge_processing_required = False
-    for speed in Globals.BOAT_SPEEDS:
-
-        sign = '+' if speed / abs(speed) > 0 else '-'
-        boat_speed = sign + str(abs(speed))
-
-        speed_folder = env.transit_time_folder.joinpath(num2words(boat_speed))
-        arcs_path = speed_folder.joinpath(str(year) + '_' + str(boat_speed) + '_arcs')
-
-        if not arcs_path.exists():
-            edge_processing_required = True
-
-    return edge_processing_required
+# def check_arcs(env, year):
+#
+#     edge_processing_required = False
+#     for speed in Globals.BOAT_SPEEDS:
+#
+#         sign = '+' if speed / abs(speed) > 0 else '-'
+#         boat_speed = sign + str(abs(speed))
+#
+#         speed_folder = env.transit_time_folder.joinpath(num2words(boat_speed))
+#         arcs_path = speed_folder.joinpath(str(year) + '_' + str(boat_speed) + '_arcs')
+#
+#         if not arcs_path.exists():
+#             edge_processing_required = True
+#
+#     return edge_processing_required
