@@ -7,7 +7,7 @@ import numpy as np
 from tt_file_tools.file_tools import read_df, write_df
 from tt_geometry.geometry import Arc
 from tt_job_manager.job_manager import Job
-from tt_date_time_tools.date_time_tools import index_to_date, round_time
+from tt_date_time_tools.date_time_tools import index_to_date, round_datetime
 from tt_globals.globals import Globals
 
 
@@ -69,9 +69,9 @@ def minima_table(transit_array, tt_range, savgol_path):
 
     min_df = min_df.dropna(axis=0).sort_index().reset_index(drop=True)  # remove lines with NA
     min_df.drop(['tts', 'departure_index', 'midline', 'block', 'TF'], axis=1, inplace=True)  # delete unwanted columns
-    min_df['round_start'] = min_df['start_datetime'].apply(round_time)
-    min_df['round_min'] = min_df['min_datetime'].apply(round_time)
-    min_df['round_end'] = min_df['end_datetime'].apply(round_time)
+    min_df['round_start'] = min_df['start_datetime'].apply(round_datetime)
+    min_df['round_min'] = min_df['min_datetime'].apply(round_datetime)
+    min_df['round_end'] = min_df['end_datetime'].apply(round_datetime)
     return min_df
 
 
@@ -119,11 +119,11 @@ def index_arc_df(frame):
     return arc_frame
 
 
-def create_arcs(f_day, l_day, arc_frame, shape_name):
+def create_arcs(f_day, l_day, minima_frame, shape_name):
 
     Arc.name = shape_name
 
-    arcs = [Arc(*row.values.tolist()) for i, row in arc_frame.iterrows()]
+    arcs = [Arc(*row.values.tolist()) for i, row in minima_frame.iterrows()]
 
     whole_arc_rows = [a.info() for a in filter(lambda a: not a.fractured, arcs)]
     start_day_rows = [a.start_day_arc.info() for a in filter(lambda a: a.fractured and a.start_day_arc, arcs)]
