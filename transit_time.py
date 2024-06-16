@@ -169,9 +169,7 @@ class ArcsDataframe:
         et_df = read_df(et_file)
 
         self.frame = None
-        sign = '+' if speed / abs(speed) > 0 else '-'
-        boat_speed = sign + str(abs(speed))
-        shape_name = 'arc ' + boat_speed
+        shape_name = 'arc '
         speed_folder = tt_folder.joinpath(num2words(speed))
 
         transit_timesteps_path = speed_folder.joinpath('timesteps.npy')
