@@ -48,30 +48,23 @@ def minima_table(transit_array, tt_range, savgol_path):
         median_departure_index = clump[clump['tts'] == clump.min()['tts']]['departure_index'].median()  # median of the departure indices among the tts minimum values
         abs_diff = clump['departure_index'].sub(median_departure_index).abs()  # series of abs differences
         minimum_index = abs_diff[abs_diff == abs_diff.min()].index[0]  # row closest to median departure index
-        minimum_tts = clump.at[minimum_index, 'tts']
-
         minimum_row = clump.iloc[minimum_index]
-        minimum_departure = minimum_row['departure_index']  # departure index at row closest to median departure index
 
-        offset = int(minimum_tts*1.2)
-        # orig_offset = minimum_tts + Globals.TIMESTEP_MARGIN
+        offset = int(minimum_row['tts']*1.2)
+        # orig_offset = minimum_row['tts'] + Globals.TIMESTEP_MARGIN
         # print(orig_offset, offset)
-        start_row = clump.iloc[0] if clump.iloc[0]['tts'] < offset else clump[clump['departure_index'].le(minimum_departure) & clump['tts'].ge(offset)].iloc[-1]
-        start_tts = start_row['tts']
-        start_departure = start_row['departure_index']
-        end_row = clump.iloc[-1] if clump.iloc[-1]['tts'] < offset else clump[clump['departure_index'].ge(minimum_departure) & clump['tts'].ge(offset)].iloc[0]
-        end_tts = end_row['tts']
-        end_departure = end_row['departure_index']
+        start_row = clump.iloc[0] if clump.iloc[0]['tts'] < offset else clump[clump['departure_index'].le(minimum_row['departure_index']) & clump['tts'].ge(offset)].iloc[-1]
+        end_row = clump.iloc[-1] if clump.iloc[-1]['tts'] < offset else clump[clump['departure_index'].ge(minimum_row['departure_index']) & clump['tts'].ge(offset)].iloc[0]
 
-        min_df.at[minimum_row['index'], 'start_index'] = start_departure
-        min_df.at[minimum_row['index'], 'start_datetime'] = index_to_date(start_departure)
-        min_df.at[minimum_row['index'], 'start_et'] = (datetime.datetime.min + datetime.timedelta(seconds=int(start_tts)*Globals.TIMESTEP)).time()
-        min_df.at[minimum_row['index'], 'min_index'] = minimum_departure
-        min_df.at[minimum_row['index'], 'min_datetime'] = index_to_date(minimum_departure)
-        min_df.at[minimum_row['index'], 'min_et'] = (datetime.datetime.min + datetime.timedelta(seconds=int(minimum_tts)*Globals.TIMESTEP)).time()
-        min_df.at[minimum_row['index'], 'end_index'] = end_departure
-        min_df.at[minimum_row['index'], 'end_datetime'] = index_to_date(end_departure)
-        min_df.at[minimum_row['index'], 'end_et'] = (datetime.datetime.min + datetime.timedelta(seconds=int(end_tts)*Globals.TIMESTEP)).time()
+        min_df.at[minimum_row['index'], 'start_index'] = start_row['departure_index']
+        min_df.at[minimum_row['index'], 'start_datetime'] = index_to_date(start_row['departure_index'])
+        min_df.at[minimum_row['index'], 'start_et'] = (datetime.datetime.min + datetime.timedelta(seconds=int(start_row['tts'])*Globals.TIMESTEP)).time()
+        min_df.at[minimum_row['index'], 'min_index'] = minimum_row['departure_index']
+        min_df.at[minimum_row['index'], 'min_datetime'] = index_to_date(minimum_row['departure_index'])
+        min_df.at[minimum_row['index'], 'min_et'] = (datetime.datetime.min + datetime.timedelta(seconds=int(minimum_row['tts'])*Globals.TIMESTEP)).time()
+        min_df.at[minimum_row['index'], 'end_index'] = end_row['departure_index']
+        min_df.at[minimum_row['index'], 'end_datetime'] = index_to_date(end_row['departure_index'])
+        min_df.at[minimum_row['index'], 'end_et'] = (datetime.datetime.min + datetime.timedelta(seconds=int(end_row['tts'])*Globals.TIMESTEP)).time()
 
     min_df = min_df.dropna(axis=0).sort_index().reset_index(drop=True)  # remove lines with NA
     min_df.drop(['tts', 'departure_index', 'midline', 'block', 'TF'], axis=1, inplace=True)  # delete unwanted columns
