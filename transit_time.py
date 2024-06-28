@@ -3,6 +3,7 @@ from scipy.signal import savgol_filter
 from num2words import num2words
 from pathlib import Path
 import numpy as np
+import datetime
 
 from tt_file_tools.file_tools import read_df, write_df
 from tt_geometry.geometry import Arc
@@ -52,20 +53,25 @@ def minima_table(transit_array, tt_range, savgol_path):
         minimum_row = clump.iloc[minimum_index]
         minimum_departure = minimum_row['departure_index']  # departure index at row closest to median departure index
 
-        offset = minimum_tts + Globals.TIMESTEP_MARGIN
+        offset = int(minimum_tts*1.2)
+        # orig_offset = minimum_tts + Globals.TIMESTEP_MARGIN
+        # print(orig_offset, offset)
         start_row = clump.iloc[0] if clump.iloc[0]['tts'] < offset else clump[clump['departure_index'].le(minimum_departure) & clump['tts'].ge(offset)].iloc[-1]
+        start_tts = start_row['tts']
         start_departure = start_row['departure_index']
         end_row = clump.iloc[-1] if clump.iloc[-1]['tts'] < offset else clump[clump['departure_index'].ge(minimum_departure) & clump['tts'].ge(offset)].iloc[0]
+        end_tts = end_row['tts']
         end_departure = end_row['departure_index']
 
         min_df.at[minimum_row['index'], 'start_index'] = start_departure
         min_df.at[minimum_row['index'], 'start_datetime'] = index_to_date(start_departure)
+        min_df.at[minimum_row['index'], 'start_et'] = (datetime.datetime.min + datetime.timedelta(seconds=int(start_tts)*Globals.TIMESTEP)).time()
         min_df.at[minimum_row['index'], 'min_index'] = minimum_departure
         min_df.at[minimum_row['index'], 'min_datetime'] = index_to_date(minimum_departure)
+        min_df.at[minimum_row['index'], 'min_et'] = (datetime.datetime.min + datetime.timedelta(seconds=int(minimum_tts)*Globals.TIMESTEP)).time()
         min_df.at[minimum_row['index'], 'end_index'] = end_departure
         min_df.at[minimum_row['index'], 'end_datetime'] = index_to_date(end_departure)
-
-    min_df['transit_time'] = pd.to_timedelta(min_df['tts']*Globals.TIMESTEP, unit='s').round('min')
+        min_df.at[minimum_row['index'], 'end_et'] = (datetime.datetime.min + datetime.timedelta(seconds=int(end_tts)*Globals.TIMESTEP)).time()
 
     min_df = min_df.dropna(axis=0).sort_index().reset_index(drop=True)  # remove lines with NA
     min_df.drop(['tts', 'departure_index', 'midline', 'block', 'TF'], axis=1, inplace=True)  # delete unwanted columns
