@@ -50,9 +50,7 @@ def minima_table(transit_array, tt_range, savgol_path):
         minimum_index = abs_diff[abs_diff == abs_diff.min()].index[0]  # row closest to median departure index
         minimum_row = clump.iloc[minimum_index]
 
-        offset = int(minimum_row['tts']*1.2)
-        # orig_offset = minimum_row['tts'] + Globals.TIMESTEP_MARGIN
-        # print(orig_offset, offset)
+        offset = int(minimum_row['tts']*Globals.TIME_WINDOW_SCALE_FACTOR)
         start_row = clump.iloc[0] if clump.iloc[0]['tts'] < offset else clump[clump['departure_index'].le(minimum_row['departure_index']) & clump['tts'].ge(offset)].iloc[-1]
         end_row = clump.iloc[-1] if clump.iloc[-1]['tts'] < offset else clump[clump['departure_index'].ge(minimum_row['departure_index']) & clump['tts'].ge(offset)].iloc[0]
 
