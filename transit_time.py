@@ -87,15 +87,17 @@ def index_arc_df(frame):
     start_round_time_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
     start_angle_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
     start_round_angle_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
+    start_et_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
     min_time_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
     min_round_time_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
     min_angle_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
     min_round_angle_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
+    min_et_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
     end_time_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
     end_round_time_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
     end_angle_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
     end_round_angle_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
-    elapsed_time_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
+    end_et_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
     columns = frame.columns.to_list()
 
     for i, row in frame.iterrows():
@@ -104,15 +106,17 @@ def index_arc_df(frame):
         start_round_time_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('start_round_time')])
         start_angle_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('start_angle')])
         start_round_angle_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('start_round_angle')])
+        start_et_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('start_et')])
         min_time_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('min_time')])
         min_round_time_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('min_round_time')])
         min_angle_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('min_angle')])
         min_round_angle_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('min_round_angle')])
+        min_et_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('min_et')])
         end_time_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('end_time')])
         end_round_time_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('end_round_time')])
         end_angle_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('end_angle')])
         end_round_angle_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('end_round_angle')])
-        elapsed_time_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('elapsed_time')])
+        end_et_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('end_et')])
 
     arc_frame = pd.DataFrame(columns=Arc.columns)
     arc_frame.insert(loc=1, column='index', value='NaN')
@@ -122,25 +126,25 @@ def index_arc_df(frame):
         start_round_times = start_round_time_dict[date]
         start_angles = start_angle_dict[date]
         start_round_angles = start_round_angle_dict[date]
+        start_ets = start_et_dict[date]
 
         min_times = min_time_dict[date]
         min_round_times = min_round_time_dict[date]
         min_angles = min_angle_dict[date]
         min_round_angles = min_round_angle_dict[date]
+        min_ets = min_et_dict[date]
 
         end_times = end_time_dict[date]
         end_round_times = end_round_time_dict[date]
         end_angels = end_angle_dict[date]
         end_round_angles = end_round_angle_dict[date]
-
-        elapsed_times = elapsed_time_dict[date]
+        end_ets = end_et_dict[date]
 
         for i in range(len(names)):
             arc_frame.loc[len(arc_frame)] = [names[i] + ' ' + str(i + 1), i+1, date,
-                                             start_times[i], start_round_times[i], start_angles[i], start_round_angles[i],
-                                             min_times[i], min_round_times[i], min_angles[i], min_round_angles[i],
-                                             end_times[i], end_round_times[i], end_angels[i], end_round_angles[i],
-                                             elapsed_times[i]]
+                                             start_times[i], start_round_times[i], start_angles[i], start_round_angles[i], start_ets[i],
+                                             min_times[i], min_round_times[i], min_angles[i], min_round_angles[i], min_ets[i],
+                                             end_times[i], end_round_times[i], end_angels[i], end_round_angles[i], end_ets[i]]
     return arc_frame
 
 
