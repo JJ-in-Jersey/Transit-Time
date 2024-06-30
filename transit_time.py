@@ -73,14 +73,8 @@ def minima_table(transit_array, tt_range, savgol_path):
 
 
 def index_arc_df(frame):
-    # columns = ['name', 'start_date', 'start_time', 'start_round',
-    #            'start_angle', 'start_round_angle', 'min_time', 'min_round',
-    #            'min_angle', 'min_round_angle', 'end_time', 'end_round',
-    #            'end_angle', 'end_round_angle', 'elapsed_time']
-
     date_keys = [key for key in sorted(list(set(frame['start_date'])))]
 
-    name_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
     start_time_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
     start_round_time_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
     start_angle_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
@@ -99,7 +93,6 @@ def index_arc_df(frame):
     columns = frame.columns.to_list()
 
     for i, row in frame.iterrows():
-        name_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('name')])
         start_time_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('start_time')])
         start_round_time_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('start_round_time')])
         start_angle_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('start_angle')])
@@ -117,9 +110,8 @@ def index_arc_df(frame):
         end_et_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('end_et')])
 
     arc_frame = pd.DataFrame(columns=Arc.columns)
-    arc_frame.insert(loc=1, column='index', value='NaN')
+    arc_frame.insert(loc=0, column='index', value='NaN')
     for date in date_keys:
-        names = name_dict[date]
         start_times = start_time_dict[date]
         start_round_times = start_round_time_dict[date]
         start_angles = start_angle_dict[date]
@@ -138,17 +130,15 @@ def index_arc_df(frame):
         end_round_angles = end_round_angle_dict[date]
         end_ets = end_et_dict[date]
 
-        for i in range(len(names)):
-            arc_frame.loc[len(arc_frame)] = [names[i] + ' ' + str(i + 1), i+1, date,
+        for i in range(len(start_times)):
+            arc_frame.loc[len(arc_frame)] = [i+1, date,
                                              start_times[i], start_round_times[i], start_angles[i], start_round_angles[i], start_ets[i],
                                              min_times[i], min_round_times[i], min_angles[i], min_round_angles[i], min_ets[i],
                                              end_times[i], end_round_times[i], end_angels[i], end_round_angles[i], end_ets[i]]
     return arc_frame
 
 
-def create_arcs(f_day, l_day, minima_frame, shape_name):
-
-    Arc.name = shape_name
+def create_arcs(f_day, l_day, minima_frame):
 
     arcs = [Arc(row.to_dict()) for i, row in minima_frame.iterrows()]
 
@@ -173,7 +163,6 @@ class ArcsDataframe:
         et_df = read_df(et_file)
 
         self.frame = None
-        shape_name = 'arc'
         speed_folder = tt_folder.joinpath(num2words(speed))
 
         transit_timesteps_path = speed_folder.joinpath('timesteps.npy')
@@ -195,7 +184,7 @@ class ArcsDataframe:
                 minima_df = minima_table(transit_timesteps_arr, tt_range, savgol_path)
                 write_df(minima_df, minima_path)
 
-            frame = create_arcs(f_day, l_day, minima_df, shape_name)
+            frame = create_arcs(f_day, l_day, minima_df)
             frame['speed'] = speed
             write_df(frame, self.filepath)
 
