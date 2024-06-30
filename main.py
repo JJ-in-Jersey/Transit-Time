@@ -78,11 +78,14 @@ if __name__ == '__main__':
     # calculate the number of timesteps from first node to last node
     print(f'\nCalculating transit timesteps')
     keys = [job_manager.put(TransitTimeJob(speed, Globals.EDGES_FOLDER.joinpath('elapsed_timesteps_' + str(speed) + '.csv'), Globals.TRANSIT_TIMES_FOLDER)) for speed in Globals.BOAT_SPEEDS]
+    # for speed in Globals.BOAT_SPEEDS:
+    #     job = TransitTimeJob(speed, Globals.EDGES_FOLDER.joinpath('elapsed_timesteps_' + str(speed) + '.csv'), Globals.TRANSIT_TIMES_FOLDER)
+    #     result = job.execute()
     job_manager.wait()
 
     arcs_df = concat([read_df(path) for path in [job_manager.get(key).filepath for key in keys]])
 
-    arcs_df.sort_values(['start_date', 'name'], ignore_index=True, inplace=True)
+    arcs_df.sort_values(['start_date', 'index'], ignore_index=True, inplace=True)
     min_rotation_df = arcs_df[arcs_df['min_angle'].notna()]
     min_rotation_df = min_rotation_df.replace(to_replace=r'arc', value='min', regex=True)
 
