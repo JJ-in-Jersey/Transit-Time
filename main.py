@@ -85,7 +85,7 @@ if __name__ == '__main__':
 
     arcs_df = concat([read_df(path) for path in [job_manager.get(key).filepath for key in keys]])
 
-    arcs_df.sort_values(['start_date', 'index'], ignore_index=True, inplace=True)
+    arcs_df.sort_values(['start_date', 'speed', 'index'], ignore_index=True, inplace=True)
     min_rotation_df = arcs_df[arcs_df['min_angle'].notna()]
     min_rotation_df = min_rotation_df.replace(to_replace=r'arc', value='min', regex=True)
 
