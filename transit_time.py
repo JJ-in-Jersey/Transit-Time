@@ -34,10 +34,10 @@ def minima_table(transit_array, tt_range, savgol_path):
     min_df['departure_index'].astype('int')
     min_df = min_df.assign(tts=transit_array)
     if savgol_path.exists():
-        min_df['midline'] = np.load(savgol_path)
+        min_df['midline'] = read_df(savgol_path)
     else:
         min_df['midline'] = savgol_filter(transit_array, 50000, 1)
-        np.save(savgol_path, min_df['midline'])
+        write_df(min_df['midline'], savgol_path)
 
     min_df['TF'] = min_df['tts'].lt(min_df['midline'])  # Above midline = False,  below midline = True
     min_df['block'] = (min_df['TF'] != min_df['TF'].shift(1)).cumsum()  # index the blocks of True and False
@@ -166,7 +166,7 @@ class ArcsDataframe:
         speed_folder = tt_folder.joinpath(num2words(speed))
 
         transit_timesteps_path = speed_folder.joinpath('timesteps.npy')
-        savgol_path = speed_folder.joinpath('savgol.npy')
+        savgol_path = speed_folder.joinpath('savgol.csv')
         minima_path = speed_folder.joinpath('minima.csv')
         self.filepath = speed_folder.joinpath('arcs.csv')
 
