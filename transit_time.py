@@ -165,18 +165,18 @@ class ArcsDataframe:
         self.frame = None
         speed_folder = tt_folder.joinpath(num2words(speed))
 
-        transit_timesteps_path = speed_folder.joinpath('timesteps.npy')
+        transit_timesteps_path = speed_folder.joinpath('timesteps.csv')
         savgol_path = speed_folder.joinpath('savgol.csv')
         minima_path = speed_folder.joinpath('minima.csv')
         self.filepath = speed_folder.joinpath('arcs.csv')
 
         if not self.filepath.exists():
             if transit_timesteps_path.exists():
-                transit_timesteps_arr = np.load(transit_timesteps_path)
+                transit_timesteps_arr = list(read_df(transit_timesteps_path)['0'].to_numpy())
             else:
                 row_range = range(len(tt_range))
                 transit_timesteps_arr = [total_transit_time(row, et_df, et_df.columns.to_list()) for row in row_range]
-                np.save(transit_timesteps_path, transit_timesteps_arr)
+                write_df(pd.DataFrame(transit_timesteps_arr), transit_timesteps_path)
 
             if minima_path.exists():
                 minima_df = read_df(minima_path)
