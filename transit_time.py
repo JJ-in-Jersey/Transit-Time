@@ -2,7 +2,6 @@ import pandas as pd
 from scipy.signal import savgol_filter
 from num2words import num2words
 from pathlib import Path
-import numpy as np
 import datetime
 
 from tt_file_tools.file_tools import read_df, write_df
