@@ -4,7 +4,7 @@ from num2words import num2words
 from pathlib import Path
 import datetime
 
-from tt_file_tools.file_tools import read_df, write_df
+from tt_file_tools.file_tools import read_df, write_df, print_file_exists
 from tt_geometry.geometry import Arc
 from tt_job_manager.job_manager import Job
 from tt_date_time_tools.date_time_tools import index_to_date, round_datetime
@@ -34,6 +34,7 @@ def minima_table(transit_array, tt_range, savgol_path):
     min_df = min_df.assign(tts=transit_array)
     if savgol_path.exists():
         min_df['midline'] = read_df(savgol_path)
+        print_file_exists(savgol_path)
     else:
         min_df['midline'] = savgol_filter(transit_array, 50000, 1)
         write_df(min_df['midline'], savgol_path)
@@ -172,6 +173,7 @@ class ArcsDataframe:
         if not self.filepath.exists():
             if transit_timesteps_path.exists():
                 transit_timesteps_arr = list(read_df(transit_timesteps_path)['0'].to_numpy())
+                print_file_exists(transit_timesteps_path)
             else:
                 row_range = range(len(tt_range))
                 transit_timesteps_arr = [total_transit_time(row, et_df, et_df.columns.to_list()) for row in row_range]
