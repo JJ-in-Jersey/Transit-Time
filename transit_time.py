@@ -164,7 +164,6 @@ class ArcsDataframe:
 
         self.frame = None
         speed_folder = tt_folder.joinpath(num2words(speed))
-
         transit_timesteps_path = speed_folder.joinpath('timesteps.csv')
         savgol_path = speed_folder.joinpath('savgol.csv')
         minima_path = speed_folder.joinpath('minima.csv')
