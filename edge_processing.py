@@ -19,8 +19,14 @@ from tt_date_time_tools.date_time_tools import index_to_date
 def edge_processing(route, job_manager):
 
     print(f'\nCreating template elapsed time dataframe')
-    template_df = pd.DataFrame(data={'departure_index': Globals.ELAPSED_TIME_INDEX_RANGE})  # add departure_index as the join column
-    template_df['date_time'] = template_df['departure_index'].apply(index_to_date)
+    template_path = Globals.PROJECT_FOLDER.joinpath('elapsed_timesteps_template.csv')
+    if template_path.exists():
+        template_df = ft.read_df(template_path)
+    else:
+        template_df = pd.DataFrame(data={'departure_index': Globals.ELAPSED_TIME_INDEX_RANGE})  # add departure_index as the join column
+        template_df['date_time'] = template_df['departure_index'].apply(index_to_date)
+        ft.write_df(template_df, template_path)
+    print_file_exists(template_path)
 
     for s in Globals.BOAT_SPEEDS:
         print(f'\nCalculating elapsed timesteps for edges at {s} kts')
