@@ -18,10 +18,10 @@ from tt_globals.globals import Globals
 def edge_processing(route, job_manager):
 
     for s in Globals.BOAT_SPEEDS:
+        print(f'\nCalculating elapsed timesteps for edges at {s} kts')
         speed_path = Globals.EDGES_FOLDER.joinpath('elapsed_timesteps_'+str(s) + '.csv')
         elapsed_time_df = pd.DataFrame(data={'departure_index': Globals.ELAPSED_TIME_INDEX_RANGE})  # add departure_index as the join column
 
-        print(f'\nCalculating elapsed timesteps for edges at {s} kts')
         if not speed_path.exists():
             keys = [job_manager.put(ElapsedTimeJob(edge, s)) for edge in route.edges]
             job_manager.wait()
