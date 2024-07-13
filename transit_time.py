@@ -26,18 +26,16 @@ def total_transit_time(init_row, d_frame, cols):
     return tt
 
 
-def minima_table(transit_array, tt_range, savgol_path):
+def minima_table(transit_array, template_df, savgol_path):
     noise_size = 100
-    min_df = pd.DataFrame()
-    min_df['departure_index'] = tt_range
-    min_df['departure_index'].astype('int')
+    min_df = template_df.copy(deep=True)
     min_df = min_df.assign(tts=transit_array)
     if savgol_path.exists():
         min_df['midline'] = read_df(savgol_path)
-        print_file_exists(savgol_path)
     else:
         min_df['midline'] = savgol_filter(transit_array, 50000, 1)
-        write_df(min_df['midline'], savgol_path)
+        write_df(min_df, savgol_path, True)
+    print_file_exists(savgol_path)
 
     min_df['TF'] = min_df['tts'].lt(min_df['midline'])  # Above midline = False,  below midline = True
     min_df['block'] = (min_df['TF'] != min_df['TF'].shift(1)).cumsum()  # index the blocks of True and False
@@ -45,14 +43,32 @@ def minima_table(transit_array, tt_range, savgol_path):
     clump_lookup = {index: df.drop(['TF', 'block', 'midline'], axis=1).reset_index() for index, df in clump_lookup.items() if len(df) > noise_size}  # remove the tiny blocks caused by noise at the inflections
 
     for index, clump in clump_lookup.items():
+        # for this clump get the row with the minimum transit time
         median_departure_index = clump[clump['tts'] == clump.min()['tts']]['departure_index'].median()  # median of the departure indices among the tts minimum values
         abs_diff = clump['departure_index'].sub(median_departure_index).abs()  # series of abs differences
         minimum_index = abs_diff[abs_diff == abs_diff.min()].index[0]  # row closest to median departure index
         minimum_row = clump.iloc[minimum_index]
 
-        offset = int(minimum_row['tts']*Globals.TIME_WINDOW_SCALE_FACTOR)
-        start_row = clump.iloc[0] if clump.iloc[0]['tts'] < offset else clump[clump['departure_index'].le(minimum_row['departure_index']) & clump['tts'].ge(offset)].iloc[-1]
-        end_row = clump.iloc[-1] if clump.iloc[-1]['tts'] < offset else clump[clump['departure_index'].ge(minimum_row['departure_index']) & clump['tts'].ge(offset)].iloc[0]
+        # find the upper and lower limits of the time window
+        offset = int(minimum_row['tts']*Globals.TIME_WINDOW_SCALE_FACTOR)  # offset is transit time steps (tts)
+
+        sr_range = clump[clump['departure_index'].lt(minimum_row['departure_index'])]  # range of valid starting points less than minimum
+        if len(sr_range[sr_range['tts'].gt(offset)]):  # there is a valid starting point between the beginning and minimum
+            sr = sr_range[sr_range['tts'].gt(offset)].iloc[-1]  # pick the one closest to minimum
+        else:
+            sr = clump.iloc[0]
+
+        er_range = clump[clump['departure_index'].gt(minimum_row['departure_index'])]  # range of valid ending points greater than minimum
+        if len(er_range[er_range['tts'].gt(offset)]):  # there is a valid starting point between the minimum and end
+            er = er_range[er_range['tts'].gt(offset)].iloc[0]  # pick the one closest to minimum
+        else:
+            er = clump.iloc[-1]
+
+        start_row = sr
+        end_row = er
+
+        # start_row = clump.iloc[0] if clump.iloc[0]['tts'] < offset else clump[clump['departure_index'].le(minimum_row['departure_index']) & clump['tts'].ge(offset)].iloc[-1]
+        # end_row = clump.iloc[-1] if clump.iloc[-1]['tts'] < offset else clump[clump['departure_index'].ge(minimum_row['departure_index']) & clump['tts'].ge(offset)].iloc[0]
 
         min_df.at[minimum_row['index'], 'start_index'] = start_row['departure_index']
         min_df.at[minimum_row['index'], 'start_datetime'] = index_to_date(start_row['departure_index'])
@@ -158,9 +174,10 @@ def create_arcs(f_day, l_day, minima_frame):
 
 class ArcsDataframe:
 
-    def __init__(self, speed, tt_range, et_file, tt_folder, f_day, l_day):
+    def __init__(self, speed, template_df: pd.DataFrame, et_file, tt_folder, f_day, l_day):
 
         et_df = read_df(et_file)
+        row_range = range(len(template_df))
 
         self.frame = None
         speed_folder = tt_folder.joinpath(num2words(speed))
@@ -174,19 +191,22 @@ class ArcsDataframe:
                 transit_timesteps_arr = list(read_df(transit_timesteps_path)['0'].to_numpy())
                 print_file_exists(transit_timesteps_path)
             else:
-                row_range = range(len(tt_range))
-                transit_timesteps_arr = [total_transit_time(row, et_df, et_df.columns.to_list()) for row in row_range]
-                write_df(pd.DataFrame(transit_timesteps_arr), transit_timesteps_path)
+                col_list = et_df.columns.to_list()
+                col_list.remove('departure_index')
+                col_list.remove('date_time')
+
+                transit_timesteps_arr = [total_transit_time(row, et_df, col_list) for row in row_range]
+                write_df(pd.concat([template_df, pd.DataFrame(transit_timesteps_arr)], axis=1), transit_timesteps_path, True)
 
             if minima_path.exists():
                 minima_df = read_df(minima_path)
             else:
-                minima_df = minima_table(transit_timesteps_arr, tt_range, savgol_path)
-                write_df(minima_df, minima_path)
+                minima_df = minima_table(transit_timesteps_arr, template_df, savgol_path)
+                write_df(minima_df, minima_path, True)
 
             frame = create_arcs(f_day, l_day, minima_df)
             frame['speed'] = speed
-            write_df(frame, self.filepath)
+            write_df(frame, self.filepath, True)
 
 
 class TransitTimeJob(Job):  # super -> job name, result key, function/object, arguments
@@ -199,5 +219,5 @@ class TransitTimeJob(Job):  # super -> job name, result key, function/object, ar
 
         job_name = 'transit_time' + ' ' + str(speed)
         result_key = speed
-        arguments = tuple([speed, Globals.TRANSIT_TIME_INDEX_RANGE, et_file, tt_folder, Globals.FIRST_DAY, Globals.LAST_DAY])
+        arguments = tuple([speed, Globals.TEMPLATE_TRANSIT_TIME_DATAFRAME, et_file, tt_folder, Globals.FIRST_DAY, Globals.LAST_DAY])
         super().__init__(job_name, result_key, ArcsDataframe, arguments)
