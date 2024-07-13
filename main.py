@@ -33,7 +33,8 @@ if __name__ == '__main__':
 
     Globals.initialize_dates(args)
     Globals.initialize_folders(args)
-
+    Globals.initialize_structures()
+    
     Waypoint.waypoints_folder = Globals.WAYPOINTS_FOLDER
     Edge.edges_folder = Globals.EDGES_FOLDER
 
