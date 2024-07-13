@@ -3,6 +3,7 @@ from tt_file_tools import file_tools as ft
 from tt_file_tools.file_tools import print_file_exists
 from elapsed_time import ElapsedTimeJob
 from tt_globals.globals import Globals
+from tt_date_time_tools.date_time_tools import index_to_date
 
 
 # def check_edges(env):
@@ -17,10 +18,14 @@ from tt_globals.globals import Globals
 
 def edge_processing(route, job_manager):
 
+    print(f'\nCreating template elapsed time dataframe')
+    template_df = pd.DataFrame(data={'departure_index': Globals.ELAPSED_TIME_INDEX_RANGE})  # add departure_index as the join column
+    template_df['date_time'] = template_df['departure_index'].apply(index_to_date)
+
     for s in Globals.BOAT_SPEEDS:
         print(f'\nCalculating elapsed timesteps for edges at {s} kts')
         speed_path = Globals.EDGES_FOLDER.joinpath('elapsed_timesteps_'+str(s) + '.csv')
-        elapsed_time_df = pd.DataFrame(data={'departure_index': Globals.ELAPSED_TIME_INDEX_RANGE})  # add departure_index as the join column
+        elapsed_time_df = template_df.copy(deep=True)
 
         if not speed_path.exists():
             keys = [job_manager.put(ElapsedTimeJob(edge, s)) for edge in route.edges]
@@ -32,8 +37,6 @@ def edge_processing(route, job_manager):
             print(f'\nAggregating elapsed timesteps at {s} kts into a dataframe', flush=True)
             for path in filepaths:
                 elapsed_time_df = elapsed_time_df.merge(ft.read_df(path).drop(['date_time'], axis=1), on='departure_index')
-
-            elapsed_time_df.drop(['departure_index'], axis=1, inplace=True)
             ft.write_df(elapsed_time_df, speed_path)
 
         print_file_exists(speed_path)
