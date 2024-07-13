@@ -1,9 +1,7 @@
-import pandas as pd
 from tt_file_tools import file_tools as ft
 from tt_file_tools.file_tools import print_file_exists
 from elapsed_time import ElapsedTimeJob
 from tt_globals.globals import Globals
-from tt_date_time_tools.date_time_tools import index_to_date
 
 
 # def check_edges(env):
