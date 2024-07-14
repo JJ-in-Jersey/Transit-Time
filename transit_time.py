@@ -189,7 +189,6 @@ class ArcsDataframe:
         if not self.filepath.exists():
             if transit_timesteps_path.exists():
                 transit_timesteps_arr = list(read_df(transit_timesteps_path)['0'].to_numpy())
-                print_file_exists(transit_timesteps_path)
             else:
                 col_list = et_df.columns.to_list()
                 col_list.remove('departure_index')
@@ -197,12 +196,15 @@ class ArcsDataframe:
 
                 transit_timesteps_arr = [total_transit_time(row, et_df, col_list) for row in row_range]
                 write_df(pd.concat([template_df, pd.DataFrame(transit_timesteps_arr)], axis=1), transit_timesteps_path, True)
+            print_file_exists(transit_timesteps_path)
+
 
             if minima_path.exists():
                 minima_df = read_df(minima_path)
             else:
                 minima_df = minima_table(transit_timesteps_arr, template_df, savgol_path)
                 write_df(minima_df, minima_path, True)
+            print_file_exists(minima_path)
 
             frame = create_arcs(f_day, l_day, minima_df)
             frame['speed'] = speed
