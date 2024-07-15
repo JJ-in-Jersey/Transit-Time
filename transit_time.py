@@ -31,13 +31,14 @@ def minima_table(transit_array, template_df, savgol_path):
     min_df = template_df.copy(deep=True)
     min_df = min_df.assign(tts=transit_array)
     if savgol_path.exists():
-        min_df['midline'] = read_df(savgol_path)['midline']
+        min_df['midline'] = read_df(savgol_path)['midline'].round()
     else:
         min_df['midline'] = savgol_filter(transit_array, 50000, 1)
         write_df(min_df, savgol_path, True)
     print_file_exists(savgol_path)
 
     min_df['TF'] = min_df['tts'].lt(min_df['midline'])  # Above midline = False,  below midline = True
+    min_df = min_df.drop(min_df[min_df['tts'] == min_df['midline']].index).reset_index(drop=True)  # remove values that equal midline
     min_df['block'] = (min_df['TF'] != min_df['TF'].shift(1)).cumsum()  # index the blocks of True and False
     clump_lookup = {index: df for index, df in min_df.groupby('block') if df['TF'].any()}  # select only the True blocks
     clump_lookup = {index: df.drop(['TF', 'block', 'midline'], axis=1).reset_index() for index, df in clump_lookup.items() if len(df) > noise_size}  # remove the tiny blocks caused by noise at the inflections
@@ -197,7 +198,6 @@ class ArcsDataframe:
                 transit_timesteps_arr = [total_transit_time(row, et_df, col_list) for row in row_range]
                 write_df(pd.concat([template_df, pd.DataFrame(transit_timesteps_arr)], axis=1), transit_timesteps_path, True)
             print_file_exists(transit_timesteps_path)
-
 
             if minima_path.exists():
                 minima_df = read_df(minima_path)
