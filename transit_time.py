@@ -31,9 +31,9 @@ def minima_table(transit_array, template_df, savgol_path):
     min_df = template_df.copy(deep=True)
     min_df = min_df.assign(tts=transit_array)
     if savgol_path.exists():
-        min_df['midline'] = read_df(savgol_path)['midline'].round()
+        min_df['midline'] = read_df(savgol_path)['midline']
     else:
-        min_df['midline'] = savgol_filter(transit_array, 50000, 1)
+        min_df['midline'] = savgol_filter(transit_array, 50000, 1).round()
         write_df(min_df, savgol_path, True)
     print_file_exists(savgol_path)
 
