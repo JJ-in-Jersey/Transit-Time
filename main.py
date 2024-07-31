@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 from pandas import concat as concat
-from tt_gpx.gpx import Route, Waypoint, Edge, EdgeNode
+from tt_gpx.gpx import Route, Waypoint, Edge, EdgeNode, GpxFile
 from tt_file_tools.file_tools import write_df, read_df
 from tt_chrome_driver import chrome_driver
 from tt_job_manager.job_manager import JobManager
@@ -40,9 +40,12 @@ if __name__ == '__main__':
 
     # ---------- ROUTE OBJECT ----------
 
-    route = Route(args['filepath'])
+    gpx_file = GpxFile(args['filepath'])
 
-    print(f'\nCalculating route "{route.filepath.stem}"')
+    if gpx_file.type == Globals.TYPE['rte']:
+        route = Route(gpx_file.tree)
+
+    print(f'\nCalculating {gpx_file.type} {args['filepath'].stem}')
     print(f'calendar year: {Globals.YEAR}')
     print(f'start date: {Globals.FIRST_DAY_DATE}')
     print(f'end date: {Globals.LAST_DAY_DATE}')
