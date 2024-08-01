@@ -10,6 +10,9 @@ from tt_job_manager.job_manager import Job
 from tt_date_time_tools.date_time_tools import index_to_date, round_datetime
 from tt_globals.globals import Globals
 
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 
 def none_row(row, df):
     for c in range(len(df.columns)):
@@ -105,12 +108,7 @@ def minima_table(transit_array, template_df, savgol_path):
 
 def index_arc_df(frame):
 
-    columns = [
-        'index', 'start_date',
-        'start_time', 'start_round_time', 'start_angle', 'start_round_angle', 'start_et',
-        'end_time', 'end_round_time', 'end_angle', 'end_round_angle', 'end_et',
-        'min_time', 'min_round_time', 'min_angle', 'min_round_angle', 'min_et'
-    ]
+    frame_columns = frame.columns.to_list()
 
     date_keys = [key for key in sorted(list(set(frame['start_date'])))]
 
@@ -133,25 +131,32 @@ def index_arc_df(frame):
     end_et_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
 
     for i, row in frame.iterrows():
-        start_time_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('start_time')])
-        start_round_time_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('start_round_time')])
-        start_angle_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('start_angle')])
-        start_round_angle_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('start_round_angle')])
-        start_et_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('start_et')])
+        start_time_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('start_time')])
+        start_round_time_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('start_round_time')])
+        start_angle_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('start_angle')])
+        start_round_angle_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('start_round_angle')])
+        start_et_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('start_et')])
 
-        min_time_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('min_time')])
-        min_round_time_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('min_round_time')])
-        min_angle_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('min_angle')])
-        min_round_angle_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('min_round_angle')])
-        min_et_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('min_et')])
+        min_time_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('min_time')])
+        min_round_time_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('min_round_time')])
+        min_angle_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('min_angle')])
+        min_round_angle_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('min_round_angle')])
+        min_et_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('min_et')])
 
-        end_time_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('end_time')])
-        end_round_time_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('end_round_time')])
-        end_angle_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('end_angle')])
-        end_round_angle_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('end_round_angle')])
-        end_et_dict[row.iloc[columns.index('start_date')]].append(row.iloc[columns.index('end_et')])
+        end_time_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('end_time')])
+        end_round_time_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('end_round_time')])
+        end_angle_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('end_angle')])
+        end_round_angle_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('end_round_angle')])
+        end_et_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('end_et')])
 
-    arc_frame = pd.DataFrame(columns=columns)
+    output_columns = [
+        'index', 'start_date',
+        'start_time', 'start_round_time', 'start_angle', 'start_round_angle', 'start_et',
+        'end_time', 'end_round_time', 'end_angle', 'end_round_angle', 'end_et',
+        'min_time', 'min_round_time', 'min_angle', 'min_round_angle', 'min_et'
+    ]
+    output_frame = pd.DataFrame(columns=output_columns)
+
     for date in date_keys:
         start_times = start_time_dict[date]
         start_round_times = start_round_time_dict[date]
@@ -172,14 +177,14 @@ def index_arc_df(frame):
         end_ets = end_et_dict[date]
 
         for i in range(len(start_times)):
-            arc_frame.loc[len(arc_frame)] = [
+            output_frame.loc[len(output_frame)] = [
                 i+1, date,
                 start_times[i], start_round_times[i], start_angles[i], start_round_angles[i], start_ets[i],
                 min_times[i], min_round_times[i], min_angles[i], min_round_angles[i],
                 min_ets[i], end_times[i], end_round_times[i], end_angels[i], end_round_angles[i], end_ets[i]
             ]
 
-    return arc_frame
+    return output_frame
 
 
 def create_arcs(f_day, l_day, minima_frame):
@@ -235,6 +240,7 @@ class ArcsDataframe:
             frame = create_arcs(f_day, l_day, minima_df)
             frame['speed'] = speed
             write_df(frame, self.filepath, True)
+            print_file_exists(self.filepath)
 
 
 class TransitTimeJob(Job):  # super -> job name, result key, function/object, arguments
