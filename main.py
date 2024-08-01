@@ -49,6 +49,7 @@ if __name__ == '__main__':
     print(f'calendar year: {Globals.YEAR}')
     print(f'start date: {Globals.FIRST_DAY_DATE}')
     print(f'end date: {Globals.LAST_DAY_DATE}')
+    # noinspection PyUnboundLocalVariable
     print(f'total waypoints: {len(route.waypoints)}')
     print(f'total edge nodes: {len(list(filter(lambda w: isinstance(w, EdgeNode), route.waypoints)))}')
     print(f'total edges: {len(route.edges)}')
