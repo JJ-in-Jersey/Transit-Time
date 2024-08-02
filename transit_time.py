@@ -34,6 +34,7 @@ def minima_table(transit_array, template_df, savgol_path):
     noise_size = 100
     min_df = template_df.copy(deep=True)
     min_df = min_df.assign(tts=transit_array)
+    min_df.drop(['date_time'], axis=1, inplace=True)  # only needed for debugging
     if savgol_path.exists():
         min_df['midline'] = read_df(savgol_path)['midline']
     else:
@@ -100,7 +101,7 @@ def minima_table(transit_array, template_df, savgol_path):
     min_df['end_date'] = min_df['end_datetime'].dt.date
     min_df.drop(['start_datetime', 'min_datetime', 'end_datetime'], axis=1, inplace=True)
 
-    min_df.drop(['date_time', 'tts', 'departure_index', 'midline', 'block', 'TF'], axis=1, inplace=True)
+    min_df.drop(['tts', 'departure_index', 'midline', 'block', 'TF'], axis=1, inplace=True)
     return min_df
 
 
@@ -233,12 +234,14 @@ class ArcsDataframe:
 
             if minima_path.exists():
                 minima_df = read_df(minima_path)
-                for column in minima_df.columns:
-                    minima_df[column] = pd.to_datetime(minima_df[column])
             else:
                 minima_df = minima_table(transit_timesteps_arr, template_df, savgol_path)
-                write_df(minima_df, minima_path, True)
+                write_df(minima_df, minima_path)
+                minima_df = read_df(minima_path)  # read df to reset dtypes so they can be converted to datetimes
             print_file_exists(minima_path)
+
+            for column in minima_df.columns:
+                minima_df[column] = pd.to_datetime(minima_df[column])
 
             frame = create_arcs(f_day, l_day, minima_df)
             frame['speed'] = speed
