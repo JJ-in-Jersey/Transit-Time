@@ -12,6 +12,7 @@ from tt_globals.globals import Globals
 
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=UserWarning)
 
 
 def none_row(row, df):
@@ -71,16 +72,13 @@ def minima_table(transit_array, template_df, savgol_path):
         start_row = sr
         end_row = er
 
-        # start_row = clump.iloc[0] if clump.iloc[0]['tts'] < offset else clump[clump['departure_index'].le(minimum_row['departure_index']) & clump['tts'].ge(offset)].iloc[-1]
-        # end_row = clump.iloc[-1] if clump.iloc[-1]['tts'] < offset else clump[clump['departure_index'].ge(minimum_row['departure_index']) & clump['tts'].ge(offset)].iloc[0]
-
-        min_df.at[minimum_row['index'], 'start_index'] = start_row['departure_index']
+        # min_df.at[minimum_row['index'], 'start_index'] = start_row['departure_index']
+        # min_df.at[minimum_row['index'], 'min_index'] = minimum_row['departure_index']
+        # min_df.at[minimum_row['index'], 'end_index'] = end_row['departure_index']
         min_df.at[minimum_row['index'], 'start_datetime'] = index_to_date(start_row['departure_index'])
         min_df.at[minimum_row['index'], 'start_et'] = (datetime.datetime.min + datetime.timedelta(seconds=int(start_row['tts'])*Globals.TIMESTEP)).time()
-        min_df.at[minimum_row['index'], 'min_index'] = minimum_row['departure_index']
         min_df.at[minimum_row['index'], 'min_datetime'] = index_to_date(minimum_row['departure_index'])
         min_df.at[minimum_row['index'], 'min_et'] = (datetime.datetime.min + datetime.timedelta(seconds=int(minimum_row['tts'])*Globals.TIMESTEP)).time()
-        min_df.at[minimum_row['index'], 'end_index'] = end_row['departure_index']
         min_df.at[minimum_row['index'], 'end_datetime'] = index_to_date(end_row['departure_index'])
         min_df.at[minimum_row['index'], 'end_et'] = (datetime.datetime.min + datetime.timedelta(seconds=int(end_row['tts'])*Globals.TIMESTEP)).time()
 
@@ -94,15 +92,15 @@ def minima_table(transit_array, template_df, savgol_path):
     min_df['end_round_time'] = min_df['end_round_datetime'].dt.time
     min_df.drop(['start_round_datetime', 'min_round_datetime', 'end_round_datetime'], axis=1, inplace=True)
 
-    min_df['start_time'] = min_df['start_datetime'].dt.time
     min_df['start_date'] = min_df['start_datetime'].dt.date
+    min_df['start_time'] = min_df['start_datetime'].dt.time
     min_df['min_time'] = min_df['min_datetime'].dt.time
     min_df['min_date'] = min_df['min_datetime'].dt.date
     min_df['end_time'] = min_df['end_datetime'].dt.time
     min_df['end_date'] = min_df['end_datetime'].dt.date
     min_df.drop(['start_datetime', 'min_datetime', 'end_datetime'], axis=1, inplace=True)
 
-    min_df.drop(['tts', 'departure_index', 'midline', 'block', 'TF'], axis=1, inplace=True)
+    min_df.drop(['date_time', 'tts', 'departure_index', 'midline', 'block', 'TF'], axis=1, inplace=True)
     return min_df
 
 
@@ -190,7 +188,7 @@ def index_arc_df(frame):
 def create_arcs(f_day, l_day, minima_frame):
 
     arcs = [Arc(row.to_dict()) for i, row in minima_frame.iterrows()]
-    dicts = [a.arc_dict for a in filter(lambda a: not (a.arc_dict['arc_angle'] == 0 or a.arc_dict['arc_round_angle'] == 0), arcs)]
+    dicts = [a.arc_dict for a in arcs]
 
     arcs_df = pd.DataFrame(columns=Arc.columns)
     for d in dicts:
@@ -232,6 +230,8 @@ class ArcsDataframe:
 
             if minima_path.exists():
                 minima_df = read_df(minima_path)
+                for column in minima_df.columns:
+                    minima_df[column] = pd.to_datetime(minima_df[column])
             else:
                 minima_df = minima_table(transit_timesteps_arr, template_df, savgol_path)
                 write_df(minima_df, minima_path, True)
