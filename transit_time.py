@@ -188,7 +188,10 @@ def index_arc_df(frame):
 def create_arcs(f_day, l_day, minima_frame):
 
     arcs = [Arc(row.to_dict()) for i, row in minima_frame.iterrows()]
-    dicts = [a.arc_dict for a in arcs]
+    next_day_arcs = [arc for arc in arcs if arc.next_day_arc]
+    all_arcs = arcs + next_day_arcs
+    all_good_arcs = [arc for arc in all_arcs if not arc.zero_angle]
+    dicts = [a.arc_dict for a in all_good_arcs]
 
     arcs_df = pd.DataFrame(columns=Arc.columns)
     for d in dicts:
@@ -196,8 +199,8 @@ def create_arcs(f_day, l_day, minima_frame):
 
     arcs_df.sort_values(by=['start_date', 'start_time'], inplace=True)
     arcs_df = index_arc_df(arcs_df)
-    arcs_df = arcs_df[arcs_df['start_date'] <= l_day.date()]
-    arcs_df = arcs_df[arcs_df['start_date'] >= f_day.date()]
+    arcs_df = arcs_df[arcs_df['start_date'] <= pd.to_datetime(l_day.date())]
+    arcs_df = arcs_df[arcs_df['start_date'] >= pd.to_datetime(f_day.date())]
 
     return arcs_df
 
