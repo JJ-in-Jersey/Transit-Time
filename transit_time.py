@@ -8,7 +8,7 @@ from copy import deepcopy
 from tt_file_tools.file_tools import read_df, write_df, print_file_exists
 from tt_geometry.geometry import Arc
 from tt_job_manager.job_manager import Job
-from tt_date_time_tools.date_time_tools import index_to_date, round_datetime
+from tt_date_time_tools.date_time_tools import index_to_date, round_datetime, timedelta_hours_mins
 from tt_globals.globals import Globals
 
 import warnings
@@ -200,6 +200,9 @@ def create_arcs(f_day, l_day, minima_frame):
     arcs_df = index_arc_df(arcs_df)
     arcs_df = arcs_df[arcs_df['start_date'] <= l_day.date()]
     arcs_df = arcs_df[arcs_df['start_date'] >= f_day.date()]
+    arcs_df['start_et'] = arcs_df['start_et'].apply(timedelta_hours_mins)
+    arcs_df['min_et'] = arcs_df['min_et'].apply(timedelta_hours_mins)
+    arcs_df['end_et'] = arcs_df['end_et'].apply(timedelta_hours_mins)
 
     return arcs_df
 
@@ -227,7 +230,7 @@ class ArcsDataframe:
                 col_list.remove('date_time')
 
                 transit_timesteps_arr = [total_transit_time(row, et_df, col_list) for row in row_range]
-                write_df(pd.concat([template_df, pd.DataFrame(transit_timesteps_arr)], axis=1), transit_timesteps_path, True)
+                write_df(pd.concat([template_df, pd.DataFrame(transit_timesteps_arr)], axis=1), transit_timesteps_path)
             print_file_exists(transit_timesteps_path)
 
             minima_df = MinimaFrame(transit_timesteps_arr, template_df, savgol_path, minima_path).frame
@@ -235,7 +238,7 @@ class ArcsDataframe:
 
             frame = create_arcs(f_day, l_day, minima_df)
             frame['speed'] = speed
-            write_df(frame, self.filepath, True)
+            write_df(frame, self.filepath)
             print_file_exists(self.filepath)
 
 
