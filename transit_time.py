@@ -3,6 +3,7 @@ from scipy.signal import savgol_filter
 from num2words import num2words
 from pathlib import Path
 import datetime
+from copy import deepcopy
 
 from tt_file_tools.file_tools import read_df, write_df, print_file_exists
 from tt_geometry.geometry import Arc
@@ -116,23 +117,23 @@ def index_arc_df(frame):
 
     date_arr_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].dt.date)))}
 
-    start_time_dict = dict(date_arr_dict)
-    start_round_time_dict = dict(date_arr_dict)
-    start_angle_dict = dict(date_arr_dict)
-    start_round_angle_dict = dict(date_arr_dict)
-    start_et_dict = dict(date_arr_dict)
+    start_time_dict = deepcopy(date_arr_dict)
+    start_round_time_dict = deepcopy(date_arr_dict)
+    start_angle_dict = deepcopy(date_arr_dict)
+    start_round_angle_dict = deepcopy(date_arr_dict)
+    start_et_dict = deepcopy(date_arr_dict)
 
-    min_time_dict = dict(date_arr_dict)
-    min_round_time_dict = dict(date_arr_dict)
-    min_angle_dict = dict(date_arr_dict)
-    min_round_angle_dict = dict(date_arr_dict)
-    min_et_dict = dict(date_arr_dict)
+    min_time_dict = deepcopy(date_arr_dict)
+    min_round_time_dict = deepcopy(date_arr_dict)
+    min_angle_dict = deepcopy(date_arr_dict)
+    min_round_angle_dict = deepcopy(date_arr_dict)
+    min_et_dict = deepcopy(date_arr_dict)
 
-    end_time_dict = dict(date_arr_dict)
-    end_round_time_dict = dict(date_arr_dict)
-    end_angle_dict = dict(date_arr_dict)
-    end_round_angle_dict = dict(date_arr_dict)
-    end_et_dict = dict(date_arr_dict)
+    end_time_dict = deepcopy(date_arr_dict)
+    end_round_time_dict = deepcopy(date_arr_dict)
+    end_angle_dict = deepcopy(date_arr_dict)
+    end_round_angle_dict = deepcopy(date_arr_dict)
+    end_et_dict = deepcopy(date_arr_dict)
 
     for i, row in frame.iterrows():
         date = row.iloc[frame_columns.index('start_datetime')].date()
@@ -163,31 +164,22 @@ def index_arc_df(frame):
     output_frame = pd.DataFrame(columns=output_columns)
 
     for date in date_arr_dict.keys():
-        start_times = start_time_dict[date]
-        start_round_times = start_round_time_dict[date]
-        start_angles = start_angle_dict[date]
-        start_round_angles = start_round_angle_dict[date]
-        start_ets = start_et_dict[date]
+        num_of_indices = len(start_time_dict[date])
 
-        min_times = min_time_dict[date]
-        min_round_times = min_round_time_dict[date]
-        min_angles = min_angle_dict[date]
-        min_round_angles = min_round_angle_dict[date]
-        min_ets = min_et_dict[date]
+        # all arcs have a start and end, some arcs won't have a minimum therefore we need to pad
+        for p in range(num_of_indices - len(min_time_dict[date])):
+            min_time_dict[date].append(None)
+            min_round_time_dict[date].append(None)
+            min_angle_dict[date].append(None)
+            min_round_angle_dict[date].append(None)
+            min_et_dict[date].append(None)
 
-        end_times = end_time_dict[date]
-        end_round_times = end_round_time_dict[date]
-        end_angels = end_angle_dict[date]
-        end_round_angles = end_round_angle_dict[date]
-        end_ets = end_et_dict[date]
-
-        for i in range(len(start_times)):
-            output_frame.loc[len(output_frame)] = [
-                i+1, date,
-                start_times[i], start_round_times[i], start_angles[i], start_round_angles[i], start_ets[i],
-                min_times[i], min_round_times[i], min_angles[i], min_round_angles[i],
-                min_ets[i], end_times[i], end_round_times[i], end_angels[i], end_round_angles[i], end_ets[i]
-            ]
+        for i in range(num_of_indices):
+            output_frame.loc[len(output_frame)] = [i+1, date,
+            start_time_dict[date][i], start_round_time_dict[date][i], start_angle_dict[date][i], start_round_angle_dict[date][i], start_et_dict[date][i],
+            min_time_dict[date][i], min_round_time_dict[date][i], min_angle_dict[date][i], min_round_angle_dict[date][i], min_et_dict[date][i],
+            end_time_dict[date][i], end_round_time_dict[date][i], end_angle_dict[date][i], end_round_angle_dict[date][i], end_et_dict[date][i]
+        ]
 
     return output_frame
 
