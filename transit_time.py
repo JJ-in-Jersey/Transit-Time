@@ -30,123 +30,128 @@ def total_transit_time(init_row, d_frame, cols):
     return tt
 
 
-def minima_table(transit_array, template_df, savgol_path):
-    noise_size = 100
-    min_df = template_df.copy(deep=True)
-    min_df = min_df.assign(tts=transit_array)
-    min_df.drop(['date_time'], axis=1, inplace=True)  # only needed for debugging
-    if savgol_path.exists():
-        min_df['midline'] = read_df(savgol_path)['midline']
-    else:
-        min_df['midline'] = savgol_filter(transit_array, 50000, 1).round()
-        write_df(min_df, savgol_path, True)
-    print_file_exists(savgol_path)
+class MinimaFrame:
 
-    min_df['TF'] = min_df['tts'].lt(min_df['midline'])  # Above midline = False,  below midline = True
-    min_df = min_df.drop(min_df[min_df['tts'] == min_df['midline']].index).reset_index(drop=True)  # remove values that equal midline
-    min_df['block'] = (min_df['TF'] != min_df['TF'].shift(1)).cumsum()  # index the blocks of True and False
-    clump_lookup = {index: df for index, df in min_df.groupby('block') if df['TF'].any()}  # select only the True blocks
-    clump_lookup = {index: df.drop(['TF', 'block', 'midline'], axis=1).reset_index() for index, df in clump_lookup.items() if len(df) > noise_size}  # remove the tiny blocks caused by noise at the inflections
+    col_types = {
+        'start_datetime': 'DT', 'min_datetime': 'DT', 'end_datetime': 'DT',
+        'start_et': 'TD', 'min_et': 'TD', 'end_et': 'TD',
+        'start_round_datetime': 'DT', 'min_round_datetime': 'DT', 'end_round_datetime': 'DT'
+    }
 
-    for index, clump in clump_lookup.items():
-        # for this clump get the row with the minimum transit time
-        median_departure_index = clump[clump['tts'] == clump.min()['tts']]['departure_index'].median()  # median of the departure indices among the tts minimum values
-        abs_diff = clump['departure_index'].sub(median_departure_index).abs()  # series of abs differences
-        minimum_index = abs_diff[abs_diff == abs_diff.min()].index[0]  # row closest to median departure index
-        minimum_row = clump.iloc[minimum_index]
+    def __init__(self, transit_array, template_df, savgol_path, minima_path):
 
-        # find the upper and lower limits of the time window
-        offset = int(minimum_row['tts']*Globals.TIME_WINDOW_SCALE_FACTOR)  # offset is transit time steps (tts)
-
-        sr_range = clump[clump['departure_index'].lt(minimum_row['departure_index'])]  # range of valid starting points less than minimum
-        if len(sr_range[sr_range['tts'].gt(offset)]):  # there is a valid starting point between the beginning and minimum
-            sr = sr_range[sr_range['tts'].gt(offset)].iloc[-1]  # pick the one closest to minimum
+        self.frame = None
+        if minima_path.exists():
+            self.frame = read_df(minima_path)
+            for column in self.frame.columns:
+                if MinimaFrame.col_types[column] == 'DT':
+                    self.frame[column] = pd.to_datetime(self.frame[column])
+                elif MinimaFrame.col_types[column] == 'TD':
+                    self.frame[column] = pd.to_timedelta(self.frame[column])
         else:
-            sr = clump.iloc[0]
+            noise_size = 100
+            self.frame = template_df.copy(deep=True)
+            self.frame = self.frame.assign(tts=transit_array)
+            self.frame.drop(['date_time'], axis=1, inplace=True)  # only needed for debugging
+            if savgol_path.exists():
+                self.frame['midline'] = read_df(savgol_path)['midline']
+            else:
+                self.frame['midline'] = savgol_filter(transit_array, 50000, 1).round()
+                write_df(self.frame, savgol_path)
+            print_file_exists(savgol_path)
 
-        er_range = clump[clump['departure_index'].gt(minimum_row['departure_index'])]  # range of valid ending points greater than minimum
-        if len(er_range[er_range['tts'].gt(offset)]):  # there is a valid starting point between the minimum and end
-            er = er_range[er_range['tts'].gt(offset)].iloc[0]  # pick the one closest to minimum
-        else:
-            er = clump.iloc[-1]
+            self.frame['TF'] = self.frame['tts'].lt(self.frame['midline'])  # Above midline = False,  below midline = True
+            self.frame = self.frame.drop(self.frame[self.frame['tts'] == self.frame['midline']].index).reset_index(drop=True)  # remove values that equal midline
+            self.frame['block'] = (self.frame['TF'] != self.frame['TF'].shift(1)).cumsum()  # index the blocks of True and False
+            clump_lookup = {index: df for index, df in self.frame.groupby('block') if df['TF'].any()}  # select only the True blocks
+            clump_lookup = {index: df.drop(['TF', 'block', 'midline'], axis=1).reset_index() for index, df in clump_lookup.items() if len(df) > noise_size}  # remove the tiny blocks caused by noise at the inflections
 
-        start_row = sr
-        end_row = er
+            for index, clump in clump_lookup.items():
+                # for this clump get the row with the minimum transit time
+                # median of the departure indices among the tts minimum values
+                median_departure_index = clump[clump['tts'] == clump.min()['tts']]['departure_index'].median()
+                abs_diff = clump['departure_index'].sub(median_departure_index).abs()  # series of abs differences
+                minimum_index = abs_diff[abs_diff == abs_diff.min()].index[0]  # row closest to median departure index
+                minimum_row = clump.iloc[minimum_index]
 
-        # min_df.at[minimum_row['index'], 'start_index'] = start_row['departure_index']
-        # min_df.at[minimum_row['index'], 'min_index'] = minimum_row['departure_index']
-        # min_df.at[minimum_row['index'], 'end_index'] = end_row['departure_index']
-        min_df.at[minimum_row['index'], 'start_datetime'] = index_to_date(start_row['departure_index'])
-        min_df.at[minimum_row['index'], 'start_et'] = (datetime.datetime.min + datetime.timedelta(seconds=int(start_row['tts'])*Globals.TIMESTEP)).time()
-        min_df.at[minimum_row['index'], 'min_datetime'] = index_to_date(minimum_row['departure_index'])
-        min_df.at[minimum_row['index'], 'min_et'] = (datetime.datetime.min + datetime.timedelta(seconds=int(minimum_row['tts'])*Globals.TIMESTEP)).time()
-        min_df.at[minimum_row['index'], 'end_datetime'] = index_to_date(end_row['departure_index'])
-        min_df.at[minimum_row['index'], 'end_et'] = (datetime.datetime.min + datetime.timedelta(seconds=int(end_row['tts'])*Globals.TIMESTEP)).time()
+                # find the upper and lower limits of the time window
+                offset = int(minimum_row['tts'] * Globals.TIME_WINDOW_SCALE_FACTOR)  # offset is transit time steps (tts)
 
-    min_df = min_df.dropna(axis=0).sort_index().reset_index(drop=True)  # remove lines with NA
+                sr_range = clump[clump['departure_index'].lt(
+                    minimum_row['departure_index'])]  # range of valid starting points less than minimum
+                if len(sr_range[sr_range['tts'].gt(offset)]):  # there is a valid starting point between the beginning and minimum
+                    sr = sr_range[sr_range['tts'].gt(offset)].iloc[-1]  # pick the one closest to minimum
+                else:
+                    sr = clump.iloc[0]
 
-    min_df['start_round_datetime'] = min_df['start_datetime'].apply(round_datetime)
-    min_df['min_round_datetime'] = min_df['min_datetime'].apply(round_datetime)
-    min_df['end_round_datetime'] = min_df['end_datetime'].apply(round_datetime)
-    min_df['start_round_time'] = min_df['start_round_datetime'].dt.time
-    min_df['min_round_time'] = min_df['min_round_datetime'].dt.time
-    min_df['end_round_time'] = min_df['end_round_datetime'].dt.time
-    min_df.drop(['start_round_datetime', 'min_round_datetime', 'end_round_datetime'], axis=1, inplace=True)
+                er_range = clump[clump['departure_index'].gt(
+                    minimum_row['departure_index'])]  # range of valid ending points greater than minimum
+                if len(er_range[er_range['tts'].gt(offset)]):  # there is a valid starting point between the minimum and end
+                    er = er_range[er_range['tts'].gt(offset)].iloc[0]  # pick the one closest to minimum
+                else:
+                    er = clump.iloc[-1]
 
-    min_df['start_date'] = min_df['start_datetime'].dt.date
-    min_df['start_time'] = min_df['start_datetime'].dt.time
-    min_df['min_time'] = min_df['min_datetime'].dt.time
-    min_df['min_date'] = min_df['min_datetime'].dt.date
-    min_df['end_time'] = min_df['end_datetime'].dt.time
-    min_df['end_date'] = min_df['end_datetime'].dt.date
-    min_df.drop(['start_datetime', 'min_datetime', 'end_datetime'], axis=1, inplace=True)
+                start_row = sr
+                end_row = er
 
-    min_df.drop(['tts', 'departure_index', 'midline', 'block', 'TF'], axis=1, inplace=True)
-    return min_df
+                self.frame.at[minimum_row['index'], 'start_datetime'] = index_to_date(start_row['departure_index'])  # datetime.timestamp ('<M8[ns]') (datetime64[ns])
+                self.frame.at[minimum_row['index'], 'min_datetime'] = index_to_date(minimum_row['departure_index'])
+                self.frame.at[minimum_row['index'], 'end_datetime'] = index_to_date(end_row['departure_index'])
+                self.frame.at[minimum_row['index'], 'start_et'] = datetime.timedelta(seconds=int(start_row['tts'])*Globals.TIMESTEP)  # datetime.timedelta (timedelta64[us])
+                self.frame.at[minimum_row['index'], 'min_et'] = datetime.timedelta(seconds=int(minimum_row['tts'])*Globals.TIMESTEP)
+                self.frame.at[minimum_row['index'], 'end_et'] = datetime.timedelta(seconds=int(end_row['tts'])*Globals.TIMESTEP)
+
+            self.frame = self.frame.dropna(axis=0).sort_index().reset_index(drop=True)  # remove lines with NA
+            self.frame['start_round_datetime'] = self.frame['start_datetime'].apply(round_datetime)  # datetime.timestamp ('<M8[ns]') (datetime64[ns])
+            self.frame['min_round_datetime'] = self.frame['min_datetime'].apply(round_datetime)
+            self.frame['end_round_datetime'] = self.frame['end_datetime'].apply(round_datetime)
+
+            self.frame.drop(['tts', 'departure_index', 'midline', 'block', 'TF'], axis=1, inplace=True)
+            write_df(self.frame, minima_path)
 
 
 def index_arc_df(frame):
 
     frame_columns = frame.columns.to_list()
 
-    date_keys = [key for key in sorted(list(set(frame['start_date'])))]
+    date_keys = [key for key in sorted(list(set(frame['start_datetime'].date())))]
 
-    start_time_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
-    start_round_time_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
-    start_angle_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
-    start_round_angle_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
-    start_et_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
+    start_time_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
+    start_round_time_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
+    start_angle_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
+    start_round_angle_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
+    start_et_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
 
-    min_time_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
-    min_round_time_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
-    min_angle_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
-    min_round_angle_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
-    min_et_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
+    min_time_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
+    min_round_time_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
+    min_angle_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
+    min_round_angle_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
+    min_et_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
 
-    end_time_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
-    end_round_time_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
-    end_angle_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
-    end_round_angle_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
-    end_et_dict = {key: [] for key in sorted(list(set(frame['start_date'])))}
+    end_time_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
+    end_round_time_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
+    end_angle_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
+    end_round_angle_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
+    end_et_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
 
     for i, row in frame.iterrows():
-        start_time_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('start_time')])
-        start_round_time_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('start_round_time')])
-        start_angle_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('start_angle')])
-        start_round_angle_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('start_round_angle')])
-        start_et_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('start_et')])
+        start_time_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('start_time')])
+        start_round_time_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('start_round_time')])
+        start_angle_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('start_angle')])
+        start_round_angle_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('start_round_angle')])
+        start_et_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('start_et')])
 
-        min_time_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('min_time')])
-        min_round_time_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('min_round_time')])
-        min_angle_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('min_angle')])
-        min_round_angle_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('min_round_angle')])
-        min_et_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('min_et')])
+        min_time_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('min_time')])
+        min_round_time_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('min_round_time')])
+        min_angle_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('min_angle')])
+        min_round_angle_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('min_round_angle')])
+        min_et_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('min_et')])
 
-        end_time_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('end_time')])
-        end_round_time_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('end_round_time')])
-        end_angle_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('end_angle')])
-        end_round_angle_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('end_round_angle')])
-        end_et_dict[row.iloc[frame_columns.index('start_date')]].append(row.iloc[frame_columns.index('end_et')])
+        end_time_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('end_time')])
+        end_round_time_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('end_round_time')])
+        end_angle_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('end_angle')])
+        end_round_angle_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('end_round_angle')])
+        end_et_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('end_et')])
 
     output_columns = [
         'index', 'start_date',
@@ -198,10 +203,10 @@ def create_arcs(f_day, l_day, minima_frame):
     for d in dicts:
         arcs_df.loc[len(arcs_df)] = d
 
-    arcs_df.sort_values(by=['start_date', 'start_time'], inplace=True)
+    arcs_df.sort_values(by=['start_datetime'], inplace=True)
     arcs_df = index_arc_df(arcs_df)
-    arcs_df = arcs_df[arcs_df['start_date'] <= pd.to_datetime(l_day.date())]
-    arcs_df = arcs_df[arcs_df['start_date'] >= pd.to_datetime(f_day.date())]
+    arcs_df = arcs_df[arcs_df['start_datetime'].date() <= l_day.date()]
+    arcs_df = arcs_df[arcs_df['start_datetime'].date() >= f_day.date()]
 
     return arcs_df
 
@@ -232,16 +237,8 @@ class ArcsDataframe:
                 write_df(pd.concat([template_df, pd.DataFrame(transit_timesteps_arr)], axis=1), transit_timesteps_path, True)
             print_file_exists(transit_timesteps_path)
 
-            if minima_path.exists():
-                minima_df = read_df(minima_path)
-            else:
-                minima_df = minima_table(transit_timesteps_arr, template_df, savgol_path)
-                write_df(minima_df, minima_path)
-                minima_df = read_df(minima_path)  # read df to reset dtypes so they can be converted to datetimes
+            minima_df = MinimaFrame(transit_timesteps_arr, template_df, savgol_path, minima_path).frame
             print_file_exists(minima_path)
-
-            for column in minima_df.columns:
-                minima_df[column] = pd.to_datetime(minima_df[column])
 
             frame = create_arcs(f_day, l_day, minima_df)
             frame['speed'] = speed
