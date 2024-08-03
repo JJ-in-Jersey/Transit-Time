@@ -114,44 +114,45 @@ def index_arc_df(frame):
 
     frame_columns = frame.columns.to_list()
 
-    date_keys = [key for key in sorted(list(set(frame['start_datetime'].date())))]
+    date_arr_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].dt.date)))}
 
-    start_time_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
-    start_round_time_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
-    start_angle_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
-    start_round_angle_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
-    start_et_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
+    start_time_dict = dict(date_arr_dict)
+    start_round_time_dict = dict(date_arr_dict)
+    start_angle_dict = dict(date_arr_dict)
+    start_round_angle_dict = dict(date_arr_dict)
+    start_et_dict = dict(date_arr_dict)
 
-    min_time_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
-    min_round_time_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
-    min_angle_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
-    min_round_angle_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
-    min_et_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
+    min_time_dict = dict(date_arr_dict)
+    min_round_time_dict = dict(date_arr_dict)
+    min_angle_dict = dict(date_arr_dict)
+    min_round_angle_dict = dict(date_arr_dict)
+    min_et_dict = dict(date_arr_dict)
 
-    end_time_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
-    end_round_time_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
-    end_angle_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
-    end_round_angle_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
-    end_et_dict = {key: [] for key in sorted(list(set(frame['start_datetime'].date())))}
+    end_time_dict = dict(date_arr_dict)
+    end_round_time_dict = dict(date_arr_dict)
+    end_angle_dict = dict(date_arr_dict)
+    end_round_angle_dict = dict(date_arr_dict)
+    end_et_dict = dict(date_arr_dict)
 
     for i, row in frame.iterrows():
-        start_time_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('start_time')])
-        start_round_time_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('start_round_time')])
-        start_angle_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('start_angle')])
-        start_round_angle_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('start_round_angle')])
-        start_et_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('start_et')])
+        date = row.iloc[frame_columns.index('start_datetime')].date()
+        start_time_dict[date].append(row.iloc[frame_columns.index('start_datetime')].time())
+        start_round_time_dict[date].append(row.iloc[frame_columns.index('start_round_datetime')].time())
+        start_angle_dict[date].append(row.iloc[frame_columns.index('start_angle')])
+        start_round_angle_dict[date].append(row.iloc[frame_columns.index('start_round_angle')])
+        start_et_dict[date].append(row.iloc[frame_columns.index('start_et')])
 
-        min_time_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('min_time')])
-        min_round_time_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('min_round_time')])
-        min_angle_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('min_angle')])
-        min_round_angle_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('min_round_angle')])
-        min_et_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('min_et')])
+        if not pd.isnull(row.iloc[frame_columns.index('min_datetime')]): min_time_dict[date].append(row.iloc[frame_columns.index('min_datetime')].time())
+        if not pd.isnull(row.iloc[frame_columns.index('min_round_datetime')]): min_round_time_dict[date].append(row.iloc[frame_columns.index('min_round_datetime')].time())
+        min_angle_dict[date].append(row.iloc[frame_columns.index('min_angle')])
+        min_round_angle_dict[date].append(row.iloc[frame_columns.index('min_round_angle')])
+        min_et_dict[date].append(row.iloc[frame_columns.index('min_et')])
 
-        end_time_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('end_time')])
-        end_round_time_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('end_round_time')])
-        end_angle_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('end_angle')])
-        end_round_angle_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('end_round_angle')])
-        end_et_dict[row.iloc[frame_columns.index('start_datetime')]].append(row.iloc[frame_columns.index('end_et')])
+        end_time_dict[date].append(row.iloc[frame_columns.index('end_datetime')].time())
+        end_round_time_dict[date].append(row.iloc[frame_columns.index('end_round_datetime')].time())
+        end_angle_dict[date].append(row.iloc[frame_columns.index('end_angle')])
+        end_round_angle_dict[date].append(row.iloc[frame_columns.index('end_round_angle')])
+        end_et_dict[date].append(row.iloc[frame_columns.index('end_et')])
 
     output_columns = [
         'index', 'start_date',
@@ -161,7 +162,7 @@ def index_arc_df(frame):
     ]
     output_frame = pd.DataFrame(columns=output_columns)
 
-    for date in date_keys:
+    for date in date_arr_dict.keys():
         start_times = start_time_dict[date]
         start_round_times = start_round_time_dict[date]
         start_angles = start_angle_dict[date]
@@ -205,8 +206,8 @@ def create_arcs(f_day, l_day, minima_frame):
 
     arcs_df.sort_values(by=['start_datetime'], inplace=True)
     arcs_df = index_arc_df(arcs_df)
-    arcs_df = arcs_df[arcs_df['start_datetime'].date() <= l_day.date()]
-    arcs_df = arcs_df[arcs_df['start_datetime'].date() >= f_day.date()]
+    arcs_df = arcs_df[arcs_df['start_date'] <= l_day.date()]
+    arcs_df = arcs_df[arcs_df['start_date'] >= f_day.date()]
 
     return arcs_df
 
