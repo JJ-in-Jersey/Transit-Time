@@ -128,14 +128,21 @@ def index_arc_df(frame):
 
 def create_arcs(f_day, l_day, minima_frame, arcs_path):
 
-    arcs = [Arc(row.to_dict()) for i, row in minima_frame.iterrows()]
+    # arcs = [Arc(row.to_dict()) for i, row in minima_frame.iterrows()]
+    arcs = []
+    for i, row in minima_frame.iterrows():
+        if i >= 62:
+            pass
+        r = row.to_dict()
+        a = Arc(r)
+        arcs.append(a)
     next_day_arcs = [arc.next_day_arc for arc in arcs if arc.next_day_arc]
     all_arcs = arcs + next_day_arcs
     all_good_arcs = [arc for arc in all_arcs if not arc.zero_angle]
     dicts = [a.arc_dict for a in all_good_arcs]
 
     arcs_df = pd.DataFrame(columns=Arc.columns)
-    for d in dicts:
+    for d in [a.arc_dict for a in all_good_arcs]:
         arcs_df.loc[len(arcs_df)] = d
 
     # noinspection PyTypeChecker
