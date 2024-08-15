@@ -90,40 +90,40 @@ if __name__ == '__main__':
 
     arcs_df = concat([read_df(path) for path in [job_manager.get(key).filepath for key in keys]])
 
-    arcs_df.sort_values(['start_date', 'speed', 'index'], ignore_index=True, inplace=True)
+    arcs_df.sort_values(['start_datetime', 'speed', 'idx'], ignore_index=True, inplace=True)
     min_rotation_df = arcs_df[arcs_df['min_angle'].notna()]
     min_rotation_df = min_rotation_df.replace(to_replace=r'arc', value='min', regex=True)
 
     write_df(min_rotation_df, Globals.TRANSIT_TIMES_FOLDER.joinpath('minima.csv'))
     write_df(arcs_df, Globals.TRANSIT_TIMES_FOLDER.joinpath('arcs.csv'))
 
-    if args['east_river']:
-        print(f'\nEast River validation')
-
-        validation_frame = pd.DataFrame()
-
-        frame = validations.hell_gate_validation()
-        validation_frame = pd.concat([validation_frame, frame])
-
-        frame = validations.battery_validation()
-        validation_frame = pd.concat([validation_frame, frame])
-
-        validation_frame.sort_values(['start_date'], ignore_index=True, inplace=True)
-        write_df(validation_frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('east_river_validation.csv'))
-
-    if args['chesapeake_delaware_canal']:
-        print(f'\nChesapeake Delaware Canal validation')
-
-        validation_frame = pd.DataFrame()
-
-        frame = validations.chesapeake_city_validation()
-        validation_frame = pd.concat([validation_frame, frame])
-
-        frame = validations.reedy_point_tower_validation()
-        validation_frame = pd.concat([validation_frame, frame])
-
-        validation_frame.sort_values(['start_date'], ignore_index=True, inplace=True)
-        write_df(validation_frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('chesapeake_delaware_validation.csv'))
+    # if args['east_river']:
+    #     print(f'\nEast River validation')
+    #
+    #     validation_frame = pd.DataFrame()
+    #
+    #     frame = validations.hell_gate_validation()
+    #     validation_frame = pd.concat([validation_frame, frame])
+    #
+    #     frame = validations.battery_validation()
+    #     validation_frame = pd.concat([validation_frame, frame])
+    #
+    #     validation_frame.sort_values(['start_date'], ignore_index=True, inplace=True)
+    #     write_df(validation_frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('east_river_validation.csv'))
+    #
+    # if args['chesapeake_delaware_canal']:
+    #     print(f'\nChesapeake Delaware Canal validation')
+    #
+    #     validation_frame = pd.DataFrame()
+    #
+    #     frame = validations.chesapeake_city_validation()
+    #     validation_frame = pd.concat([validation_frame, frame])
+    #
+    #     frame = validations.reedy_point_tower_validation()
+    #     validation_frame = pd.concat([validation_frame, frame])
+    #
+    #     validation_frame.sort_values(['start_date'], ignore_index=True, inplace=True)
+    #     write_df(validation_frame, Globals.TRANSIT_TIMES_FOLDER.joinpath('chesapeake_delaware_validation.csv'))
 
     print(f'\nProcess Complete')
 
