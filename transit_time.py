@@ -149,7 +149,7 @@ def create_arcs(f_day, l_day, minima_frame, arcs_path):
     arcs_df.insert(loc=0, column='date', value=None)
     arcs_df['date'] = arcs_df['start_datetime'].dt.date
 
-    # arcs_df.sort_values(by=['start_datetime'], inplace=True)
+    arcs_df.sort_values(by=['start_datetime'], inplace=True)
     arcs_df = index_arc_df(arcs_df)
     arcs_df = arcs_df[arcs_df['date'] <= l_day.date()]
     arcs_df = arcs_df[arcs_df['date'] >= f_day.date()]
