@@ -1,7 +1,7 @@
 from argparse import ArgumentParser as argParser
 from pathlib import Path
 
-import pandas as pd
+# import pandas as pd
 from pandas import concat as concat
 from tt_gpx.gpx import Route, Waypoint, Edge, EdgeNode, GpxFile
 from tt_file_tools.file_tools import write_df, read_df
@@ -14,7 +14,7 @@ from edge_processing import edge_processing
 
 from transit_time import TransitTimeJob
 
-import validations
+# import validations
 
 if __name__ == '__main__':
 
