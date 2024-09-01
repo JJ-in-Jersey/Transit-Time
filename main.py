@@ -1,6 +1,7 @@
 from argparse import ArgumentParser as argParser
 from pathlib import Path
 
+import pandas as pd
 # import pandas as pd
 from pandas import concat as concat
 from tt_gpx.gpx import Route, Waypoint, Edge, EdgeNode, GpxFile
@@ -90,12 +91,17 @@ if __name__ == '__main__':
 
     arcs_df = concat([read_df(path) for path in [job_manager.get(key).filepath for key in keys]])
 
-    arcs_df.sort_values(['start_datetime', 'speed', 'idx'], ignore_index=True, inplace=True)
+    # arcs_df.sort_values(['start_datetime', 'speed', 'idx'], ignore_index=True, inplace=True)
+    arcs_df.sort_values(['speed', 'start_datetime', 'idx'], ignore_index=True, inplace=True)
+    rounded_arcs = arcs_df[['idx', 'start_datetime', 'start_round_datetime', 'min_round_datetime', 'end_round_datetime', 'speed']].copy()
+    rounded_arcs.rename(columns={'start_datetime': 'date', 'start_round_datetime': 'start', 'min_round_datetime': 'best', 'end_round_datetime': 'end'}, inplace=True)
+
     min_rotation_df = arcs_df[arcs_df['min_angle'].notna()]
     min_rotation_df = min_rotation_df.replace(to_replace=r'arc', value='min', regex=True)
 
     write_df(min_rotation_df, Globals.TRANSIT_TIMES_FOLDER.joinpath('minima.csv'))
     write_df(arcs_df, Globals.TRANSIT_TIMES_FOLDER.joinpath('arcs.csv'))
+    write_df(rounded_arcs, Globals.TRANSIT_TIMES_FOLDER.joinpath('rounded_arcs.csv'))
 
     # if args['east_river']:
     #     print(f'\nEast River validation')
