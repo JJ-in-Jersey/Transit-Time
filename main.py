@@ -47,6 +47,7 @@ if __name__ == '__main__':
         route = Route(gpx_file.tree)
 
     print(f'\nCalculating {gpx_file.type} {args['filepath'].stem}')
+    print(f'code {args['project_name']}')
     print(f'calendar year: {Globals.YEAR}')
     print(f'start date: {Globals.FIRST_DAY_DATE}')
     print(f'end date: {Globals.LAST_DAY_DATE}')
@@ -96,6 +97,7 @@ if __name__ == '__main__':
     rounded_arcs = arcs_df[['idx', 'start_round_datetime', 'min_round_datetime', 'end_round_datetime', 'speed']].copy()
     rounded_arcs.rename(columns={'start_round_datetime': 'start', 'min_round_datetime': 'best', 'end_round_datetime': 'end'}, inplace=True)
     rounded_arcs['date'] = pd.to_datetime(arcs_df['start_datetime']).dt.date
+    rounded_arcs['code'] = args['project_name']
 
     min_rotation_df = arcs_df[arcs_df['min_angle'].notna()]
     min_rotation_df = min_rotation_df.replace(to_replace=r'arc', value='min', regex=True)
