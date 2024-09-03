@@ -104,7 +104,7 @@ if __name__ == '__main__':
 
     write_df(min_rotation_df, Globals.TRANSIT_TIMES_FOLDER.joinpath('minima.csv'))
     write_df(arcs_df, Globals.TRANSIT_TIMES_FOLDER.joinpath('arcs.csv'))
-    write_df(rounded_arcs, Globals.TRANSIT_TIMES_FOLDER.joinpath('rounded_arcs.csv'))
+    write_df(rounded_arcs, Globals.TRANSIT_TIMES_FOLDER.joinpath(args['project_name'] + ' rounded_arcs.csv'))
 
     # if args['east_river']:
     #     print(f'\nEast River validation')
