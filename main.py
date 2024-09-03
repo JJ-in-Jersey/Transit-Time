@@ -91,13 +91,13 @@ if __name__ == '__main__':
     job_manager.wait()
 
     arcs_df = concat([read_df(path) for path in [job_manager.get(key).filepath for key in keys]])
+    arcs_df['code'] = args['project_name']
 
     # arcs_df.sort_values(['start_datetime', 'speed', 'idx'], ignore_index=True, inplace=True)
     arcs_df.sort_values(['speed', 'start_datetime', 'idx'], ignore_index=True, inplace=True)
-    rounded_arcs = arcs_df[['idx', 'start_round_datetime', 'min_round_datetime', 'end_round_datetime', 'speed']].copy()
+    rounded_arcs = arcs_df[['code', 'idx', 'start_round_datetime', 'min_round_datetime', 'end_round_datetime', 'speed']].copy()
     rounded_arcs.rename(columns={'start_round_datetime': 'start', 'min_round_datetime': 'best', 'end_round_datetime': 'end'}, inplace=True)
     rounded_arcs['date'] = pd.to_datetime(arcs_df['start_datetime']).dt.date
-    rounded_arcs['code'] = args['project_name']
 
     min_rotation_df = arcs_df[arcs_df['min_angle'].notna()]
     min_rotation_df = min_rotation_df.replace(to_replace=r'arc', value='min', regex=True)
