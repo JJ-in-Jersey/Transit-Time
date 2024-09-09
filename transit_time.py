@@ -131,8 +131,6 @@ def create_arcs(f_day, l_day, minima_frame, arcs_path):
     # arcs = [Arc(row.to_dict()) for i, row in minima_frame.iterrows()]
     arcs = []
     for i, row in minima_frame.iterrows():
-        if i >= 62:
-            pass
         r = row.to_dict()
         a = Arc(r)
         arcs.append(a)
