@@ -91,19 +91,24 @@ if __name__ == '__main__':
     job_manager.wait()
 
     arcs_df = concat([read_df(path) for path in [job_manager.get(key).filepath for key in keys]])
-    arcs_df['code'] = args['project_name']
 
     # arcs_df.sort_values(['start_datetime', 'speed', 'idx'], ignore_index=True, inplace=True)
     arcs_df.sort_values(['speed', 'start_datetime', 'idx'], ignore_index=True, inplace=True)
-    rounded_arcs = arcs_df[['code', 'idx', 'start_round_datetime', 'min_round_datetime', 'end_round_datetime', 'speed']].copy()
-    rounded_arcs.rename(columns={'start_round_datetime': 'start', 'min_round_datetime': 'best', 'end_round_datetime': 'end'}, inplace=True)
-    rounded_arcs['date'] = pd.to_datetime(arcs_df['start_datetime']).dt.date
 
-    min_rotation_df = arcs_df[arcs_df['min_angle'].notna()]
-    min_rotation_df = min_rotation_df.replace(to_replace=r'arc', value='min', regex=True)
+    rounded_arcs = arcs_df[['idx', 'start_round_datetime', 'min_round_datetime', 'end_round_datetime', 'speed']].copy()
+    rounded_arcs[args['project_name'] + ' date'] = pd.to_datetime(arcs_df['start_datetime']).dt.strftime("%m/%d/%Y")
 
-    write_df(min_rotation_df, Globals.TRANSIT_TIMES_FOLDER.joinpath('minima.csv'))
-    write_df(arcs_df, Globals.TRANSIT_TIMES_FOLDER.joinpath('arcs.csv'))
+    rounded_arcs.rename(columns={'idx': args['project_name'] + ' idx', 'start_round_datetime': args['project_name'] + ' start', 'min_round_datetime': args['project_name'] + ' best',
+                                 'end_round_datetime': args['project_name'] + ' end', 'speed': args['project_name'] + ' speed'}, inplace=True)
+    rounded_arcs[args['project_name'] + ' start'] = pd.to_datetime(rounded_arcs[args['project_name'] + ' start']).dt.strftime("%H:%M")
+    rounded_arcs[args['project_name'] + ' best'] = pd.to_datetime(rounded_arcs[args['project_name'] + ' best']).dt.strftime("%H:%M")
+    rounded_arcs[args['project_name'] + ' end'] = pd.to_datetime(rounded_arcs[args['project_name'] + ' end']).dt.strftime("%H:%M")
+
+    # min_rotation_df = arcs_df[arcs_df['min_angle'].notna()]
+    # min_rotation_df = min_rotation_df.replace(to_replace=r'arc', value='min', regex=True)
+    # write_df(min_rotation_df, Globals.TRANSIT_TIMES_FOLDER.joinpath('minima.csv'))
+
+    write_df(arcs_df, Globals.TRANSIT_TIMES_FOLDER.joinpath(args['project_name'] + ' arcs.csv'))
     write_df(rounded_arcs, Globals.TRANSIT_TIMES_FOLDER.joinpath(args['project_name'] + ' rounded_arcs.csv'))
 
     # if args['east_river']:
