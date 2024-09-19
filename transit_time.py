@@ -9,6 +9,7 @@ from tt_geometry.geometry import Arc
 from tt_job_manager.job_manager import Job
 from tt_date_time_tools.date_time_tools import index_to_date, round_datetime, timedelta_hours_mins
 from tt_globals.globals import Globals
+from tt_gpx.gpx import Route
 
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -41,7 +42,7 @@ class MinimaFrame:
     def __init__(self, transit_array, template_df, savgol_path, minima_path):
 
         self.frame = None
-        if minima_path.exists():
+        if print_file_exists(minima_path):
             self.frame = read_df(minima_path)
             for column in self.frame.columns:
                 if MinimaFrame.col_types[column] == 'DT':
@@ -108,6 +109,7 @@ class MinimaFrame:
 
             self.frame.drop(['tts', 'departure_index', 'midline', 'block', 'TF'], axis=1, inplace=True)
             write_df(self.frame, minima_path)
+            print_file_exists(minima_path)
 
 
 def index_arc_df(frame):
@@ -122,22 +124,26 @@ def index_arc_df(frame):
     for key in date_arr_dict.keys():
         for i in range(len(date_arr_dict[key])):
             output_frame.loc[len(output_frame)] = [i+1] + date_arr_dict[key][i].tolist()
+        if len(date_arr_dict[key]) == 2:
+            last_row_dict = output_frame.loc[len(output_frame)-1].to_dict()
+            new_dict = {key: None for key in last_row_dict}
+            new_dict.update({'idx': 3, 'date': last_row_dict['date']})
+            output_frame.loc[len(output_frame)] = new_dict
 
     return output_frame
 
 
-def create_arcs(f_day, l_day, minima_frame, arcs_path):
+def create_arcs(f_day, l_day, minima_frame):
 
-    # arcs = [Arc(row.to_dict()) for i, row in minima_frame.iterrows()]
-    arcs = []
-    for i, row in minima_frame.iterrows():
-        r = row.to_dict()
-        a = Arc(r)
-        arcs.append(a)
+    arcs = [Arc(row.to_dict()) for i, row in minima_frame.iterrows()]
+    # arcs = []
+    # for i, row in minima_frame.iterrows():
+    #     r = row.to_dict()
+    #     a = Arc(r)
+    #     arcs.append(a)
     next_day_arcs = [arc.next_day_arc for arc in arcs if arc.next_day_arc]
     all_arcs = arcs + next_day_arcs
     all_good_arcs = [arc for arc in all_arcs if not arc.zero_angle]
-    dicts = [a.arc_dict for a in all_good_arcs]
 
     arcs_df = pd.DataFrame(columns=Arc.columns)
     for d in [a.arc_dict for a in all_good_arcs]:
@@ -155,11 +161,10 @@ def create_arcs(f_day, l_day, minima_frame, arcs_path):
     arcs_df['min_et'] = arcs_df['min_et'].apply(timedelta_hours_mins)
     arcs_df['end_et'] = arcs_df['end_et'].apply(timedelta_hours_mins)
 
-    write_df(arcs_df, arcs_path)
     return arcs_df
 
 
-class ArcsDataframe:
+class TransitTimeDataframe:
 
     def __init__(self, speed, template_df: pd.DataFrame, et_file, tt_folder, f_day, l_day):
 
@@ -167,15 +172,17 @@ class ArcsDataframe:
         row_range = range(len(template_df))
 
         self.frame = None
-        speed_folder = tt_folder.joinpath(num2words(speed))
-        transit_timesteps_path = speed_folder.joinpath('timesteps.csv')
-        savgol_path = speed_folder.joinpath('savgol.csv')
-        minima_path = speed_folder.joinpath('minima.csv')
-        arcs_path = speed_folder.joinpath('unsorted_arcs.csv')
-        self.filepath = speed_folder.joinpath('arcs.csv')
+        folder = tt_folder.joinpath(num2words(speed))
+        transit_timesteps_path = folder.joinpath('timesteps.csv')
+        savgol_path = folder.joinpath('savgol.csv')
+        minima_path = folder.joinpath('minima.csv')
+        self.transit_times_path = folder.joinpath('transit_times.csv')
 
-        if not self.filepath.exists():
-            if transit_timesteps_path.exists():
+        # if not self.transit_times_path.exists():
+        if print_file_exists(self.transit_times_path):
+            self.frame = read_df(self.transit_times_path)
+        else:
+            if print_file_exists(transit_timesteps_path):
                 transit_timesteps_arr = list(read_df(transit_timesteps_path)['0'].to_numpy())
             else:
                 col_list = et_df.columns.to_list()
@@ -184,19 +191,16 @@ class ArcsDataframe:
 
                 transit_timesteps_arr = [total_transit_time(row, et_df, col_list) for row in row_range]
                 write_df(pd.concat([template_df, pd.DataFrame(transit_timesteps_arr)], axis=1), transit_timesteps_path)
-            print_file_exists(transit_timesteps_path)
+                print_file_exists(transit_timesteps_path)
 
             minima_df = MinimaFrame(transit_timesteps_arr, template_df, savgol_path, minima_path).frame
-            print_file_exists(minima_path)
 
-            frame = create_arcs(f_day, l_day, minima_df, arcs_path)
-
-            if frame.duplicated().any():
+            self.frame = create_arcs(f_day, l_day, minima_df)
+            if self.frame.duplicated().any():
                 print(f'Duplicates in {speed}')
-
-            frame['speed'] = speed
-            write_df(frame, self.filepath)
-            print_file_exists(self.filepath)
+            self.frame['speed'] = speed
+            write_df(self.frame, self.transit_times_path)
+            print_file_exists(self.transit_times_path)
 
 
 class TransitTimeJob(Job):  # super -> job name, result key, function/object, arguments
@@ -210,4 +214,18 @@ class TransitTimeJob(Job):  # super -> job name, result key, function/object, ar
         job_name = 'transit_time' + ' ' + str(speed)
         result_key = speed
         arguments = tuple([speed, Globals.TEMPLATE_TRANSIT_TIME_DATAFRAME, et_file, tt_folder, Globals.FIRST_DAY, Globals.LAST_DAY])
-        super().__init__(job_name, result_key, ArcsDataframe, arguments)
+        super().__init__(job_name, result_key, TransitTimeDataframe, arguments)
+
+
+def transit_time_processing(job_manager, route: Route):
+    print(f'\nCalculating transit timesteps')
+    keys = [job_manager.put(TransitTimeJob(speed, Globals.EDGES_FOLDER.joinpath('elapsed_timesteps_' + str(speed) + '.csv'), Globals.TRANSIT_TIMES_FOLDER)) for speed in Globals.BOAT_SPEEDS]
+    # for speed in Globals.BOAT_SPEEDS:
+    #     job = TransitTimeJob(speed, Globals.EDGES_FOLDER.joinpath('elapsed_timesteps_' + str(speed) + '.csv'), Globals.TRANSIT_TIMES_FOLDER)
+    #     result = job.execute()
+    job_manager.wait()
+
+    for key in keys:
+        print(f'Posting transit times frame for speed {key}')
+        result = job_manager.get(key)
+        route.transit_csv_to_speed[key] = result.frame
