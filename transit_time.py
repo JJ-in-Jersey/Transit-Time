@@ -226,6 +226,6 @@ def transit_time_processing(job_manager, route: Route):
     job_manager.wait()
 
     for key in keys:
-        print(f'Posting transit times frame for speed {key}')
+        print(f'Posting transit times dataframe to route for speed {key}')
         result = job_manager.get(key)
-        route.transit_csv_to_speed[key] = result.frame
+        route.transit_dataframe_to_speed[key] = result.frame
