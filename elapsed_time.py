@@ -36,6 +36,7 @@ class ElapsedTimeDataframe:
         if not print_file_exists(self.filepath):
             frame = pd.DataFrame(data={'departure_index': edge_range, 'date_time': index_to_date(edge_range)})
             dist = ElapsedTimeDataframe.distance(final_velos[1:], init_velos[:-1], speed, Globals.TIMESTEP / 3600)
+            # noinspection PyTypeChecker
             dist = np.insert(dist, 0, 0.0)  # distance uses an offset calculation VIx, VFx+1, need a zero at the beginning
             frame[filename] = [elapsed_time(i, dist, length) for i in range(len(edge_range))]
             write_df(frame, self.filepath)
@@ -66,9 +67,9 @@ def edge_processing(route: Route, job_manager):
     for s in Globals.BOAT_SPEEDS:
         print(f'\nCalculating elapsed timesteps for edges at {s} kts')
         speed_path = Globals.EDGES_FOLDER.joinpath('elapsed_timesteps_'+str(s) + '.csv')
-        elapsed_time_df = Globals.TEMPLATE_ELAPSED_TIME_DATAFRAME.copy(deep=True)
 
         if not print_file_exists(speed_path):
+            elapsed_time_df = Globals.TEMPLATE_ELAPSED_TIME_DATAFRAME.copy(deep=True)
             keys = [job_manager.put(ElapsedTimeJob(edge, s)) for edge in route.edges]
             # for edge in route.edges:
             #     job = ElapsedTimeJob(edge, s)
@@ -82,8 +83,5 @@ def edge_processing(route: Route, job_manager):
             write_df(elapsed_time_df, speed_path)
             print_file_exists(speed_path)
 
-        else:
-            elapsed_time_df = read_df(speed_path)
-
-        print(f'Posting elapsed times dataframe to route for speed {s}')
-        route.elapsed_time_dataframe_to_speed[s] = elapsed_time_df
+        print(f'Posting elapsed times paths to route for speed {s}')
+        route.elapsed_time_csv_to_speed[s] = speed_path
