@@ -166,9 +166,8 @@ def create_arcs(f_day, l_day, minima_frame):
 
 class TransitTimeDataframe:
 
-    def __init__(self, speed, template_df: pd.DataFrame, et_file, tt_folder, f_day, l_day):
+    def __init__(self, speed, template_df: pd.DataFrame, et_df: pd.DataFrame, tt_folder, f_day, l_day):
 
-        et_df = read_df(et_file)
         row_range = range(len(template_df))
 
         self.frame = None
@@ -209,23 +208,23 @@ class TransitTimeJob(Job):  # super -> job name, result key, function/object, ar
     def execute_callback(self, result): return super().execute_callback(result)
     def error_callback(self, result): return super().error_callback(result)
 
-    def __init__(self, speed, et_file: Path, tt_folder: Path):
+    def __init__(self, speed, et_frame: pd.DataFrame, tt_folder: Path):
 
         job_name = 'transit_time' + ' ' + str(speed)
         result_key = speed
-        arguments = tuple([speed, Globals.TEMPLATE_TRANSIT_TIME_DATAFRAME, et_file, tt_folder, Globals.FIRST_DAY, Globals.LAST_DAY])
+        arguments = tuple([speed, Globals.TEMPLATE_TRANSIT_TIME_DATAFRAME, et_frame, tt_folder, Globals.FIRST_DAY, Globals.LAST_DAY])
         super().__init__(job_name, result_key, TransitTimeDataframe, arguments)
 
 
 def transit_time_processing(job_manager, route: Route):
     print(f'\nCalculating transit timesteps')
-    keys = [job_manager.put(TransitTimeJob(speed, Globals.EDGES_FOLDER.joinpath('elapsed_timesteps_' + str(speed) + '.csv'), Globals.TRANSIT_TIMES_FOLDER)) for speed in Globals.BOAT_SPEEDS]
+    keys = [job_manager.put(TransitTimeJob(speed, route.elapsed_time_dataframe_to_speed[speed], Globals.TRANSIT_TIMES_FOLDER)) for speed in Globals.BOAT_SPEEDS]
     # for speed in Globals.BOAT_SPEEDS:
-    #     job = TransitTimeJob(speed, Globals.EDGES_FOLDER.joinpath('elapsed_timesteps_' + str(speed) + '.csv'), Globals.TRANSIT_TIMES_FOLDER)
+    #     job = TransitTimeJob(speed, route.elapsed_time_dataframe_to_speed[speed], Globals.TRANSIT_TIMES_FOLDER)
     #     result = job.execute()
     job_manager.wait()
 
     for key in keys:
         print(f'Posting transit times dataframe to route for speed {key}')
         result = job_manager.get(key)
-        route.transit_dataframe_to_speed[key] = result.frame
+        route.transit_time_dataframe_to_speed[key] = result.frame
