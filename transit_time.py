@@ -166,40 +166,58 @@ def create_arcs(f_day, l_day, minima_frame):
 
 class TransitTimeDataframe:
 
-    def __init__(self, speed, template_df: pd.DataFrame, et_df: pd.DataFrame, tt_folder, f_day, l_day):
+    def __init__(self, speed, template_df: pd.DataFrame, et_file: Path, tt_folder, f_day, l_day):
 
-        row_range = range(len(template_df))
-
-        self.frame = None
+        self.transit_time_path = None
+        self.rounded_transit_time_path = None
         folder = tt_folder.joinpath(num2words(speed))
-        transit_timesteps_path = folder.joinpath('timesteps.csv')
+        transit_times_path = folder.joinpath('transit_times.csv')
+        rounded_transit_times_path = folder.joinpath('rounded_transit_times.csv')
+
+        timesteps_path = folder.joinpath('timesteps.csv')
         savgol_path = folder.joinpath('savgol.csv')
         minima_path = folder.joinpath('minima.csv')
-        self.transit_times_path = folder.joinpath('transit_times.csv')
+        row_range = range(len(template_df))
 
-        # if not self.transit_times_path.exists():
-        if print_file_exists(self.transit_times_path):
-            self.frame = read_df(self.transit_times_path)
+        if print_file_exists(transit_times_path):
+            self.transit_time_path = transit_times_path
+            if print_file_exists(rounded_transit_times_path):
+                self.rounded_transit_time_path = rounded_transit_times_path
+            else:
+                frame = read_df(transit_times_path)
+                rounded_frame = frame.drop(['start_datetime', 'min_datetime', 'end_datetime',
+                                             'start_et', 'min_et', 'end_et',
+                                             'start_angle', 'min_angle', 'end_angle'], axis=1, inplace=True)
+                self.rounded_transit_time_path = write_df(rounded_frame, rounded_transit_times_path)
         else:
-            if print_file_exists(transit_timesteps_path):
-                transit_timesteps_arr = list(read_df(transit_timesteps_path)['0'].to_numpy())
+            et_df = read_df(et_file)
+            if print_file_exists(timesteps_path):
+                transit_timesteps_arr = list(read_df(timesteps_path)['0'].to_numpy())
             else:
                 col_list = et_df.columns.to_list()
                 col_list.remove('departure_index')
                 col_list.remove('date_time')
 
                 transit_timesteps_arr = [total_transit_time(row, et_df, col_list) for row in row_range]
-                write_df(pd.concat([template_df, pd.DataFrame(transit_timesteps_arr)], axis=1), transit_timesteps_path)
-                print_file_exists(transit_timesteps_path)
+                write_df(pd.concat([template_df, pd.DataFrame(transit_timesteps_arr)], axis=1), timesteps_path)
+                print_file_exists(timesteps_path)
 
             minima_df = MinimaFrame(transit_timesteps_arr, template_df, savgol_path, minima_path).frame
 
-            self.frame = create_arcs(f_day, l_day, minima_df)
-            if self.frame.duplicated().any():
+            frame = create_arcs(f_day, l_day, minima_df)
+            if frame.duplicated().any():
                 print(f'Duplicates in {speed}')
-            self.frame['speed'] = speed
-            write_df(self.frame, self.transit_times_path)
-            print_file_exists(self.transit_times_path)
+            frame['speed'] = speed
+
+            self.transit_time_path = write_df(frame, transit_times_path)
+            print_file_exists(self.transit_time_path)
+
+            rounded_frame = frame.drop(['start_datetime', 'min_datetime', 'end_datetime',
+                                             'start_et', 'min_et', 'end_et',
+                                             'start_angle', 'min_angle', 'end_angle'], axis=1)
+
+            self.rounded_transit_time_path = write_df(rounded_frame, rounded_transit_times_path)
+            print_file_exists(self.rounded_transit_time_path)
 
 
 class TransitTimeJob(Job):  # super -> job name, result key, function/object, arguments
@@ -218,13 +236,14 @@ class TransitTimeJob(Job):  # super -> job name, result key, function/object, ar
 
 def transit_time_processing(job_manager, route: Route):
     print(f'\nCalculating transit timesteps')
-    keys = [job_manager.put(TransitTimeJob(speed, route.elapsed_time_dataframe_to_speed[speed], Globals.TRANSIT_TIMES_FOLDER)) for speed in Globals.BOAT_SPEEDS]
+    keys = [job_manager.put(TransitTimeJob(speed, route.elapsed_time_csv_to_speed[speed], Globals.TRANSIT_TIMES_FOLDER)) for speed in Globals.BOAT_SPEEDS]
     # for speed in Globals.BOAT_SPEEDS:
-    #     job = TransitTimeJob(speed, route.elapsed_time_dataframe_to_speed[speed], Globals.TRANSIT_TIMES_FOLDER)
+    #     job = TransitTimeJob(speed, route.elapsed_time_csv_to_speed[speed], Globals.TRANSIT_TIMES_FOLDER)
     #     result = job.execute()
     job_manager.wait()
 
     for key in keys:
-        print(f'Posting transit times dataframe to route for speed {key}')
+        print(f'Posting transit times paths to route for speed {key}')
         result = job_manager.get(key)
-        route.transit_time_dataframe_to_speed[key] = result.frame
+        route.transit_time_csv_to_speed[key] = result.transit_time_path
+        route.rounded_transit_time_csv_to_speed[key] = result.rounded_transit_time_path
