@@ -4,6 +4,7 @@ from tt_file_tools.file_tools import print_file_exists
 from velocity import DownloadVelocityJob, SplineFitNormalizedVelocityJob
 
 
+# noinspection GrazieInspection
 def waypoint_processing(route, job_manager):
 
     # ---------- TIDE STATION WAYPOINTS ----------
@@ -18,7 +19,11 @@ def waypoint_processing(route, job_manager):
 
     for iwp in filter(lambda w: isinstance(w, InterpolatedWP), route.waypoints):
         print(f'\nDownloading data for interpolated waypoint "{iwp.name}"', flush=True)
-        keys = [job_manager.put(DownloadVelocityJob(Globals, wp)) for wp in iwp.data_waypoints]
+        fdd = Globals.FIRST_DOWNLOAD_DAY
+        ldd = Globals.LAST_DOWNLOAD_DAY
+        ndd = Globals.NORMALIZED_DOWNLOAD_DATES
+        ndi = Globals.NORMALIZED_DOWNLOAD_INDICES
+        keys = [job_manager.put(DownloadVelocityJob(fdd, ldd, ndd, ndi, wp)) for wp in iwp.data_waypoints]
         job_manager.wait()
         for path in [job_manager.get(key).filepath for key in keys]:
             print_file_exists(path)
@@ -30,7 +35,11 @@ def waypoint_processing(route, job_manager):
     # ---------- REMAINING EDGE NODES ----------
 
     print(f'\nDownloading current data for non-interpolated EDGE NODE waypoints', flush=True)
-    keys = [job_manager.put(DownloadVelocityJob(Globals, wp)) for wp in filter(lambda w: isinstance(w, EdgeNode) and not isinstance(w, InterpolatedWP), route.waypoints)]
+    fdd = Globals.FIRST_DOWNLOAD_DAY
+    ldd = Globals.LAST_DOWNLOAD_DAY
+    ndd = Globals.NORMALIZED_DOWNLOAD_DATES
+    ndi = Globals.NORMALIZED_DOWNLOAD_INDICES
+    keys = [job_manager.put(DownloadVelocityJob(fdd, ldd, ndd, ndi, wp)) for wp in filter(lambda w: isinstance(w, EdgeNode) and not isinstance(w, InterpolatedWP), route.waypoints)]
     job_manager.wait()
     for path in [job_manager.get(key).filepath for key in keys]:
         print_file_exists(path)

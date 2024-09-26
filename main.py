@@ -2,7 +2,7 @@ from argparse import ArgumentParser as argParser
 from pathlib import Path
 
 from tt_gpx.gpx import Route, Waypoint, Edge, EdgeNode, GpxFile
-from tt_file_tools.file_tools import read_df
+from tt_file_tools.file_tools import read_df, write_df, print_file_exists
 from tt_chrome_driver import chrome_driver
 from tt_job_manager.job_manager import JobManager
 from tt_globals.globals import Globals
@@ -65,48 +65,34 @@ if __name__ == '__main__':
     Globals.TRANSIT_TIMES_FOLDER.joinpath(str(route.edge_path.route_heading) + '.heading').touch()
 
     # ---------- CHECK CHROME ----------
-
     chrome_driver.check_driver()
     if chrome_driver.installed_driver_version is None or chrome_driver.latest_stable_version > chrome_driver.installed_driver_version:
         chrome_driver.install_stable_driver()
 
     # ---------- START MULTIPROCESSING ----------
-
     job_manager = JobManager()
 
     # ---------- WAYPOINT PROCESSING ----------
-
     waypoint_processing(route, job_manager)
 
     # ---------- EDGE PROCESSING ----------
-
     edge_processing(route, job_manager)
 
     # ---------- TRANSIT TIMES ----------
-
     transit_time_processing(job_manager, route)
 
-    arcs_df = concat([read_df(path) for path in [job_manager.get(key).filepath for key in keys]])
-    #
-    # # arcs_df.sort_values(['start_datetime', 'speed', 'idx'], ignore_index=True, inplace=True)
-    # arcs_df.sort_values(['speed', 'start_datetime', 'idx'], ignore_index=True, inplace=True)
-    #
-    # rounded_arcs = arcs_df[['idx', 'start_round_datetime', 'min_round_datetime', 'end_round_datetime', 'speed']].copy()
-    # rounded_arcs[args['project_name'] + ' date'] = pd.to_datetime(arcs_df['start_datetime']).dt.strftime("%m/%d/%Y")
-    #
-    # rounded_arcs.rename(columns={'idx': args['project_name'] + ' idx', 'start_round_datetime': args['project_name'] + ' start', 'min_round_datetime': args['project_name'] + ' best',
-    #                              'end_round_datetime': args['project_name'] + ' end', 'speed': args['project_name'] + ' speed'}, inplace=True)
-    # rounded_arcs[args['project_name'] + ' start'] = pd.to_datetime(rounded_arcs[args['project_name'] + ' start']).dt.strftime("%H:%M")
-    # rounded_arcs[args['project_name'] + ' best'] = pd.to_datetime(rounded_arcs[args['project_name'] + ' best']).dt.strftime("%H:%M")
-    # rounded_arcs[args['project_name'] + ' end'] = pd.to_datetime(rounded_arcs[args['project_name'] + ' end']).dt.strftime("%H:%M")
-    #
-    # # min_rotation_df = arcs_df[arcs_df['min_angle'].notna()]
-    # # min_rotation_df = min_rotation_df.replace(to_replace='arc', value='min', regex=True)
-    # # write_df(min_rotation_df, Globals.TRANSIT_TIMES_FOLDER.joinpath('minima.csv'))
-    #
-    # write_df(arcs_df, Globals.TRANSIT_TIMES_FOLDER.joinpath(args['project_name'] + ' arcs.csv'))
-    # write_df(rounded_arcs, Globals.TRANSIT_TIMES_FOLDER.joinpath(args['project_name'] + ' rounded_arcs.csv'))
-    #
+    aggregate_transit_time_df = concat([read_df(route.rounded_transit_time_csv_to_speed[key]) for key in route.rounded_transit_time_csv_to_speed.keys()])
+    aggregate_transit_time_df.drop(['idx', 'arc_round_angle'], axis=1, inplace=True)
+    transit_time_df = (aggregate_transit_time_df
+                       .drop(['start_round_angle', 'min_round_angle', 'end_round_angle'], axis=1)
+                       .rename({'start_round_datetime': 'start', 'min_round_datetime': 'best', 'end_round_datetime': 'end'}))
+    arc_df = (aggregate_transit_time_df
+              .drop(['start_round_datetime', 'min_round_datetime', 'end_round_datetime'], axis=1)
+              .rename({'start_round_angle': 'start', 'min_round_angle': 'best', 'end_round_angle': 'end'}))
+
+    print_file_exists(write_df(transit_time_df, Globals.TRANSIT_TIMES_FOLDER.joinpath(args['project_name'] + '_transit_times.csv')))
+    print_file_exists(write_df(arc_df, Globals.TRANSIT_TIMES_FOLDER.joinpath(args['project_name'] + '_arcs.csv')))
+
     # # if args['east_river']:
     # #     print(f'\nEast River validation')
     # #

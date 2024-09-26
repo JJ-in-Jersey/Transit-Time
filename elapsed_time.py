@@ -30,16 +30,19 @@ class ElapsedTimeDataframe:
 
     def __init__(self, folder: Path, init_velos, final_velos, edge_range, length, speed):
 
+        self.filepath = None
         filename = folder.name + '_' + str(speed) + '.csv'
-        self.filepath = folder.joinpath(filename)
+        filepath = folder.joinpath(filename)
 
-        if not print_file_exists(self.filepath):
+        if print_file_exists(filepath):
+            self.filepath = filepath
+        else:
             frame = pd.DataFrame(data={'departure_index': edge_range, 'date_time': index_to_date(edge_range)})
             dist = ElapsedTimeDataframe.distance(final_velos[1:], init_velos[:-1], speed, Globals.TIMESTEP / 3600)
             # noinspection PyTypeChecker
             dist = np.insert(dist, 0, 0.0)  # distance uses an offset calculation VIx, VFx+1, need a zero at the beginning
             frame[filename] = [elapsed_time(i, dist, length) for i in range(len(edge_range))]
-            write_df(frame, self.filepath)
+            self.filepath = write_df(frame, filepath)
             print_file_exists(self.filepath)
 
 

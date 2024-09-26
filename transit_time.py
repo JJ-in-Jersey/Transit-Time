@@ -63,6 +63,7 @@ class MinimaFrame:
 
             self.frame['TF'] = self.frame['tts'].lt(self.frame['midline'])  # Above midline = False,  below midline = True
             self.frame = self.frame.drop(self.frame[self.frame['tts'] == self.frame['midline']].index).reset_index(drop=True)  # remove values that equal midline
+            # noinspection PyUnresolvedReferences
             self.frame['block'] = (self.frame['TF'] != self.frame['TF'].shift(1)).cumsum()  # index the blocks of True and False
             clump_lookup = {index: df for index, df in self.frame.groupby('block') if df['TF'].any()}  # select only the True blocks
             clump_lookup = {index: df.drop(['TF', 'block', 'midline'], axis=1).reset_index() for index, df in clump_lookup.items() if len(df) > noise_size}  # remove the tiny blocks caused by noise at the inflections
@@ -136,11 +137,6 @@ def index_arc_df(frame):
 def create_arcs(f_day, l_day, minima_frame):
 
     arcs = [Arc(row.to_dict()) for i, row in minima_frame.iterrows()]
-    # arcs = []
-    # for i, row in minima_frame.iterrows():
-    #     r = row.to_dict()
-    #     a = Arc(r)
-    #     arcs.append(a)
     next_day_arcs = [arc.next_day_arc for arc in arcs if arc.next_day_arc]
     all_arcs = arcs + next_day_arcs
     all_good_arcs = [arc for arc in all_arcs if not arc.zero_angle]
@@ -214,7 +210,7 @@ class TransitTimeDataframe:
 
             rounded_frame = frame.drop(['start_datetime', 'min_datetime', 'end_datetime',
                                              'start_et', 'min_et', 'end_et',
-                                             'start_angle', 'min_angle', 'end_angle'], axis=1)
+                                             'start_angle', 'min_angle', 'end_angle', 'arc_angle'], axis=1)
 
             self.rounded_transit_time_path = write_df(rounded_frame, rounded_transit_times_path)
             print_file_exists(self.rounded_transit_time_path)
