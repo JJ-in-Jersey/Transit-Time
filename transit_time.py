@@ -210,8 +210,7 @@ class TransitTimeDataframe:
             print_file_exists(self.transit_time_path)
 
             rounded_frame = frame.drop(['start_datetime', 'min_datetime', 'end_datetime',
-                                             'start_et', 'min_et', 'end_et',
-                                             'start_angle', 'min_angle', 'end_angle', 'arc_angle'], axis=1)
+                                        'start_angle', 'min_angle', 'end_angle', 'arc_angle'], axis=1)
 
             self.rounded_transit_time_path = write_df(rounded_frame, rounded_transit_times_path)
             print_file_exists(self.rounded_transit_time_path)
@@ -246,13 +245,15 @@ def transit_time_processing(job_manager, route: Route):
         route.rounded_transit_time_csv_to_speed[key] = result.rounded_transit_time_path
 
     aggregate_transit_time_df = pd.concat([read_df(route.rounded_transit_time_csv_to_speed[key]) for key in route.rounded_transit_time_csv_to_speed.keys()])
-    aggregate_transit_time_df.drop(['idx', 'arc_round_angle'], axis=1, inplace=True)
     transit_time_df = (aggregate_transit_time_df
-                       .drop(['start_round_angle', 'min_round_angle', 'end_round_angle'], axis=1)
-                       .rename(columns={'start_round_datetime': 'start', 'min_round_datetime': 'best', 'end_round_datetime': 'end'}))
+                       .drop(['idx', 'start_round_angle', 'min_round_angle', 'end_round_angle', 'arc_round_angle'], axis=1)
+                       .rename(columns={'start_round_datetime': 'start', 'min_round_datetime': 'best', 'end_round_datetime': 'end', 'min_et': 'best_et'}))
     arc_df = (aggregate_transit_time_df
-              .drop(['start_round_datetime', 'min_round_datetime', 'end_round_datetime'], axis=1)
-              .rename(columns={'start_round_angle': 'start', 'min_round_angle': 'best', 'end_round_angle': 'end'}))
+              .drop(['start_round_datetime', 'min_round_datetime', 'end_round_datetime', 'arc_round_angle'], axis=1)
+              .rename(columns={'start_round_angle': 'start', 'min_round_angle': 'best', 'end_round_angle': 'end', 'min_et': 'best_et'}))
+
+    row_counts = arc_df.count(axis=1)
+    arc_df = arc_df[row_counts > 3]
 
     print_file_exists(write_df(transit_time_df, Globals.TRANSIT_TIMES_FOLDER.joinpath(route.location_code + '_transit_times.csv')))
     print_file_exists(write_df(arc_df, Globals.TRANSIT_TIMES_FOLDER.joinpath(route.location_code + '_arcs.csv')))
