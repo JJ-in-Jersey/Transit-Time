@@ -81,18 +81,6 @@ if __name__ == '__main__':
     # ---------- TRANSIT TIMES ----------
     transit_time_processing(job_manager, route)
 
-    aggregate_transit_time_df = concat([read_df(route.rounded_transit_time_csv_to_speed[key]) for key in route.rounded_transit_time_csv_to_speed.keys()])
-    aggregate_transit_time_df.drop(['idx', 'arc_round_angle'], axis=1, inplace=True)
-    transit_time_df = (aggregate_transit_time_df
-                       .drop(['start_round_angle', 'min_round_angle', 'end_round_angle'], axis=1)
-                       .rename({'start_round_datetime': 'start', 'min_round_datetime': 'best', 'end_round_datetime': 'end'}))
-    arc_df = (aggregate_transit_time_df
-              .drop(['start_round_datetime', 'min_round_datetime', 'end_round_datetime'], axis=1)
-              .rename({'start_round_angle': 'start', 'min_round_angle': 'best', 'end_round_angle': 'end'}))
-
-    print_file_exists(write_df(transit_time_df, Globals.TRANSIT_TIMES_FOLDER.joinpath(args['project_name'] + '_transit_times.csv')))
-    print_file_exists(write_df(arc_df, Globals.TRANSIT_TIMES_FOLDER.joinpath(args['project_name'] + '_arcs.csv')))
-
     # # if args['east_river']:
     # #     print(f'\nEast River validation')
     # #

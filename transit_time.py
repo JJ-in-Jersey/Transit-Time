@@ -57,6 +57,7 @@ class MinimaFrame:
             if savgol_path.exists():
                 self.frame['midline'] = read_df(savgol_path)['midline']
             else:
+                # noinspection PyUnresolvedReferences
                 self.frame['midline'] = savgol_filter(transit_array, 50000, 1).round()
                 write_df(self.frame, savgol_path)
             print_file_exists(savgol_path)
@@ -243,3 +244,15 @@ def transit_time_processing(job_manager, route: Route):
         result = job_manager.get(key)
         route.transit_time_csv_to_speed[key] = result.transit_time_path
         route.rounded_transit_time_csv_to_speed[key] = result.rounded_transit_time_path
+
+    aggregate_transit_time_df = pd.concat([read_df(route.rounded_transit_time_csv_to_speed[key]) for key in route.rounded_transit_time_csv_to_speed.keys()])
+    aggregate_transit_time_df.drop(['idx', 'arc_round_angle'], axis=1, inplace=True)
+    transit_time_df = (aggregate_transit_time_df
+                       .drop(['start_round_angle', 'min_round_angle', 'end_round_angle'], axis=1)
+                       .rename(columns={'start_round_datetime': 'start', 'min_round_datetime': 'best', 'end_round_datetime': 'end'}))
+    arc_df = (aggregate_transit_time_df
+              .drop(['start_round_datetime', 'min_round_datetime', 'end_round_datetime'], axis=1)
+              .rename(columns={'start_round_angle': 'start', 'min_round_angle': 'best', 'end_round_angle': 'end'}))
+
+    print_file_exists(write_df(transit_time_df, Globals.TRANSIT_TIMES_FOLDER.joinpath(route.location_code + '_transit_times.csv')))
+    print_file_exists(write_df(arc_df, Globals.TRANSIT_TIMES_FOLDER.joinpath(route.location_code + '_arcs.csv')))
