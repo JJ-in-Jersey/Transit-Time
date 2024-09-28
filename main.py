@@ -2,7 +2,6 @@ from argparse import ArgumentParser as argParser
 from pathlib import Path
 
 from tt_gpx.gpx import Route, Waypoint, Edge, EdgeNode, GpxFile
-from tt_file_tools.file_tools import read_df, write_df, print_file_exists
 from tt_chrome_driver import chrome_driver
 from tt_job_manager.job_manager import JobManager
 from tt_globals.globals import Globals
@@ -10,10 +9,6 @@ from tt_globals.globals import Globals
 from waypoint_processing import waypoint_processing
 from elapsed_time import edge_processing
 from transit_time import transit_time_processing
-
-from pandas import concat
-
-# import validations
 
 if __name__ == '__main__':
 
