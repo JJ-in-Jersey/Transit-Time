@@ -12,6 +12,7 @@ from tt_globals.globals import Globals
 from tt_gpx.gpx import Route
 
 import warnings
+
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=UserWarning)
 
@@ -32,7 +33,6 @@ def total_transit_time(init_row, d_frame, cols):
 
 
 class MinimaFrame:
-
     col_types = {
         'start_datetime': 'DT', 'min_datetime': 'DT', 'end_datetime': 'DT',
         'start_et': 'TD', 'min_et': 'TD', 'end_et': 'TD',
@@ -62,12 +62,18 @@ class MinimaFrame:
                 write_df(self.frame, savgol_path)
             print_file_exists(savgol_path)
 
-            self.frame['TF'] = self.frame['tts'].lt(self.frame['midline'])  # Above midline = False,  below midline = True
-            self.frame = self.frame.drop(self.frame[self.frame['tts'] == self.frame['midline']].index).reset_index(drop=True)  # remove values that equal midline
+            self.frame['TF'] = self.frame['tts'].lt(
+                self.frame['midline'])  # Above midline = False,  below midline = True
+            self.frame = self.frame.drop(self.frame[self.frame['tts'] == self.frame['midline']].index).reset_index(
+                drop=True)  # remove values that equal midline
             # noinspection PyUnresolvedReferences
-            self.frame['block'] = (self.frame['TF'] != self.frame['TF'].shift(1)).cumsum()  # index the blocks of True and False
-            clump_lookup = {index: df for index, df in self.frame.groupby('block') if df['TF'].any()}  # select only the True blocks
-            clump_lookup = {index: df.drop(['TF', 'block', 'midline'], axis=1).reset_index() for index, df in clump_lookup.items() if len(df) > noise_size}  # remove the tiny blocks caused by noise at the inflections
+            self.frame['block'] = (
+                        self.frame['TF'] != self.frame['TF'].shift(1)).cumsum()  # index the blocks of True and False
+            clump_lookup = {index: df for index, df in self.frame.groupby('block') if
+                            df['TF'].any()}  # select only the True blocks
+            clump_lookup = {index: df.drop(['TF', 'block', 'midline'], axis=1).reset_index() for index, df in
+                            clump_lookup.items() if
+                            len(df) > noise_size}  # remove the tiny blocks caused by noise at the inflections
 
             for index, clump in clump_lookup.items():
                 # for this clump get the row with the minimum transit time
@@ -78,18 +84,21 @@ class MinimaFrame:
                 minimum_row = clump.iloc[minimum_index]
 
                 # find the upper and lower limits of the time window
-                offset = int(minimum_row['tts'] * Globals.TIME_WINDOW_SCALE_FACTOR)  # offset is transit time steps (tts)
+                offset = int(
+                    minimum_row['tts'] * Globals.TIME_WINDOW_SCALE_FACTOR)  # offset is transit time steps (tts)
 
                 sr_range = clump[clump['departure_index'].lt(
                     minimum_row['departure_index'])]  # range of valid starting points less than minimum
-                if len(sr_range[sr_range['tts'].gt(offset)]):  # there is a valid starting point between the beginning and minimum
+                if len(sr_range[sr_range['tts'].gt(
+                        offset)]):  # there is a valid starting point between the beginning and minimum
                     sr = sr_range[sr_range['tts'].gt(offset)].iloc[-1]  # pick the one closest to minimum
                 else:
                     sr = clump.iloc[0]
 
                 er_range = clump[clump['departure_index'].gt(
                     minimum_row['departure_index'])]  # range of valid ending points greater than minimum
-                if len(er_range[er_range['tts'].gt(offset)]):  # there is a valid starting point between the minimum and end
+                if len(er_range[
+                           er_range['tts'].gt(offset)]):  # there is a valid starting point between the minimum and end
                     er = er_range[er_range['tts'].gt(offset)].iloc[0]  # pick the one closest to minimum
                 else:
                     er = clump.iloc[-1]
@@ -97,15 +106,20 @@ class MinimaFrame:
                 start_row = sr
                 end_row = er
 
-                self.frame.at[minimum_row['index'], 'start_datetime'] = index_to_date(start_row['departure_index'])  # datetime.timestamp ('<M8[ns]') (datetime64[ns])
+                self.frame.at[minimum_row['index'], 'start_datetime'] = index_to_date(
+                    start_row['departure_index'])  # datetime.timestamp ('<M8[ns]') (datetime64[ns])
                 self.frame.at[minimum_row['index'], 'min_datetime'] = index_to_date(minimum_row['departure_index'])
                 self.frame.at[minimum_row['index'], 'end_datetime'] = index_to_date(end_row['departure_index'])
-                self.frame.at[minimum_row['index'], 'start_et'] = datetime.timedelta(seconds=int(start_row['tts'])*Globals.TIMESTEP)  # datetime.timedelta (timedelta64[us])
-                self.frame.at[minimum_row['index'], 'min_et'] = datetime.timedelta(seconds=int(minimum_row['tts'])*Globals.TIMESTEP)
-                self.frame.at[minimum_row['index'], 'end_et'] = datetime.timedelta(seconds=int(end_row['tts'])*Globals.TIMESTEP)
+                self.frame.at[minimum_row['index'], 'start_et'] = datetime.timedelta(
+                    seconds=int(start_row['tts']) * Globals.TIMESTEP)  # datetime.timedelta (timedelta64[us])
+                self.frame.at[minimum_row['index'], 'min_et'] = datetime.timedelta(
+                    seconds=int(minimum_row['tts']) * Globals.TIMESTEP)
+                self.frame.at[minimum_row['index'], 'end_et'] = datetime.timedelta(
+                    seconds=int(end_row['tts']) * Globals.TIMESTEP)
 
             self.frame = self.frame.dropna(axis=0).sort_index().reset_index(drop=True)  # remove lines with NA
-            self.frame['start_round_datetime'] = self.frame['start_datetime'].apply(round_datetime)  # datetime.timestamp ('<M8[ns]') (datetime64[ns])
+            self.frame['start_round_datetime'] = self.frame['start_datetime'].apply(
+                round_datetime)  # datetime.timestamp ('<M8[ns]') (datetime64[ns])
             self.frame['min_round_datetime'] = self.frame['min_datetime'].apply(round_datetime)
             self.frame['end_round_datetime'] = self.frame['end_datetime'].apply(round_datetime)
 
@@ -115,7 +129,6 @@ class MinimaFrame:
 
 
 def index_arc_df(frame):
-
     output_frame = pd.DataFrame(columns=['idx'] + frame.columns.to_list())
 
     date_arr_dict = {key: [] for key in sorted(list(set(frame['date'])))}
@@ -125,9 +138,9 @@ def index_arc_df(frame):
 
     for key in date_arr_dict.keys():
         for i in range(len(date_arr_dict[key])):
-            output_frame.loc[len(output_frame)] = [i+1] + date_arr_dict[key][i].tolist()
+            output_frame.loc[len(output_frame)] = [i + 1] + date_arr_dict[key][i].tolist()
         if len(date_arr_dict[key]) == 2:
-            last_row_dict = output_frame.loc[len(output_frame)-1].to_dict()
+            last_row_dict = output_frame.loc[len(output_frame) - 1].to_dict()
             new_dict = {key: None for key in last_row_dict}
             new_dict.update({'idx': 3, 'date': last_row_dict['date']})
             output_frame.loc[len(output_frame)] = new_dict
@@ -136,7 +149,6 @@ def index_arc_df(frame):
 
 
 def create_arcs(f_day, l_day, minima_frame):
-
     arcs = [Arc(row.to_dict()) for i, row in minima_frame.iterrows()]
     next_day_arcs = [arc.next_day_arc for arc in arcs if arc.next_day_arc]
     all_arcs = arcs + next_day_arcs
@@ -183,8 +195,8 @@ class TransitTimeDataframe:
             else:
                 frame = read_df(transit_times_path)
                 rounded_frame = frame.drop(['start_datetime', 'min_datetime', 'end_datetime',
-                                             'start_et', 'min_et', 'end_et',
-                                             'start_angle', 'min_angle', 'end_angle'], axis=1, inplace=True)
+                                            'start_et', 'min_et', 'end_et',
+                                            'start_angle', 'min_angle', 'end_angle'], axis=1, inplace=True)
                 self.rounded_transit_time_path = write_df(rounded_frame, rounded_transit_times_path)
         else:
             et_df = read_df(et_file)
@@ -219,20 +231,23 @@ class TransitTimeDataframe:
 class TransitTimeJob(Job):  # super -> job name, result key, function/object, arguments
 
     def execute(self): return super().execute()
+
     def execute_callback(self, result): return super().execute_callback(result)
+
     def error_callback(self, result): return super().error_callback(result)
 
     def __init__(self, speed, et_frame: pd.DataFrame, tt_folder: Path):
-
         job_name = 'transit_time' + ' ' + str(speed)
         result_key = speed
-        arguments = tuple([speed, Globals.TEMPLATE_TRANSIT_TIME_DATAFRAME, et_frame, tt_folder, Globals.FIRST_DAY, Globals.LAST_DAY])
+        arguments = tuple(
+            [speed, Globals.TEMPLATE_TRANSIT_TIME_DATAFRAME, et_frame, tt_folder, Globals.FIRST_DAY, Globals.LAST_DAY])
         super().__init__(job_name, result_key, TransitTimeDataframe, arguments)
 
 
 def transit_time_processing(job_manager, route: Route):
     print(f'\nCalculating transit timesteps')
-    keys = [job_manager.put(TransitTimeJob(speed, route.elapsed_time_csv_to_speed[speed], Globals.TRANSIT_TIMES_FOLDER)) for speed in Globals.BOAT_SPEEDS]
+    keys = [job_manager.put(TransitTimeJob(speed, route.elapsed_time_csv_to_speed[speed], Globals.TRANSIT_TIMES_FOLDER))
+            for speed in Globals.BOAT_SPEEDS]
     # for speed in Globals.BOAT_SPEEDS:
     #     job = TransitTimeJob(speed, route.elapsed_time_csv_to_speed[speed], Globals.TRANSIT_TIMES_FOLDER)
     #     result = job.execute()
@@ -246,16 +261,22 @@ def transit_time_processing(job_manager, route: Route):
 
     print(f'\nAggregating transit times', flush=True)
 
-    aggregate_transit_time_df = pd.concat([read_df(route.rounded_transit_time_csv_to_speed[key]) for key in route.rounded_transit_time_csv_to_speed.keys()])
-    transit_time_df = (aggregate_transit_time_df.drop(['idx', 'start_round_angle', 'min_round_angle', 'end_round_angle', 'arc_round_angle'], axis=1)
-                       .rename(columns={'start_round_datetime': 'start', 'min_round_datetime': 'best', 'end_round_datetime': 'end', 'min_et': 'best_et'})
+    aggregate_transit_time_df = pd.concat([read_df(route.rounded_transit_time_csv_to_speed[key]) for key in
+                                           route.rounded_transit_time_csv_to_speed.keys()])
+    transit_time_df = (aggregate_transit_time_df.drop(
+        ['idx', 'start_round_angle', 'min_round_angle', 'end_round_angle', 'arc_round_angle', 'start_er', 'min_et',
+         'end_et'], axis=1)
+                       .rename(
+        columns={'start_round_datetime': 'start', 'min_round_datetime': 'best', 'end_round_datetime': 'end'})
                        .set_index(['date', 'speed']).add_prefix(route.location_code + " ").reset_index())
     arc_df = (aggregate_transit_time_df
               .drop(['start_round_datetime', 'min_round_datetime', 'end_round_datetime', 'arc_round_angle'], axis=1)
-              .rename(columns={'start_round_angle': 'start', 'min_round_angle': 'best', 'end_round_angle': 'end', 'min_et': 'best_et'}))
+              .rename(columns={'start_round_angle': 'start', 'min_round_angle': 'best', 'end_round_angle': 'end',
+                               'min_et': 'best_et'}))
 
     row_counts = arc_df.count(axis=1)
     arc_df = arc_df[row_counts > 3]
 
-    print_file_exists(write_df(transit_time_df, Globals.TRANSIT_TIMES_FOLDER.joinpath(route.location_code + '_transit_times.csv')))
+    print_file_exists(
+        write_df(transit_time_df, Globals.TRANSIT_TIMES_FOLDER.joinpath(route.location_code + '_transit_times.csv')))
     print_file_exists(write_df(arc_df, Globals.TRANSIT_TIMES_FOLDER.joinpath(route.location_code + '_arcs.csv')))
