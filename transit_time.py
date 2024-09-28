@@ -247,10 +247,9 @@ def transit_time_processing(job_manager, route: Route):
     print(f'\nAggregating transit times', flush=True)
 
     aggregate_transit_time_df = pd.concat([read_df(route.rounded_transit_time_csv_to_speed[key]) for key in route.rounded_transit_time_csv_to_speed.keys()])
-    transit_time_df = (aggregate_transit_time_df
-                       .drop(['idx', 'start_round_angle', 'min_round_angle', 'end_round_angle', 'arc_round_angle'], axis=1)
+    transit_time_df = (aggregate_transit_time_df.drop(['idx', 'start_round_angle', 'min_round_angle', 'end_round_angle', 'arc_round_angle'], axis=1)
                        .rename(columns={'start_round_datetime': 'start', 'min_round_datetime': 'best', 'end_round_datetime': 'end', 'min_et': 'best_et'})
-                       .add_prefix(route.location_code + " "))
+                       .set_index(['date', 'speed']).add_prefix(route.location_code + " ").reset_index())
     arc_df = (aggregate_transit_time_df
               .drop(['start_round_datetime', 'min_round_datetime', 'end_round_datetime', 'arc_round_angle'], axis=1)
               .rename(columns={'start_round_angle': 'start', 'min_round_angle': 'best', 'end_round_angle': 'end', 'min_et': 'best_et'}))
