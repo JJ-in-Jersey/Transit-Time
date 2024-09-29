@@ -262,10 +262,14 @@ def transit_time_processing(job_manager, route: Route):
 
     aggregate_transit_time_df = pd.concat([read_df(route.rounded_transit_time_csv_to_speed[key]) for key in
                                            route.rounded_transit_time_csv_to_speed.keys()])
+    aggregate_transit_time_df['start_round_datetime'] = pd.to_datetime(aggregate_transit_time_df['start_round_datetime']).dt.strftime("%I:%M %p")
+    aggregate_transit_time_df['min_round_datetime'] = pd.to_datetime(aggregate_transit_time_df['min_round_datetime']).dt.strftime("%I:%M %p")
+    aggregate_transit_time_df['end_round_datetime'] = pd.to_datetime(aggregate_transit_time_df['end_round_datetime']).dt.strftime("%I:%M %p")
+
     transit_time_df = (aggregate_transit_time_df.
-        drop(['idx', 'start_round_angle', 'min_round_angle', 'end_round_angle', 'arc_round_angle', 'start_et', 'min_et', 'end_et'], axis=1)
+        drop(['start_round_angle', 'min_round_angle', 'end_round_angle', 'arc_round_angle', 'start_et', 'min_et', 'end_et'], axis=1)
         .rename(columns={'start_round_datetime': 'start', 'min_round_datetime': 'best', 'end_round_datetime': 'end'})
-        .set_index(['date', 'speed']).add_prefix(route.location_code + " ").reset_index())
+        .set_index(['idx', 'date', 'speed']).add_prefix(route.location_code + " ").reset_index())
     transit_time_df = transit_time_df.fillna("-")
     arc_df = (aggregate_transit_time_df
               .drop(['start_round_datetime', 'min_round_datetime', 'end_round_datetime', 'arc_round_angle'], axis=1)
