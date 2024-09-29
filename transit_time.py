@@ -118,8 +118,7 @@ class MinimaFrame:
                     seconds=int(end_row['tts']) * Globals.TIMESTEP)
 
             self.frame = self.frame.dropna(axis=0).sort_index().reset_index(drop=True)  # remove lines with NA
-            self.frame['start_round_datetime'] = self.frame['start_datetime'].apply(
-                round_datetime)  # datetime.timestamp ('<M8[ns]') (datetime64[ns])
+            self.frame['start_round_datetime'] = self.frame['start_datetime'].apply(round_datetime)  # datetime.timestamp ('<M8[ns]') (datetime64[ns])
             self.frame['min_round_datetime'] = self.frame['min_datetime'].apply(round_datetime)
             self.frame['end_round_datetime'] = self.frame['end_datetime'].apply(round_datetime)
 
@@ -267,6 +266,7 @@ def transit_time_processing(job_manager, route: Route):
         drop(['idx', 'start_round_angle', 'min_round_angle', 'end_round_angle', 'arc_round_angle', 'start_et', 'min_et', 'end_et'], axis=1)
         .rename(columns={'start_round_datetime': 'start', 'min_round_datetime': 'best', 'end_round_datetime': 'end'})
         .set_index(['date', 'speed']).add_prefix(route.location_code + " ").reset_index())
+    transit_time_df = transit_time_df.fillna("-")
     arc_df = (aggregate_transit_time_df
               .drop(['start_round_datetime', 'min_round_datetime', 'end_round_datetime', 'arc_round_angle'], axis=1)
               .rename(columns={'start_round_angle': 'start', 'min_round_angle': 'best', 'end_round_angle': 'end',
