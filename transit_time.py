@@ -186,6 +186,7 @@ class TransitTimeDataframe:
         savgol_path = folder.joinpath('savgol.csv')
         minima_path = folder.joinpath('minima.csv')
         row_range = range(len(template_df))
+        rounded_drop_columns = ['start_datetime', 'min_datetime', 'end_datetime', 'start_angle', 'min_angle', 'end_angle']
 
         if print_file_exists(transit_times_path):
             self.transit_time_path = transit_times_path
@@ -193,10 +194,7 @@ class TransitTimeDataframe:
                 self.rounded_transit_time_path = rounded_transit_times_path
             else:
                 frame = read_df(transit_times_path)
-                rounded_frame = frame.drop(['start_datetime', 'min_datetime', 'end_datetime',
-                                            'start_et', 'min_et', 'end_et',
-                                            'start_angle', 'min_angle', 'end_angle'], axis=1, inplace=True)
-                self.rounded_transit_time_path = write_df(rounded_frame, rounded_transit_times_path)
+                self.rounded_transit_time_path = write_df(frame.drop(rounded_drop_columns, axis=1), rounded_transit_times_path)
         else:
             et_df = read_df(et_file)
             if print_file_exists(timesteps_path):
@@ -220,10 +218,7 @@ class TransitTimeDataframe:
             self.transit_time_path = write_df(frame, transit_times_path)
             print_file_exists(self.transit_time_path)
 
-            rounded_frame = frame.drop(['start_datetime', 'min_datetime', 'end_datetime',
-                                        'start_angle', 'min_angle', 'end_angle', 'arc_angle'], axis=1)
-
-            self.rounded_transit_time_path = write_df(rounded_frame, rounded_transit_times_path)
+            self.rounded_transit_time_path = write_df(frame.drop(rounded_drop_columns, axis=1), rounded_transit_times_path)
             print_file_exists(self.rounded_transit_time_path)
 
 
@@ -245,8 +240,7 @@ class TransitTimeJob(Job):  # super -> job name, result key, function/object, ar
 
 def transit_time_processing(job_manager, route: Route):
     print(f'\nCalculating transit timesteps')
-    keys = [job_manager.put(TransitTimeJob(speed, route.elapsed_time_csv_to_speed[speed], Globals.TRANSIT_TIMES_FOLDER))
-            for speed in Globals.BOAT_SPEEDS]
+    keys = [job_manager.put(TransitTimeJob(speed, route.elapsed_time_csv_to_speed[speed], Globals.TRANSIT_TIMES_FOLDER)) for speed in Globals.BOAT_SPEEDS]
     # for speed in Globals.BOAT_SPEEDS:
     #     job = TransitTimeJob(speed, route.elapsed_time_csv_to_speed[speed], Globals.TRANSIT_TIMES_FOLDER)
     #     result = job.execute()
@@ -266,19 +260,17 @@ def transit_time_processing(job_manager, route: Route):
     aggregate_transit_time_df['min_round_datetime'] = pd.to_datetime(aggregate_transit_time_df['min_round_datetime']).dt.strftime("%I:%M %p")
     aggregate_transit_time_df['end_round_datetime'] = pd.to_datetime(aggregate_transit_time_df['end_round_datetime']).dt.strftime("%I:%M %p")
 
-    transit_time_df = (aggregate_transit_time_df.
-        drop(['start_round_angle', 'min_round_angle', 'end_round_angle', 'arc_round_angle', 'start_et', 'min_et', 'end_et'], axis=1)
+    transit_time_df = (aggregate_transit_time_df
+        .drop(['start_round_angle', 'min_round_angle', 'end_round_angle', 'arc_round_angle', 'start_et', 'min_et', 'end_et'], axis=1)
         .rename(columns={'start_round_datetime': 'start', 'min_round_datetime': 'best', 'end_round_datetime': 'end'})
         .set_index(['idx', 'date', 'speed']).add_prefix(route.location_code + " ").reset_index())
     transit_time_df = transit_time_df.fillna("-")
     arc_df = (aggregate_transit_time_df
-              .drop(['start_round_datetime', 'min_round_datetime', 'end_round_datetime', 'arc_round_angle'], axis=1)
-              .rename(columns={'start_round_angle': 'start', 'min_round_angle': 'best', 'end_round_angle': 'end',
-                               'min_et': 'best_et'}))
+        .drop(['start_round_datetime', 'min_round_datetime', 'end_round_datetime', 'arc_round_angle'], axis=1)
+        .rename(columns={'start_round_angle': 'start', 'min_round_angle': 'best', 'end_round_angle': 'end', 'min_et': 'best_et'}))
 
     row_counts = arc_df.count(axis=1)
     arc_df = arc_df[row_counts > 3]
 
-    print_file_exists(
-        write_df(transit_time_df, Globals.TRANSIT_TIMES_FOLDER.joinpath(route.location_code + '_transit_times.csv')))
+    print_file_exists(write_df(transit_time_df, Globals.TRANSIT_TIMES_FOLDER.joinpath(route.location_code + '_transit_times.csv')))
     print_file_exists(write_df(arc_df, Globals.TRANSIT_TIMES_FOLDER.joinpath(route.location_code + '_arcs.csv')))
